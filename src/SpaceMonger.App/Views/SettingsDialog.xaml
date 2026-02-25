@@ -1,0 +1,127 @@
+<Window x:Class="SpaceMonger.App.Views.SettingsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:SpaceMonger.App.ViewModels"
+        xmlns:enums="clr-namespace:SpaceMonger.Core.Enums;assembly=SpaceMonger.Core"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=vm:SettingsViewModel, IsDesignTimeCreatable=False}"
+        Title="Settings"
+        Width="450" Height="400"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner">
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Row 0: API Key Section -->
+        <GroupBox Grid.Row="0" Header="Anthropic API Key" Margin="0,0,0,12">
+            <StackPanel Margin="8">
+                <TextBox Text="{Binding ApiKey, UpdateSourceTrigger=PropertyChanged}"
+                         Margin="0,0,0,8"
+                         Padding="4"
+                         ToolTip="Enter your Anthropic API key. The key will be encrypted at rest." />
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="Validate"
+                            Padding="12,4"
+                            Margin="0,0,8,0"
+                            Command="{Binding ValidateCommand}" />
+                    <TextBlock VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text" Value="" />
+                                <Setter Property="Foreground" Value="Gray" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ValidationState}" Value="{x:Static vm:ValidationState.Validating}">
+                                        <Setter Property="Text" Value="Validating..." />
+                                        <Setter Property="Foreground" Value="Gray" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding ValidationState}" Value="{x:Static vm:ValidationState.Valid}">
+                                        <Setter Property="Text" Value="&#x2714; Valid" />
+                                        <Setter Property="Foreground" Value="Green" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding ValidationState}" Value="{x:Static vm:ValidationState.Invalid}">
+                                        <Setter Property="Text" Value="&#x2718; Invalid" />
+                                        <Setter Property="Foreground" Value="Red" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+                <TextBlock Text="{Binding ValidationMessage}"
+                           Foreground="Red"
+                           TextWrapping="Wrap"
+                           Margin="0,4,0,0"
+                           Visibility="{Binding ValidationMessage, TargetNullValue=Collapsed, FallbackValue=Visible}" />
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Row 1: Deletion Mode Section -->
+        <GroupBox Grid.Row="1" Header="Default Deletion Mode" Margin="0,0,0,12">
+            <StackPanel Margin="8">
+                <ComboBox SelectedItem="{Binding SelectedDeletionMode}"
+                          Padding="4">
+                    <ComboBox.Items>
+                        <enums:DeletionMode>MoveToRecycleBin</enums:DeletionMode>
+                        <enums:DeletionMode>PermanentDelete</enums:DeletionMode>
+                    </ComboBox.Items>
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock>
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="Unknown" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding}" Value="{x:Static enums:DeletionMode.MoveToRecycleBin}">
+                                                <Setter Property="Text" Value="Move to Recycle Bin" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding}" Value="{x:Static enums:DeletionMode.PermanentDelete}">
+                                                <Setter Property="Text" Value="Permanently Delete" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Row 2: Data Privacy Notice -->
+        <GroupBox Grid.Row="2" Header="Data Privacy" Margin="0,0,0,12">
+            <TextBlock Margin="8"
+                       TextWrapping="Wrap"
+                       Foreground="#555555"
+                       Text="When using AI features, file metadata (paths, sizes, types, and dates) is sent to the Anthropic cloud service for analysis. File contents are never transmitted." />
+        </GroupBox>
+
+        <!-- Row 3: Spacer (fills remaining space) -->
+
+        <!-- Row 4: Buttons -->
+        <StackPanel Grid.Row="4"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="0,8,0,0">
+            <Button Content="Save"
+                    Width="80"
+                    Height="28"
+                    Margin="0,0,8,0"
+                    IsDefault="True"
+                    Click="SaveButton_Click" />
+            <Button Content="Cancel"
+                    Width="80"
+                    Height="28"
+                    IsCancel="True"
+                    Click="CancelButton_Click" />
+        </StackPanel>
+    </Grid>
+</Window>
