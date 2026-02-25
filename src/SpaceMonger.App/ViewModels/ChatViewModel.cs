@@ -64,6 +64,12 @@ public partial class ChatViewModel : ObservableObject
         _currentViewRoot = viewRoot;
     }
 
+    public void RefreshApiKeyStatus()
+    {
+        var settings = _settingsService.LoadSettings();
+        IsApiKeyConfigured = !string.IsNullOrEmpty(_settingsService.GetApiKey(settings));
+    }
+
     partial void OnLinkedEntryChanged(FileEntry? value)
     {
         LinkedItemPath = value?.Path;

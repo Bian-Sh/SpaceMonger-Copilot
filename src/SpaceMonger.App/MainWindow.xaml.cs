@@ -233,6 +233,9 @@ public partial class MainWindow : Window
         };
 
         dialog.ShowDialog();
+
+        // Refresh chat panel API key status after settings dialog closes
+        _chatViewModel?.RefreshApiKeyStatus();
     }
 
     private async void OnCleanupRequested()

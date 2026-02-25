@@ -1,9 +1,18 @@
+using System.IO.Enumeration;
 using SpaceMonger.Core.Models;
 
 namespace SpaceMonger.Core.Services.Scanning;
 
 public class FileScanner : IFileScanner
 {
+    // Windows cloud placeholder file attributes (OneDrive Files On-Demand, etc.)
+    private const FileAttributes RecallOnDataAccess = (FileAttributes)0x00400000;
+    private const FileAttributes RecallOnOpen = (FileAttributes)0x00040000;
+    private const FileAttributes CloudPlaceholderMask = RecallOnDataAccess | RecallOnOpen | FileAttributes.Offline;
+
+    // Throttle progress reports to avoid flooding the UI thread.
+    private const int ProgressReportInterval = 200;
+
     public async Task<ScanSession> ScanAsync(
         string path,
         IProgress<ScanProgress> progress,
@@ -17,15 +26,16 @@ public class FileScanner : IFileScanner
 
         PopulateDriveInfo(session, path);
 
-        var rootEntry = CreateDirectoryEntry(path, parent: null, depth: 0);
+        var rootEntry = CreateRootEntry(path);
 
         int fileCount = 0;
-        int folderCount = 1; // Count the root directory itself.
+        int folderCount = 1;
 
         await Task.Run(() =>
         {
             var queue = new Queue<FileEntry>();
             queue.Enqueue(rootEntry);
+            int reportCounter = 0;
 
             while (queue.Count > 0)
             {
@@ -39,14 +49,27 @@ public class FileScanner : IFileScanner
 
                 try
                 {
-                    // Skip reparse points to avoid infinite loops from symlinks/junctions.
-                    if (current.IsReparsePoint)
-                    {
-                        continue;
-                    }
+                    // Use FileSystemEnumerable<T> to read all entries in one pass.
+                    // This maps directly to FindFirstFile/FindNextFile — one syscall per entry,
+                    // no extra GetFileAttributesEx or stat calls like FileInfo/DirectoryInfo would cause.
+                    var enumerable = new FileSystemEnumerable<(string FullPath, string Name, FileAttributes Attributes, long Length, DateTime LastWrite, bool IsDir)>(
+                        current.Path,
+                        (ref FileSystemEntry entry) => (
+                            entry.ToFullPath(),
+                            entry.FileName.ToString(),
+                            entry.Attributes,
+                            entry.Length,
+                            entry.LastWriteTimeUtc.LocalDateTime,
+                            entry.IsDirectory
+                        ),
+                        new EnumerationOptions
+                        {
+                            IgnoreInaccessible = false,
+                            RecurseSubdirectories = false,
+                            AttributesToSkip = 0 // Don't skip anything — we handle attributes ourselves.
+                        });
 
-                    // Enumerate subdirectories.
-                    foreach (var dirPath in Directory.EnumerateDirectories(current.Path))
+                    foreach (var item in enumerable)
                     {
                         if (cancellationToken.IsCancellationRequested)
                         {
@@ -54,34 +77,50 @@ public class FileScanner : IFileScanner
                             break;
                         }
 
-                        var childDir = CreateDirectoryEntry(dirPath, parent: current, depth: current.Depth + 1);
-                        current.Children.Add(childDir);
-                        folderCount++;
+                        var isReparsePoint = (item.Attributes & FileAttributes.ReparsePoint) != 0;
 
-                        // Only enqueue non-reparse-point directories for further traversal.
-                        if (!childDir.IsReparsePoint)
+                        if (item.IsDir)
                         {
-                            queue.Enqueue(childDir);
+                            var childDir = new FileEntry
+                            {
+                                Path = item.FullPath,
+                                Name = item.Name,
+                                IsDirectory = true,
+                                IsReparsePoint = isReparsePoint,
+                                LastModified = item.LastWrite,
+                                Depth = current.Depth + 1,
+                                Parent = current
+                            };
+                            current.Children.Add(childDir);
+                            folderCount++;
+
+                            if (!isReparsePoint)
+                            {
+                                queue.Enqueue(childDir);
+                            }
                         }
-                    }
-
-                    if (session.IsCancelled)
-                    {
-                        break;
-                    }
-
-                    // Enumerate files.
-                    foreach (var filePath in Directory.EnumerateFiles(current.Path))
-                    {
-                        if (cancellationToken.IsCancellationRequested)
+                        else
                         {
-                            session.IsCancelled = true;
-                            break;
-                        }
+                            var isCloudPlaceholder = (item.Attributes & CloudPlaceholderMask) != 0;
 
-                        var childFile = CreateFileEntry(filePath, parent: current, depth: current.Depth + 1);
-                        current.Children.Add(childFile);
-                        fileCount++;
+                            var childFile = new FileEntry
+                            {
+                                Path = item.FullPath,
+                                Name = item.Name,
+                                IsDirectory = false,
+                                IsReparsePoint = isReparsePoint,
+                                IsCloudPlaceholder = isCloudPlaceholder,
+                                LastModified = item.LastWrite,
+                                Extension = System.IO.Path.GetExtension(item.Name)?.ToLowerInvariant(),
+                                // Length comes straight from WIN32_FIND_DATA — no extra syscall.
+                                // Cloud placeholders report 0 to avoid triggering downloads.
+                                Size = isCloudPlaceholder ? 0 : item.Length,
+                                Depth = current.Depth + 1,
+                                Parent = current
+                            };
+                            current.Children.Add(childFile);
+                            fileCount++;
+                        }
                     }
                 }
                 catch (UnauthorizedAccessException)
@@ -93,8 +132,15 @@ public class FileScanner : IFileScanner
                     // Skip directories that cannot be read due to I/O errors.
                 }
 
-                progress.Report(new ScanProgress(current.Path, fileCount, folderCount));
+                // Throttle progress reports — reporting every directory hammers the UI thread.
+                if (++reportCounter % ProgressReportInterval == 0)
+                {
+                    progress.Report(new ScanProgress(current.Path, fileCount, folderCount));
+                }
             }
+
+            // Final progress report.
+            progress.Report(new ScanProgress("Calculating sizes...", fileCount, folderCount));
 
             // Calculate directory sizes bottom-up.
             CalculateSizesBottomUp(rootEntry);
@@ -131,68 +177,18 @@ public class FileScanner : IFileScanner
         }
     }
 
-    private static FileEntry CreateDirectoryEntry(string dirPath, FileEntry? parent, int depth)
+    private static FileEntry CreateRootEntry(string path)
     {
-        var dirInfo = new DirectoryInfo(dirPath);
-        var isReparsePoint = (dirInfo.Attributes & FileAttributes.ReparsePoint) != 0;
-
+        // Only the root needs a DirectoryInfo call — one syscall for the entire scan.
+        var dirInfo = new DirectoryInfo(path);
         return new FileEntry
         {
             Path = dirInfo.FullName,
             Name = dirInfo.Name,
             IsDirectory = true,
-            IsReparsePoint = isReparsePoint,
+            IsReparsePoint = (dirInfo.Attributes & FileAttributes.ReparsePoint) != 0,
             LastModified = dirInfo.LastWriteTime,
-            Extension = null,
-            Depth = depth,
-            Parent = parent
-        };
-    }
-
-    // Windows cloud placeholder file attributes (OneDrive Files On-Demand, etc.)
-    private const FileAttributes RecallOnDataAccess = (FileAttributes)0x00400000;
-    private const FileAttributes RecallOnOpen = (FileAttributes)0x00040000;
-
-    private static bool IsCloudPlaceholderFile(FileAttributes attributes)
-    {
-        return (attributes & RecallOnDataAccess) != 0
-            || (attributes & RecallOnOpen) != 0
-            || (attributes & FileAttributes.Offline) != 0;
-    }
-
-    private static FileEntry CreateFileEntry(string filePath, FileEntry? parent, int depth)
-    {
-        var fileInfo = new FileInfo(filePath);
-        var isReparsePoint = (fileInfo.Attributes & FileAttributes.ReparsePoint) != 0;
-        var isCloudPlaceholder = IsCloudPlaceholderFile(fileInfo.Attributes);
-
-        long size = 0;
-        try
-        {
-            // Only read file size if it's not a cloud placeholder.
-            // Accessing .Length on cloud-only files forces Windows to download them.
-            if (!isCloudPlaceholder)
-            {
-                size = fileInfo.Length;
-            }
-        }
-        catch (Exception)
-        {
-            // File may have been deleted or become inaccessible between enumeration and size read.
-        }
-
-        return new FileEntry
-        {
-            Path = fileInfo.FullName,
-            Name = fileInfo.Name,
-            IsDirectory = false,
-            IsReparsePoint = isReparsePoint,
-            IsCloudPlaceholder = isCloudPlaceholder,
-            LastModified = fileInfo.LastWriteTime,
-            Extension = System.IO.Path.GetExtension(fileInfo.Name)?.ToLowerInvariant(),
-            Size = size,
-            Depth = depth,
-            Parent = parent
+            Depth = 0
         };
     }
 
@@ -202,7 +198,6 @@ public class FileScanner : IFileScanner
     /// </summary>
     private static void CalculateSizesBottomUp(FileEntry root)
     {
-        // Use an iterative post-order traversal to avoid stack overflow on deep trees.
         var stack = new Stack<FileEntry>();
         var postOrder = new List<FileEntry>();
 
@@ -221,7 +216,6 @@ public class FileScanner : IFileScanner
             }
         }
 
-        // Process in reverse order so children are calculated before parents.
         for (int i = postOrder.Count - 1; i >= 0; i--)
         {
             var dir = postOrder[i];
