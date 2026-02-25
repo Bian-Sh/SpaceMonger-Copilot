@@ -10,6 +10,7 @@ public class FileEntry
     public bool IsDirectory { get; set; }
     public bool IsReparsePoint { get; set; }
     public bool IsAccessDenied { get; set; }
+    public bool IsCloudPlaceholder { get; set; }
     public byte[]? ContentHash { get; set; }
     public FileEntry? Parent { get; set; }
     public List<FileEntry> Children { get; set; } = new();

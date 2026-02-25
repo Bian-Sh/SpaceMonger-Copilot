@@ -49,6 +49,10 @@ public class DuplicateDetector : IDuplicateDetector
     {
         if (!entry.IsDirectory)
         {
+            // Skip cloud placeholder files — reading their content forces a download.
+            if (entry.IsCloudPlaceholder)
+                return;
+
             files.Add(entry);
             return;
         }

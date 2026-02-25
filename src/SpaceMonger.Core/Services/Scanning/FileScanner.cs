@@ -149,15 +149,32 @@ public class FileScanner : IFileScanner
         };
     }
 
+    // Windows cloud placeholder file attributes (OneDrive Files On-Demand, etc.)
+    private const FileAttributes RecallOnDataAccess = (FileAttributes)0x00400000;
+    private const FileAttributes RecallOnOpen = (FileAttributes)0x00040000;
+
+    private static bool IsCloudPlaceholderFile(FileAttributes attributes)
+    {
+        return (attributes & RecallOnDataAccess) != 0
+            || (attributes & RecallOnOpen) != 0
+            || (attributes & FileAttributes.Offline) != 0;
+    }
+
     private static FileEntry CreateFileEntry(string filePath, FileEntry? parent, int depth)
     {
         var fileInfo = new FileInfo(filePath);
         var isReparsePoint = (fileInfo.Attributes & FileAttributes.ReparsePoint) != 0;
+        var isCloudPlaceholder = IsCloudPlaceholderFile(fileInfo.Attributes);
 
         long size = 0;
         try
         {
-            size = fileInfo.Length;
+            // Only read file size if it's not a cloud placeholder.
+            // Accessing .Length on cloud-only files forces Windows to download them.
+            if (!isCloudPlaceholder)
+            {
+                size = fileInfo.Length;
+            }
         }
         catch (Exception)
         {
@@ -170,6 +187,7 @@ public class FileScanner : IFileScanner
             Name = fileInfo.Name,
             IsDirectory = false,
             IsReparsePoint = isReparsePoint,
+            IsCloudPlaceholder = isCloudPlaceholder,
             LastModified = fileInfo.LastWriteTime,
             Extension = System.IO.Path.GetExtension(fileInfo.Name)?.ToLowerInvariant(),
             Size = size,
