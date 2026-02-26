@@ -142,9 +142,21 @@ public partial class MainWindow : Window
         // Show the panel immediately so the user sees the loading indicator
         RecommendationsPanel.Visibility = Visibility.Visible;
 
-        _recommendationsViewModel.SetContext(mainVm.CurrentSession, apiKey);
+        // If the user has drilled into a folder, scope the analysis to that subtree.
+        // At the top level (CurrentRoot == scan root), analyze the whole drive.
+        FileEntry? focusEntry = null;
+        if (_treemapViewModel?.CurrentRoot is not null
+            && _treemapViewModel.CurrentRoot != mainVm.CurrentSession.RootEntry)
+        {
+            focusEntry = _treemapViewModel.CurrentRoot;
+        }
 
-        mainVm.ScanProgressText = "Analyzing scan results...";
+        _recommendationsViewModel.SetContext(mainVm.CurrentSession, apiKey, focusEntry);
+
+        var scopeLabel = focusEntry is not null
+            ? $"Analyzing {focusEntry.Name}..."
+            : "Analyzing scan results...";
+        mainVm.ScanProgressText = scopeLabel;
         AnalyzeButton.IsEnabled = false;
 
         await _recommendationsViewModel.AnalyzeCommand.ExecuteAsync(null);

@@ -50,14 +50,19 @@ public class RecommendationEngine : IRecommendationEngine
     public async Task<List<CleanupRecommendation>> AnalyzeAsync(
         ScanSession session,
         string apiKey,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        FileEntry? focusEntry = null)
     {
         if (session.RootEntry is null)
         {
             return [];
         }
 
-        var metadataJson = BuildCompactMetadata(session);
+        // When a focusEntry is provided (user drilled into a folder), analyze
+        // only that subtree.  Otherwise analyze the full scan root.
+        var analysisRoot = focusEntry ?? session.RootEntry;
+
+        var metadataJson = BuildCompactMetadata(session, analysisRoot);
         var systemPrompt = BuildSystemPrompt();
 
         var response = await _llmClient.SendAnalysisAsync(systemPrompt, metadataJson, apiKey, cancellationToken);
@@ -76,14 +81,12 @@ public class RecommendationEngine : IRecommendationEngine
         return recommendations;
     }
 
-    private static string BuildCompactMetadata(ScanSession session)
+    private static string BuildCompactMetadata(ScanSession session, FileEntry analysisRoot)
     {
-        var root = session.RootEntry!;
-
-        // Collect all entries in a single pass
+        // Collect all entries in a single pass from the analysis root
         var allFiles = new List<FileEntry>();
         var allDirs = new List<FileEntry>();
-        CollectEntries(root, allFiles, allDirs);
+        CollectEntries(analysisRoot, allFiles, allDirs);
 
         // Top directories by size (these are the actionable items)
         var topDirs = allDirs
@@ -127,10 +130,13 @@ public class RecommendationEngine : IRecommendationEngine
         // Build a compact pipe-delimited format instead of verbose JSON.
         // This is ~5-10x smaller than the equivalent JSON with full property names.
         var sb = new System.Text.StringBuilder();
+        var isFocused = analysisRoot != session.RootEntry;
         sb.AppendLine($"SCAN: {session.TargetPath}");
-        sb.AppendLine($"TOTAL_FILES: {session.TotalFiles}");
-        sb.AppendLine($"TOTAL_FOLDERS: {session.TotalFolders}");
-        sb.AppendLine($"TOTAL_SIZE: {session.TotalSize}");
+        if (isFocused)
+            sb.AppendLine($"FOCUS: {analysisRoot.Path}");
+        sb.AppendLine($"TOTAL_FILES: {allFiles.Count}");
+        sb.AppendLine($"TOTAL_FOLDERS: {allDirs.Count}");
+        sb.AppendLine($"TOTAL_SIZE: {analysisRoot.Size}");
         sb.AppendLine();
 
         sb.AppendLine("## LARGEST DIRECTORIES (path|size_bytes|contents)");
