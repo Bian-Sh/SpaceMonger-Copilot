@@ -19,13 +19,13 @@
         <ToolBarTray DockPanel.Dock="Top" IsLocked="True">
             <ToolBar Band="0" BandIndex="0" Header="Navigation">
                 <ComboBox x:Name="DriveSelector"
-                          Width="200"
+                          Width="350"
                           VerticalAlignment="Center"
                           Margin="4,2"
                           ItemsSource="{Binding DriveList}"
-                          SelectedItem="{Binding SelectedPath}"
+                          Text="{Binding SelectedPath, UpdateSourceTrigger=PropertyChanged}"
                           IsEditable="True"
-                          ToolTip="Select a drive or folder to scan" />
+                          ToolTip="Select a drive or folder to scan, or type/paste a path" />
                 <Button x:Name="BrowseButton"
                         Content="Browse..."
                         Padding="8,2"
