@@ -6,7 +6,8 @@ public class SquarifiedTreemapLayout : ITreemapLayoutEngine
 {
     private const float HeaderBaseHeight = 18f;
     private const float HeaderMinHeight = 10f;
-    private const float BorderPadding = 2f;
+    private const float BorderBasePadding = 8f;
+    private const float BorderMinPadding = 3f;
     private const float MinNodeDimension = 14f;
 
     // A directory only expands its children if the content area (after header
@@ -92,10 +93,11 @@ public class SquarifiedTreemapLayout : ITreemapLayoutEngine
         if (depth >= maxDepth)
             return;
 
-        float contentX = rect.X + BorderPadding;
+        float borderPad = GetBorderPadding(depth, rect.Width, rect.Height);
+        float contentX = rect.X + borderPad;
         float contentY = rect.Y + headerHeight;
-        float contentW = rect.Width - BorderPadding * 2;
-        float contentH = rect.Height - headerHeight - BorderPadding;
+        float contentW = rect.Width - borderPad * 2;
+        float contentH = rect.Height - headerHeight - borderPad;
 
         // Area-based pruning: if the content area is too small to show
         // meaningful children, treat this directory as a leaf (solid block).
@@ -275,6 +277,16 @@ public class SquarifiedTreemapLayout : ITreemapLayoutEngine
         h = Math.Max(h, HeaderMinHeight);
         h = Math.Min(h, availableHeight * 0.4f);
         return h;
+    }
+
+    private static float GetBorderPadding(int depth, float width, float height)
+    {
+        float p = BorderBasePadding - depth * 0.5f;
+        p = Math.Max(p, BorderMinPadding);
+        // Don't let padding eat too much of small nodes.
+        p = Math.Min(p, width * 0.08f);
+        p = Math.Min(p, height * 0.08f);
+        return p;
     }
 
     private static float WorstAspectRatio(List<float> rowAreas, float sideLength)

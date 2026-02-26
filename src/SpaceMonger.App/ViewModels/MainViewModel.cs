@@ -44,6 +44,13 @@ public partial class MainViewModel : ObservableObject
 
     public event Action<ScanSession>? ScanCompleted;
 
+    /// <summary>
+    /// When set, provides the path of the currently drilled-in folder.
+    /// If the user is drilled into a subfolder, Scan will target that folder
+    /// instead of the combo box path.
+    /// </summary>
+    public Func<string?>? GetCurrentViewPath { get; set; }
+
     public MainViewModel(IFileScanner fileScanner)
     {
         _fileScanner = fileScanner;
@@ -62,8 +69,15 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanScan))]
     private async Task ScanAsync()
     {
-        if (SelectedPath is null)
+        // If drilled into a subfolder, scan that folder instead of the combo box path.
+        var viewPath = GetCurrentViewPath?.Invoke();
+        var scanTarget = viewPath ?? SelectedPath;
+
+        if (scanTarget is null)
             return;
+
+        // Update the combo box to reflect what we're actually scanning.
+        SelectedPath = scanTarget;
 
         IsScanning = true;
         ScanProgressText = "Scanning...";
@@ -76,7 +90,7 @@ public partial class MainViewModel : ObservableObject
                 ScanProgressText = $"Scanning: {p.FileCount:N0} files, {p.FolderCount:N0} folders";
             });
 
-            var session = await _fileScanner.ScanAsync(SelectedPath, progress, _scanCts.Token);
+            var session = await _fileScanner.ScanAsync(scanTarget, progress, _scanCts.Token);
             CurrentSession = session;
             UpdateStatusBar(session);
             ScanCompleted?.Invoke(session);

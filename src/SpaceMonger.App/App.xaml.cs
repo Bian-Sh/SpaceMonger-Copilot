@@ -72,6 +72,17 @@ public partial class App : Application
         mainWindow.SetViewModels(recommendationsViewModel, settingsViewModel);
         mainWindow.SetChatViewModel(chatViewModel);
 
+        // When drilled into a subfolder, Scan targets that folder.
+        mainViewModel.GetCurrentViewPath = () =>
+        {
+            if (treemapViewModel.CurrentRoot is not null
+                && treemapViewModel.CurrentRoot != treemapViewModel.ScanRoot)
+            {
+                return treemapViewModel.CurrentRoot.Path;
+            }
+            return null;
+        };
+
         mainViewModel.ScanCompleted += session =>
         {
             treemapViewModel.SetRoot(session.RootEntry!, session);

@@ -62,10 +62,11 @@ dotnet test SpaceMonger.sln
 
 ### Scanning
 
-1. Select a drive or folder from the dropdown (or click **Browse...**)
+1. Select a drive or folder from the dropdown, type/paste a path, or click **Browse...** (which starts scanning immediately)
 2. Click **Scan** to start — progress shows files and folders counted
-3. The treemap fills in when the scan completes
+3. The treemap fills in when the scan completes, with free space shown as an off-white block at the drive level
 4. Click any folder rectangle to drill in, click **Up** or press **Escape** to go back
+5. Clicking **Scan** while drilled into a subfolder rescans just that folder
 
 ### AI Cleanup Recommendations
 

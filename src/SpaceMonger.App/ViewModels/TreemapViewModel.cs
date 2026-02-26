@@ -11,6 +11,8 @@ public partial class TreemapViewModel : ObservableObject
     private readonly ITreemapLayoutEngine _layoutEngine;
     private readonly Stack<FileEntry> _navigationStack = new();
     private FileEntry? _scanRoot;
+
+    public FileEntry? ScanRoot => _scanRoot;
     private ScanSession? _session;
 
     [ObservableProperty]
