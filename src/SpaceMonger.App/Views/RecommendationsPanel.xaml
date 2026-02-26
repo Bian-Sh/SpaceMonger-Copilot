@@ -23,9 +23,21 @@
         </Grid.RowDefinitions>
 
         <!-- Row 0: Filter Bar -->
-        <StackPanel Grid.Row="0"
-                    Orientation="Horizontal"
-                    Margin="8"
+        <DockPanel Grid.Row="0"
+                   Margin="8"
+                   LastChildFill="True">
+            <Button DockPanel.Dock="Right"
+                    Content="&#x2715;"
+                    FontSize="14"
+                    Padding="6,2"
+                    Margin="4,0,0,0"
+                    VerticalAlignment="Center"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Cursor="Hand"
+                    Click="CloseButton_Click"
+                    ToolTip="Close recommendations panel" />
+        <StackPanel Orientation="Horizontal"
                     VerticalAlignment="Center">
             <Label Content="Filter by:"
                    VerticalAlignment="Center"
@@ -71,6 +83,7 @@
                     Margin="0,0,4,0"
                     Command="{Binding DeselectAllCautionCommand}" />
         </StackPanel>
+        </DockPanel>
 
         <!-- Analyzing overlay (covers rows 1-2) -->
         <Border Grid.Row="1" Grid.RowSpan="2"

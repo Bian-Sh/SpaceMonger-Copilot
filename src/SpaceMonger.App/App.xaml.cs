@@ -74,7 +74,7 @@ public partial class App : Application
 
         mainViewModel.ScanCompleted += session =>
         {
-            treemapViewModel.SetRoot(session.RootEntry!);
+            treemapViewModel.SetRoot(session.RootEntry!, session);
             chatViewModel.SetContext(session, session.RootEntry!);
         };
 

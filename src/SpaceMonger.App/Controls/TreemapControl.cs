@@ -238,11 +238,12 @@ public class TreemapControl : SKElement
 
             if (node != _lastHoveredNode)
             {
+                // Close first so WPF recalculates position at the new mouse location.
+                _toolTip.IsOpen = false;
                 _lastHoveredNode = node;
                 UpdateToolTipContent(node);
+                _toolTip.IsOpen = true;
             }
-
-            _toolTip.IsOpen = true;
         }
         else
         {

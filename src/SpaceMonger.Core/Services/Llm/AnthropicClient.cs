@@ -51,6 +51,74 @@ public class AnthropicClient : ILlmClient
         return await SendRequestWithRetryAsync(requestBody, apiKey, cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<string> StreamChatAsync(
+        string systemPrompt,
+        List<(string role, string content)> messages,
+        string apiKey,
+        Action<string> onToken,
+        CancellationToken cancellationToken)
+    {
+        var requestBody = BuildRequestBody(systemPrompt, messages, ChatMaxTokens);
+        requestBody["stream"] = true;
+
+        var jsonBody = requestBody.ToJsonString();
+        using var request = CreateRequest(jsonBody, apiKey);
+
+        using var response = await _httpClient.SendAsync(
+            request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            throw new HttpRequestException(
+                $"Anthropic API streaming request failed with status {(int)response.StatusCode}: {errorBody}");
+        }
+
+        using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        using var reader = new StreamReader(stream, Encoding.UTF8);
+
+        var fullResponse = new StringBuilder();
+
+        while (!reader.EndOfStream)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+            if (line is null)
+                break;
+
+            if (!line.StartsWith("data: ", StringComparison.Ordinal))
+                continue;
+
+            var eventData = line.Substring(6);
+            if (eventData == "[DONE]")
+                break;
+
+            using var doc = JsonDocument.Parse(eventData);
+            var root = doc.RootElement;
+
+            if (!root.TryGetProperty("type", out var typeElement))
+                continue;
+
+            var eventType = typeElement.GetString();
+
+            if (eventType == "content_block_delta"
+                && root.TryGetProperty("delta", out var delta)
+                && delta.TryGetProperty("text", out var textElement))
+            {
+                var text = textElement.GetString();
+                if (text is not null)
+                {
+                    fullResponse.Append(text);
+                    onToken(text);
+                }
+            }
+        }
+
+        return fullResponse.ToString();
+    }
+
     public async Task<bool> ValidateApiKeyAsync(string apiKey)
     {
         var requestBody = new JsonObject

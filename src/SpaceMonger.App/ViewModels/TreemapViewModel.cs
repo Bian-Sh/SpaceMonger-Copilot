@@ -11,6 +11,7 @@ public partial class TreemapViewModel : ObservableObject
     private readonly ITreemapLayoutEngine _layoutEngine;
     private readonly Stack<FileEntry> _navigationStack = new();
     private FileEntry? _scanRoot;
+    private ScanSession? _session;
 
     [ObservableProperty]
     private FileEntry? _currentRoot;
@@ -41,9 +42,10 @@ public partial class TreemapViewModel : ObservableObject
         _layoutEngine = layoutEngine;
     }
 
-    public void SetRoot(FileEntry root)
+    public void SetRoot(FileEntry root, ScanSession? session = null)
     {
         _scanRoot = root;
+        _session = session;
         _navigationStack.Clear();
         CurrentRoot = root;
         UpdateBreadcrumb();
@@ -126,6 +128,13 @@ public partial class TreemapViewModel : ObservableObject
         RecomputeLayout();
     }
 
+    private static readonly FileEntry FreeSpaceSentinel = new()
+    {
+        Name = "Free Space",
+        IsDirectory = false,
+        Path = "(free space)",
+    };
+
     private void RecomputeLayout()
     {
         if (CurrentRoot is null || ViewWidth <= 0 || ViewHeight <= 0)
@@ -134,7 +143,55 @@ public partial class TreemapViewModel : ObservableObject
             return;
         }
 
-        Nodes = _layoutEngine.ComputeLayout(CurrentRoot, ViewWidth, ViewHeight, maxDepth: 8);
+        // When viewing the scan root of a whole-drive scan, temporarily inject
+        // a synthetic "Free Space" child so the layout engine allocates a
+        // proportional block for it — matching classic SpaceMonger behavior.
+        bool injectedFreeSpace = false;
+        if (CurrentRoot == _scanRoot
+            && _session?.DriveCapacity is not null
+            && _session.DriveFreeSpace is not null
+            && _session.DriveFreeSpace.Value > 0)
+        {
+            FreeSpaceSentinel.Size = _session.DriveFreeSpace.Value;
+
+            // Temporarily adjust the root to include free space in the total.
+            CurrentRoot.Children.Add(FreeSpaceSentinel);
+            var originalSize = CurrentRoot.Size;
+            CurrentRoot.Size = _session.DriveCapacity.Value;
+            injectedFreeSpace = true;
+
+            var nodes = _layoutEngine.ComputeLayout(CurrentRoot, ViewWidth, ViewHeight, maxDepth: 8);
+
+            // Restore the original tree state.
+            CurrentRoot.Children.Remove(FreeSpaceSentinel);
+            CurrentRoot.Size = originalSize;
+
+            // Style the free space node: off-white to match the drive root color.
+            foreach (var node in nodes)
+            {
+                if (node.Entry == FreeSpaceSentinel)
+                {
+                    node.ColorHex = "#F0F0E8";
+                    node.Label = $"Free Space ({FormatSize(_session.DriveFreeSpace.Value)})";
+                }
+            }
+
+            Nodes = nodes;
+        }
+
+        if (!injectedFreeSpace)
+        {
+            Nodes = _layoutEngine.ComputeLayout(CurrentRoot, ViewWidth, ViewHeight, maxDepth: 8);
+        }
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024L) return $"{bytes} B";
+        if (bytes < 1024L * 1024) return $"{bytes / 1024.0:F1} KB";
+        if (bytes < 1024L * 1024 * 1024) return $"{bytes / (1024.0 * 1024):F1} MB";
+        if (bytes < 1024L * 1024 * 1024 * 1024) return $"{bytes / (1024.0 * 1024 * 1024):F1} GB";
+        return $"{bytes / (1024.0 * 1024 * 1024 * 1024):F1} TB";
     }
 
     private void UpdateBreadcrumb()

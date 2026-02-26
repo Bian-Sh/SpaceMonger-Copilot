@@ -34,6 +34,7 @@ public partial class MainWindow : Window
         _settingsViewModel = settingsVm;
         RecommendationsPanel.SetViewModel(recsVm);
         RecommendationsPanel.CleanupRequested += OnCleanupRequested;
+        RecommendationsPanel.CloseRequested += () => RecommendationsPanel.Visibility = Visibility.Collapsed;
     }
 
     public void SetTreemapViewModel(TreemapViewModel treemapVm)

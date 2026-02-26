@@ -8,7 +8,7 @@
         xmlns:views="clr-namespace:SpaceMonger.App.Views"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel, IsDesignTimeCreatable=False}"
-        Title="SpaceMonger"
+        Title="SpaceMonger Next"
         Height="800" Width="1200"
         WindowStartupLocation="CenterScreen"
         KeyDown="Window_KeyDown">
@@ -47,11 +47,11 @@
                         Command="{Binding CancelScanCommand}"
                         ToolTip="Cancel the current scan" />
                 <Button x:Name="AnalyzeButton"
-                        Content="Analyze"
+                        Content="Recommend Cleanup"
                         Padding="8,2"
                         Margin="4,2"
                         Click="AnalyzeButton_Click"
-                        ToolTip="Run AI analysis on the scan results" />
+                        ToolTip="Uses AI to scan the current view and recommend files and folders that can be safely removed to free up disk space. Only deletable items are shown — files deemed important are not listed." />
                 <Separator Margin="4,0" />
                 <ToggleButton x:Name="ChatToggleButton"
                               Content="Chat"

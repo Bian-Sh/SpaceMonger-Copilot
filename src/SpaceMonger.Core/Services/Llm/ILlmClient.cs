@@ -14,5 +14,12 @@ public interface ILlmClient
         string apiKey,
         CancellationToken cancellationToken);
 
+    Task<string> StreamChatAsync(
+        string systemPrompt,
+        List<(string role, string content)> messages,
+        string apiKey,
+        Action<string> onToken,
+        CancellationToken cancellationToken);
+
     Task<bool> ValidateApiKeyAsync(string apiKey);
 }

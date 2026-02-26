@@ -70,6 +70,11 @@ public partial class RecommendationsViewModel : ObservableObject
         IsAnalyzing = true;
         AnalysisError = null;
 
+        // Clear previous recommendations immediately so stale results from
+        // a different scope (e.g. subfolder) don't persist if this call fails.
+        Recommendations = new ObservableCollection<CleanupRecommendation>();
+        ApplyFilters();
+
         try
         {
             var results = await _recommendationEngine.AnalyzeAsync(
@@ -77,11 +82,12 @@ public partial class RecommendationsViewModel : ObservableObject
 
             Recommendations = new ObservableCollection<CleanupRecommendation>(results);
             ApplyFilters();
-            HasRecommendations = true;
+            HasRecommendations = Recommendations.Count > 0;
         }
         catch (Exception ex)
         {
             AnalysisError = ex.Message;
+            HasRecommendations = false;
         }
         finally
         {

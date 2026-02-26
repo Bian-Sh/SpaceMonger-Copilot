@@ -13,5 +13,15 @@ public interface IChatService
         string apiKey,
         CancellationToken cancellationToken);
 
+    Task<string> StreamMessageAsync(
+        string userMessage,
+        FileEntry? linkedEntry,
+        CleanupRecommendation? linkedRecommendation,
+        FileEntry currentViewRoot,
+        ScanSession session,
+        string apiKey,
+        Action<string> onToken,
+        CancellationToken cancellationToken);
+
     void ClearHistory();
 }

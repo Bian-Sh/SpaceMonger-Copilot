@@ -101,27 +101,33 @@ public partial class ChatViewModel : ObservableObject
         };
         Messages.Add(userMessage);
 
+        // Add a placeholder assistant message that will be updated with streamed tokens.
+        var assistantMessage = new ChatMessage
+        {
+            Sender = ChatSender.Assistant,
+            Text = "",
+            Timestamp = DateTime.Now,
+            IsStreaming = true
+        };
+        Messages.Add(assistantMessage);
+
         try
         {
             var settings = _settingsService.LoadSettings();
             var apiKey = _settingsService.GetApiKey(settings)!;
 
-            var response = await _chatService.SendMessageAsync(
-                InputText,
+            var userInput = InputText;
+            await _chatService.StreamMessageAsync(
+                userInput,
                 LinkedEntry,
                 LinkedRecommendation,
                 _currentViewRoot!,
                 _currentSession!,
                 apiKey,
+                token => assistantMessage.Text += token,
                 CancellationToken.None);
 
-            var assistantMessage = new ChatMessage
-            {
-                Sender = ChatSender.Assistant,
-                Text = response,
-                Timestamp = DateTime.Now
-            };
-            Messages.Add(assistantMessage);
+            assistantMessage.IsStreaming = false;
 
             InputText = null;
             LinkedEntry = null;
@@ -130,14 +136,18 @@ public partial class ChatViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            var errorChatMessage = new ChatMessage
+            if (!string.IsNullOrEmpty(assistantMessage.Text))
             {
-                Sender = ChatSender.Assistant,
-                Text = ex.Message,
-                Timestamp = DateTime.Now,
-                IsError = true
-            };
-            Messages.Add(errorChatMessage);
+                assistantMessage.IsStreaming = false;
+                assistantMessage.Text += $"\n\n[Error: {ex.Message}]";
+                assistantMessage.IsError = true;
+            }
+            else
+            {
+                assistantMessage.Text = ex.Message;
+                assistantMessage.IsStreaming = false;
+                assistantMessage.IsError = true;
+            }
 
             ErrorMessage = ex.Message;
         }

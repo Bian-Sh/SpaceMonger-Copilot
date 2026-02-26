@@ -14,14 +14,51 @@ public class RecommendationEngine : IRecommendationEngine
     private const int MaxTopFiles = 100;
     private const int MaxKnownPatternItems = 50;
     private const int MaxDuplicateGroups = 20;
+    private const int MaxContentFingerprint = 30;
+    private const int MaxSampleFiles = 15;
     private const long DuplicateMinSize = 1_048_576; // 1 MB
 
-    private static readonly string[] KnownCleanupPatterns =
+    // Well-known OS and application temp/cache paths that are safe to match
+    // by convention. These use full path segments to avoid false positives
+    // on user-created folders that happen to contain "temp" or "cache".
+    private static readonly string[] StandardTempPaths =
     [
-        "Temp", ".npm", ".nuget", "node_modules", "obj", "bin",
-        "__pycache__", ".gradle", "Cache", "CacheStorage",
-        "Code Cache", "GPUCache", "INetCache", ".cache", "logs", "Log"
+        @"AppData\Local\Temp",
+        @"Windows\Temp",
+        @"Windows\Prefetch",
     ];
+
+    // Directory names that are safe cleanup targets when they appear as an
+    // exact folder name anywhere in the tree (build artifacts, package caches).
+    private static readonly string[] SafeDirectoryNames =
+    [
+        ".npm", ".nuget", "node_modules", "obj", "bin",
+        "__pycache__", ".gradle", "CacheStorage",
+        "Code Cache", "GPUCache", "INetCache", ".cache",
+        "_cacache",
+    ];
+
+    // Names that are *suggestive* of cleanup but need content inspection
+    // before recommending deletion. These get a content fingerprint attached.
+    private static readonly string[] AmbiguousPatterns =
+    [
+        "Temp", "Cache", "Logs", "Log", "tmp",
+    ];
+
+    // File extensions that indicate user-created, potentially important content.
+    private static readonly HashSet<string> UserContentExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+        ".pdf", ".odt", ".ods", ".odp",
+        ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".svg", ".psd", ".ai",
+        ".mp3", ".mp4", ".avi", ".mkv", ".mov", ".wav", ".flac",
+        ".zip", ".rar", ".7z", ".tar", ".gz",
+        ".cs", ".py", ".js", ".ts", ".java", ".cpp", ".h", ".go", ".rs",
+        ".sln", ".csproj", ".json", ".xml", ".yaml", ".yml", ".toml",
+        ".sql", ".db", ".sqlite", ".bak",
+        ".iso", ".vhd", ".vhdx", ".vmdk",
+        ".exe", ".msi",
+    };
 
     private static readonly string[] ProtectedPathSegments =
     [
@@ -69,9 +106,29 @@ public class RecommendationEngine : IRecommendationEngine
 
         var recommendations = ParseResponse(response, session.RootEntry);
 
-        recommendations = recommendations
-            .Where(r => !IsProtectedPath(r.TargetPath))
-            .ToList();
+        if (focusEntry is not null)
+        {
+            // User explicitly drilled into this folder and requested analysis —
+            // don't silently discard results. Instead, bump any "Safe" rating
+            // to "ReviewFirst" for paths under protected system directories so
+            // the user still gets a warning before deleting system-adjacent files.
+            foreach (var rec in recommendations)
+            {
+                if (IsProtectedPath(rec.TargetPath) && rec.SafetyRating == SafetyRating.Safe)
+                {
+                    rec.SafetyRating = SafetyRating.ReviewFirst;
+                    rec.Explanation += " (This item is under a system directory — review carefully before deleting.)";
+                }
+            }
+        }
+        else
+        {
+            // Full-drive analysis: filter out protected paths entirely to avoid
+            // recommending OS/system files in broad recommendations.
+            recommendations = recommendations
+                .Where(r => !IsProtectedPath(r.TargetPath))
+                .ToList();
+        }
 
         for (int i = 0; i < recommendations.Count; i++)
         {
@@ -88,14 +145,6 @@ public class RecommendationEngine : IRecommendationEngine
         var allDirs = new List<FileEntry>();
         CollectEntries(analysisRoot, allFiles, allDirs);
 
-        // Top directories by size (these are the actionable items)
-        var topDirs = allDirs
-            .Where(d => d.Depth >= 1) // skip root
-            .OrderByDescending(d => d.Size)
-            .Take(MaxTopDirs)
-            .Select(d => $"{d.Path}|{d.Size}|{d.Children.Count(c => c.IsDirectory)} dirs, {d.Children.Count(c => !c.IsDirectory)} files")
-            .ToList();
-
         // Top files by size
         var topFiles = allFiles
             .OrderByDescending(f => f.Size)
@@ -103,18 +152,46 @@ public class RecommendationEngine : IRecommendationEngine
             .Select(f => $"{f.Path}|{f.Size}")
             .ToList();
 
-        // Known cleanup pattern directories (summarized — path and total size only)
+        // Known cleanup pattern directories — now with content fingerprints
+        // so the AI can distinguish real temp folders from user working folders.
         var topDirSet = allDirs
             .Where(d => d.Depth >= 1)
             .OrderByDescending(d => d.Size)
             .Take(MaxTopDirs)
             .ToHashSet();
 
-        var patternItems = allDirs
-            .Where(d => !topDirSet.Contains(d) && MatchesKnownPattern(d.Path) && d.Size > 0)
+        var patternDirs = allDirs
+            .Where(d => !topDirSet.Contains(d) && MatchesKnownPattern(d) && d.Size > 0)
             .OrderByDescending(d => d.Size)
             .Take(MaxKnownPatternItems)
-            .Select(d => $"{d.Path}|{d.Size}")
+            .ToList();
+
+        var patternItems = patternDirs
+            .Select(d => $"{d.Path}|{d.Size}|{BuildContentFingerprint(d)}")
+            .ToList();
+
+        // Also attach content fingerprints to top directories that match
+        // ambiguous patterns so the AI gets content context for those too.
+        var topDirsWithFingerprints = allDirs
+            .Where(d => d.Depth >= 1)
+            .OrderByDescending(d => d.Size)
+            .Take(MaxTopDirs)
+            .Select(d =>
+            {
+                bool needsFingerprint = false;
+                foreach (var pattern in AmbiguousPatterns)
+                {
+                    if (d.Name.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+                    {
+                        needsFingerprint = true;
+                        break;
+                    }
+                }
+                var baseLine = $"{d.Path}|{d.Size}|{d.Children.Count(c => c.IsDirectory)} dirs, {d.Children.Count(c => !c.IsDirectory)} files";
+                return needsFingerprint
+                    ? $"{baseLine}|CONTENT_FINGERPRINT: {BuildContentFingerprint(d)}"
+                    : baseLine;
+            })
             .ToList();
 
         // Lightweight duplicate detection by metadata only
@@ -139,8 +216,8 @@ public class RecommendationEngine : IRecommendationEngine
         sb.AppendLine($"TOTAL_SIZE: {analysisRoot.Size}");
         sb.AppendLine();
 
-        sb.AppendLine("## LARGEST DIRECTORIES (path|size_bytes|contents)");
-        foreach (var line in topDirs)
+        sb.AppendLine("## LARGEST DIRECTORIES (path|size_bytes|contents [|CONTENT_FINGERPRINT if ambiguous name])");
+        foreach (var line in topDirsWithFingerprints)
             sb.AppendLine(line);
         sb.AppendLine();
 
@@ -151,7 +228,8 @@ public class RecommendationEngine : IRecommendationEngine
 
         if (patternItems.Count > 0)
         {
-            sb.AppendLine("## CLEANUP CANDIDATES (path|size_bytes)");
+            sb.AppendLine("## CLEANUP CANDIDATES (path|size_bytes|content_fingerprint)");
+            sb.AppendLine("NOTE: Each entry includes a content fingerprint. Inspect it before recommending deletion.");
             foreach (var line in patternItems)
                 sb.AppendLine(line);
             sb.AppendLine();
@@ -182,15 +260,114 @@ public class RecommendationEngine : IRecommendationEngine
         }
     }
 
-    private static bool MatchesKnownPattern(string path)
+    private static bool MatchesKnownPattern(FileEntry dir)
     {
-        var normalizedPath = path.Replace('\\', '/');
-        foreach (var pattern in KnownCleanupPatterns)
+        // Exact directory name match against safe cleanup targets.
+        foreach (var name in SafeDirectoryNames)
         {
-            if (normalizedPath.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(dir.Name, name, StringComparison.OrdinalIgnoreCase))
                 return true;
         }
+
+        // Standard OS/app temp paths matched by full path convention.
+        var normalizedPath = dir.Path.Replace('/', '\\');
+        foreach (var stdPath in StandardTempPaths)
+        {
+            if (normalizedPath.Contains(stdPath, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        // Ambiguous names (e.g. "Temp", "Cache") — include them so they get
+        // a content fingerprint, but the AI will decide based on contents.
+        foreach (var pattern in AmbiguousPatterns)
+        {
+            if (dir.Name.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
         return false;
+    }
+
+    /// <summary>
+    /// Builds a content fingerprint for a directory: file type distribution,
+    /// date range, and sample file names. This gives the AI enough context to
+    /// distinguish a real temp folder from a user working folder that happens
+    /// to have "temp" in its name.
+    /// </summary>
+    private static string BuildContentFingerprint(FileEntry dir)
+    {
+        var allFiles = new List<FileEntry>();
+        CollectFilesOnly(dir, allFiles);
+
+        if (allFiles.Count == 0)
+            return "empty";
+
+        // Extension distribution
+        var extGroups = allFiles
+            .GroupBy(f => f.Extension ?? "(none)", StringComparer.OrdinalIgnoreCase)
+            .OrderByDescending(g => g.Sum(f => f.Size))
+            .Take(MaxContentFingerprint)
+            .Select(g => $"{g.Key}:{g.Count()}/{FormatSize(g.Sum(f => f.Size))}")
+            .ToList();
+
+        // Date range
+        var oldest = allFiles.Min(f => f.LastModified);
+        var newest = allFiles.Max(f => f.LastModified);
+        var dateSpan = newest - oldest;
+
+        // User-content file ratio — what fraction of files look like user documents,
+        // source code, media, etc. vs. throwaway temp files
+        int userContentCount = allFiles.Count(f =>
+            f.Extension is not null && UserContentExtensions.Contains(f.Extension));
+        int userContentPct = (int)(100.0 * userContentCount / allFiles.Count);
+
+        // Sample of largest files by name (most informative for the AI)
+        var sampleFiles = allFiles
+            .OrderByDescending(f => f.Size)
+            .Take(MaxSampleFiles)
+            .Select(f => $"{f.Name}({FormatSize(f.Size)},{f.LastModified:yyyy-MM-dd})")
+            .ToList();
+
+        // Is this in a standard temp location?
+        var normalizedPath = dir.Path.Replace('/', '\\');
+        bool isStandardTempLocation = false;
+        foreach (var stdPath in StandardTempPaths)
+        {
+            if (normalizedPath.Contains(stdPath, StringComparison.OrdinalIgnoreCase))
+            {
+                isStandardTempLocation = true;
+                break;
+            }
+        }
+
+        var sb = new System.Text.StringBuilder();
+        sb.Append($"files:{allFiles.Count}");
+        sb.Append($"|user_content:{userContentPct}%");
+        sb.Append($"|dates:{oldest:yyyy-MM-dd}..{newest:yyyy-MM-dd}(span:{(int)dateSpan.TotalDays}d)");
+        sb.Append($"|std_temp_location:{(isStandardTempLocation ? "yes" : "no")}");
+        sb.Append($"|types:{string.Join(",", extGroups)}");
+        sb.Append($"|largest:{string.Join(",", sampleFiles)}");
+        return sb.ToString();
+    }
+
+    private static void CollectFilesOnly(FileEntry entry, List<FileEntry> files)
+    {
+        foreach (var child in entry.Children)
+        {
+            if (child.IsDirectory)
+                CollectFilesOnly(child, files);
+            else
+                files.Add(child);
+        }
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024L) return $"{bytes}B";
+        if (bytes < 1024L * 1024) return $"{bytes / 1024.0:F1}KB";
+        if (bytes < 1024L * 1024 * 1024) return $"{bytes / (1024.0 * 1024):F1}MB";
+        if (bytes < 1024L * 1024 * 1024 * 1024) return $"{bytes / (1024.0 * 1024 * 1024):F1}GB";
+        return $"{bytes / (1024.0 * 1024 * 1024 * 1024):F1}TB";
     }
 
     private static string BuildSystemPrompt()
@@ -235,14 +412,32 @@ public class RecommendationEngine : IRecommendationEngine
             - ReviewFirst — likely safe but user should verify before deleting
             - Caution — may have side effects; user should understand implications
 
+            ## Content Fingerprint Analysis (CRITICAL)
+
+            Some directories include a CONTENT_FINGERPRINT field. You MUST analyze it before making a recommendation. The fingerprint contains:
+            - **user_content**: percentage of files with user-document/media/code extensions. High % (>20%) = likely a working folder, NOT safe to delete.
+            - **dates**: date range and span. Files spanning months or years = accumulated working data, not temp files.
+            - **std_temp_location**: "yes" means the folder is in a well-known OS/app temp path (e.g., AppData\Local\Temp, Windows\Temp). "no" means it is NOT in a standard temp location — be very skeptical about recommending deletion.
+            - **types**: file extension distribution showing what kinds of files are inside.
+            - **largest**: sample of the biggest files with names and dates.
+
+            **Decision rules for ambiguous directories:**
+            1. If std_temp_location is "no" AND user_content > 20%, this is almost certainly a user working folder. Do NOT recommend it, or rate it Caution at minimum with a warning that it appears to contain user files.
+            2. If std_temp_location is "no" AND the date span is > 90 days AND files include documents, media, code, or archives, treat it as a user working folder.
+            3. If std_temp_location is "yes" AND user_content < 10% AND files are mostly .tmp/.log/random hashes, it is safe to recommend.
+            4. A folder named "Temp" or "Cache" at a drive root or user-created location is NOT the same as AppData\Local\Temp. Do NOT assume it is temporary just because of its name.
+            5. Look at the actual file names in the "largest" sample — human-readable names (documents, photos, project files, backups) are strong signals of important content.
+
             ## Critical Rules
 
             - NEVER recommend deleting: OS files (Windows directory), boot files, active application binaries, user documents in Desktop/Documents/Pictures/Music/Videos folders
             - NEVER recommend deleting files currently in use or system-critical files
+            - NEVER assume a folder is safe to delete based solely on its name. Always reason about the actual contents (file types, dates, names, location).
             - Only recommend items present in the provided metadata
             - Include a clear, human-readable explanation for every recommendation
             - Focus on items that will recover meaningful disk space
             - For duplicate files (matched by name and size, not content-verified), recommend keeping one copy and note the user should verify before deleting
+            - When uncertain, prefer ReviewFirst or Caution over Safe — a false "Safe" rating can cause irreversible data loss
             """;
     }
 

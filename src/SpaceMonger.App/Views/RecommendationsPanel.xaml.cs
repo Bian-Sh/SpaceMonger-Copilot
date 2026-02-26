@@ -7,6 +7,7 @@ namespace SpaceMonger.App.Views;
 public partial class RecommendationsPanel : UserControl
 {
     public event Action? CleanupRequested;
+    public event Action? CloseRequested;
 
     public RecommendationsPanel()
     {
@@ -21,5 +22,10 @@ public partial class RecommendationsPanel : UserControl
     private void CleanUpButton_Click(object sender, RoutedEventArgs e)
     {
         CleanupRequested?.Invoke();
+    }
+
+    private void CloseButton_Click(object sender, RoutedEventArgs e)
+    {
+        CloseRequested?.Invoke();
     }
 }
