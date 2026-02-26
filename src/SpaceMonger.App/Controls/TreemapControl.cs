@@ -116,18 +116,17 @@ public class TreemapControl : SKElement
         if (node.Label is not null)
         {
             float headerHeight = GetHeaderHeight(node.Depth, node.Height);
-            float fontSize = Math.Max(8f, Math.Min(headerHeight - 2f, 13f));
+            const float fontSize = 11f;
 
             using var headerFont = new SKFont(SKTypeface.Default, fontSize);
-            float textWidth = headerFont.MeasureText(node.Label);
-
-            if (textWidth < node.Width - 4)
+            var label = TruncateLabel(node.Label, headerFont, node.Width - 6f);
+            if (label is not null)
             {
                 float textX = node.X + 3f;
                 float textY = node.Y + headerHeight / 2f + fontSize / 2f - 1f;
 
                 textPaint.Color = SKColors.Black;
-                canvas.DrawText(node.Label, textX, textY, SKTextAlign.Left, headerFont, textPaint);
+                canvas.DrawText(label, textX, textY, SKTextAlign.Left, headerFont, textPaint);
             }
         }
 
@@ -161,17 +160,19 @@ public class TreemapControl : SKElement
 
         if (node.Label is not null)
         {
-            float fontSize = Math.Max(8f, Math.Min(rect.Height - 4f, 11f));
-            using var font = new SKFont(SKTypeface.Default, fontSize);
-            float textWidth = font.MeasureText(node.Label);
-
-            if (textWidth < rect.Width - 4 && fontSize < rect.Height - 2)
+            const float fontSize = 11f;
+            if (rect.Width > 20 && rect.Height > fontSize + 2)
             {
-                float textX = rect.MidX - textWidth / 2f;
-                float textY = rect.MidY + fontSize / 2f - 1f;
-                // Black text on all file labels — matches SpaceMonger.
-                textPaint.Color = SKColors.Black;
-                canvas.DrawText(node.Label, textX, textY, SKTextAlign.Left, font, textPaint);
+                using var font = new SKFont(SKTypeface.Default, fontSize);
+                var label = TruncateLabel(node.Label, font, rect.Width - 6f);
+                if (label is not null)
+                {
+                    float textWidth = font.MeasureText(label);
+                    float textX = rect.MidX - textWidth / 2f;
+                    float textY = rect.MidY + fontSize / 2f - 1f;
+                    textPaint.Color = SKColors.Black;
+                    canvas.DrawText(label, textX, textY, SKTextAlign.Left, font, textPaint);
+                }
             }
         }
 
@@ -184,7 +185,7 @@ public class TreemapControl : SKElement
     private static float GetHeaderHeight(int depth, float availableHeight)
     {
         float h = 18f - depth * 1.5f;
-        h = Math.Max(h, 10f);
+        h = Math.Max(h, 14f);
         h = Math.Min(h, availableHeight * 0.4f);
         return h;
     }
@@ -344,6 +345,43 @@ public class TreemapControl : SKElement
         }
 
         canvas.Restore();
+    }
+
+    /// <summary>
+    /// Truncates a label to fit within maxWidth, appending "..." if needed.
+    /// Returns null if even "..." won't fit.
+    /// </summary>
+    private static string? TruncateLabel(string label, SKFont font, float maxWidth)
+    {
+        if (maxWidth <= 0)
+            return null;
+
+        float fullWidth = font.MeasureText(label);
+        if (fullWidth <= maxWidth)
+            return label;
+
+        float ellipsisWidth = font.MeasureText("...");
+        if (ellipsisWidth >= maxWidth)
+            return null;
+
+        float available = maxWidth - ellipsisWidth;
+
+        // Binary search for the longest prefix that fits.
+        int lo = 0, hi = label.Length;
+        while (lo < hi)
+        {
+            int mid = (lo + hi + 1) / 2;
+            if (font.MeasureText(label.AsSpan(0, mid)) <= available)
+                lo = mid;
+            else
+                hi = mid - 1;
+        }
+
+        // Require at least 3 visible characters before the ellipsis.
+        if (lo < 3)
+            return null;
+
+        return string.Concat(label.AsSpan(0, lo), "...");
     }
 
     private static SKColor DarkenColor(SKColor color, float factor)

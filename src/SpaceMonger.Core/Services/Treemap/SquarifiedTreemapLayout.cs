@@ -5,7 +5,7 @@ namespace SpaceMonger.Core.Services.Treemap;
 public class SquarifiedTreemapLayout : ITreemapLayoutEngine
 {
     private const float HeaderBaseHeight = 18f;
-    private const float HeaderMinHeight = 10f;
+    private const float HeaderMinHeight = 14f;
     private const float BorderBasePadding = 8f;
     private const float BorderMinPadding = 3f;
     private const float MinNodeDimension = 14f;
@@ -67,7 +67,7 @@ public class SquarifiedTreemapLayout : ITreemapLayoutEngine
     {
         float headerHeight = GetHeaderHeight(depth, rect.Height);
 
-        string? label = rect.Width >= 40 && headerHeight >= HeaderMinHeight
+        string? label = rect.Width >= 20 && headerHeight >= HeaderMinHeight
             ? $"{dir.Name} ({FormatSize(dir.Size)})"
             : null;
 
@@ -252,7 +252,9 @@ public class SquarifiedTreemapLayout : ITreemapLayoutEngine
                 ? DriveColor
                 : Palette[(depth - 1) % Palette.Length];
 
-            string? label = rect.Width >= 40 && rect.Height >= 14
+            // Always provide a label if the rectangle has any visible area.
+            // The renderer handles truncation and fitting.
+            string? label = rect.Width >= 20 && rect.Height >= 10
                 ? $"{entry.Name} ({FormatSize(entry.Size)})"
                 : null;
 

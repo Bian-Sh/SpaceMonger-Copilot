@@ -28,6 +28,8 @@ SpaceMonger Next carries that same philosophy forward — instant visual clarity
 - Windows 10 or Windows 11
 - An [Anthropic API key](https://console.anthropic.com/) for AI features (optional — scanning and visualization work without it)
 
+> **Cost note:** AI features (cleanup recommendations and chat) use the Anthropic Messages API, which is billed per token. There is no free tier or subscription-based OAuth option — Anthropic closed the third-party OAuth route, so API key with pay-per-use billing is the only supported authentication method.
+
 ## Installation
 
 ```bash
