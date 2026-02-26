@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using SpaceMonger.Core.Enums;
 using SpaceMonger.Core.Models;
@@ -9,32 +8,19 @@ namespace SpaceMonger.Core.Services.Analysis;
 
 public class RecommendationEngine : IRecommendationEngine
 {
-    private const int MaxTopItems = 2000;
+    // Send at most 100 top-level directories and 100 largest files to keep
+    // the prompt well under the API's input token limit (~200K tokens).
+    private const int MaxTopDirs = 100;
+    private const int MaxTopFiles = 100;
+    private const int MaxKnownPatternItems = 50;
+    private const int MaxDuplicateGroups = 20;
+    private const long DuplicateMinSize = 1_048_576; // 1 MB
 
     private static readonly string[] KnownCleanupPatterns =
     [
-        "Temp",
-        ".npm/_cacache",
-        ".nuget",
-        "node_modules",
-        "obj",
-        "bin",
-        "__pycache__",
-        ".gradle",
-        "Cache",
-        "CacheStorage",
-        "Code Cache",
-        "GPUCache",
-        "AppData/Local/Temp",
-        "AppData\\Local\\Temp",
-        "Local\\Microsoft\\Windows\\INetCache",
-        "Local\\Google\\Chrome\\User Data\\Default\\Cache",
-        "Local\\Mozilla\\Firefox\\Profiles",
-        "Local\\BraveSoftware",
-        ".cache",
-        "logs",
-        "Log",
-        ".log"
+        "Temp", ".npm", ".nuget", "node_modules", "obj", "bin",
+        "__pycache__", ".gradle", "Cache", "CacheStorage",
+        "Code Cache", "GPUCache", "INetCache", ".cache", "logs", "Log"
     ];
 
     private static readonly string[] ProtectedPathSegments =
@@ -54,12 +40,11 @@ public class RecommendationEngine : IRecommendationEngine
     ];
 
     private readonly ILlmClient _llmClient;
-    private readonly IDuplicateDetector _duplicateDetector;
 
     public RecommendationEngine(ILlmClient llmClient, IDuplicateDetector duplicateDetector)
     {
         _llmClient = llmClient;
-        _duplicateDetector = duplicateDetector;
+        _ = duplicateDetector;
     }
 
     public async Task<List<CleanupRecommendation>> AnalyzeAsync(
@@ -72,41 +57,17 @@ public class RecommendationEngine : IRecommendationEngine
             return [];
         }
 
-        // Step 1: Run duplicate detection
-        var duplicates = await _duplicateDetector.FindDuplicatesAsync(session.RootEntry, cancellationToken);
-
-        // Step 2: Collect metadata for LLM
-        var allEntries = new List<FileEntry>();
-        FlattenTree(session.RootEntry, allEntries);
-
-        var topItems = allEntries
-            .OrderByDescending(e => e.Size)
-            .Take(MaxTopItems)
-            .ToList();
-
-        var knownPatternItems = allEntries
-            .Where(e => MatchesKnownPattern(e.Path))
-            .Where(e => !topItems.Contains(e))
-            .ToList();
-
-        // Step 3: Build the file metadata JSON
-        var metadataJson = BuildMetadataJson(session, topItems, knownPatternItems, duplicates);
-
-        // Step 4: Build the analysis system prompt
+        var metadataJson = BuildCompactMetadata(session);
         var systemPrompt = BuildSystemPrompt();
 
-        // Step 5: Call the LLM
         var response = await _llmClient.SendAnalysisAsync(systemPrompt, metadataJson, apiKey, cancellationToken);
 
-        // Step 6: Parse the response
         var recommendations = ParseResponse(response, session.RootEntry);
 
-        // Step 7: Post-filter protected paths
         recommendations = recommendations
             .Where(r => !IsProtectedPath(r.TargetPath))
             .ToList();
 
-        // Step 8: Assign sequential IDs
         for (int i = 0; i < recommendations.Count; i++)
         {
             recommendations[i].Id = $"REC-{(i + 1):D3}";
@@ -115,12 +76,103 @@ public class RecommendationEngine : IRecommendationEngine
         return recommendations;
     }
 
-    private static void FlattenTree(FileEntry entry, List<FileEntry> result)
+    private static string BuildCompactMetadata(ScanSession session)
     {
-        result.Add(entry);
-        foreach (var child in entry.Children)
+        var root = session.RootEntry!;
+
+        // Collect all entries in a single pass
+        var allFiles = new List<FileEntry>();
+        var allDirs = new List<FileEntry>();
+        CollectEntries(root, allFiles, allDirs);
+
+        // Top directories by size (these are the actionable items)
+        var topDirs = allDirs
+            .Where(d => d.Depth >= 1) // skip root
+            .OrderByDescending(d => d.Size)
+            .Take(MaxTopDirs)
+            .Select(d => $"{d.Path}|{d.Size}|{d.Children.Count(c => c.IsDirectory)} dirs, {d.Children.Count(c => !c.IsDirectory)} files")
+            .ToList();
+
+        // Top files by size
+        var topFiles = allFiles
+            .OrderByDescending(f => f.Size)
+            .Take(MaxTopFiles)
+            .Select(f => $"{f.Path}|{f.Size}")
+            .ToList();
+
+        // Known cleanup pattern directories (summarized — path and total size only)
+        var topDirSet = allDirs
+            .Where(d => d.Depth >= 1)
+            .OrderByDescending(d => d.Size)
+            .Take(MaxTopDirs)
+            .ToHashSet();
+
+        var patternItems = allDirs
+            .Where(d => !topDirSet.Contains(d) && MatchesKnownPattern(d.Path) && d.Size > 0)
+            .OrderByDescending(d => d.Size)
+            .Take(MaxKnownPatternItems)
+            .Select(d => $"{d.Path}|{d.Size}")
+            .ToList();
+
+        // Lightweight duplicate detection by metadata only
+        var duplicates = allFiles
+            .Where(f => f.Size > DuplicateMinSize)
+            .GroupBy(f => (f.Name, f.Size))
+            .Where(g => g.Count() >= 2)
+            .OrderByDescending(g => g.Key.Size * g.Count())
+            .Take(MaxDuplicateGroups)
+            .Select(g => $"{g.Key.Name}|{g.Key.Size}|{g.Count()} copies: {string.Join("; ", g.Select(f => f.Path))}")
+            .ToList();
+
+        // Build a compact pipe-delimited format instead of verbose JSON.
+        // This is ~5-10x smaller than the equivalent JSON with full property names.
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"SCAN: {session.TargetPath}");
+        sb.AppendLine($"TOTAL_FILES: {session.TotalFiles}");
+        sb.AppendLine($"TOTAL_FOLDERS: {session.TotalFolders}");
+        sb.AppendLine($"TOTAL_SIZE: {session.TotalSize}");
+        sb.AppendLine();
+
+        sb.AppendLine("## LARGEST DIRECTORIES (path|size_bytes|contents)");
+        foreach (var line in topDirs)
+            sb.AppendLine(line);
+        sb.AppendLine();
+
+        sb.AppendLine("## LARGEST FILES (path|size_bytes)");
+        foreach (var line in topFiles)
+            sb.AppendLine(line);
+        sb.AppendLine();
+
+        if (patternItems.Count > 0)
         {
-            FlattenTree(child, result);
+            sb.AppendLine("## CLEANUP CANDIDATES (path|size_bytes)");
+            foreach (var line in patternItems)
+                sb.AppendLine(line);
+            sb.AppendLine();
+        }
+
+        if (duplicates.Count > 0)
+        {
+            sb.AppendLine("## LIKELY DUPLICATES (name|size_bytes|locations)");
+            foreach (var line in duplicates)
+                sb.AppendLine(line);
+            sb.AppendLine();
+        }
+
+        return sb.ToString();
+    }
+
+    private static void CollectEntries(FileEntry entry, List<FileEntry> files, List<FileEntry> dirs)
+    {
+        if (entry.IsDirectory)
+        {
+            dirs.Add(entry);
+            foreach (var child in entry.Children)
+                CollectEntries(child, files, dirs);
+        }
+        else
+        {
+            files.Add(entry);
         }
     }
 
@@ -129,81 +181,10 @@ public class RecommendationEngine : IRecommendationEngine
         var normalizedPath = path.Replace('\\', '/');
         foreach (var pattern in KnownCleanupPatterns)
         {
-            var normalizedPattern = pattern.Replace('\\', '/');
-            if (normalizedPath.Contains(normalizedPattern, StringComparison.OrdinalIgnoreCase))
-            {
+            if (normalizedPath.Contains(pattern, StringComparison.OrdinalIgnoreCase))
                 return true;
-            }
         }
         return false;
-    }
-
-    private static string BuildMetadataJson(
-        ScanSession session,
-        List<FileEntry> topItems,
-        List<FileEntry> knownPatternItems,
-        List<DuplicateGroup> duplicates)
-    {
-        var metadata = new
-        {
-            scan_root = session.TargetPath,
-            scan_date = session.StartTime.ToString("O"),
-            total_files = session.TotalFiles,
-            total_size_bytes = session.TotalSize,
-            top_items = topItems.Select(e => new
-            {
-                path = e.Path,
-                size_bytes = e.Size,
-                type = e.IsDirectory ? "directory" : "file",
-                last_modified = e.LastModified.ToString("O"),
-                child_count = e.IsDirectory ? e.Children.Count : (int?)null
-            }),
-            known_patterns = knownPatternItems.Select(e => new
-            {
-                path = e.Path,
-                size_bytes = e.Size,
-                type = e.IsDirectory ? "directory" : "file",
-                pattern = InferPattern(e.Path)
-            }),
-            duplicates = duplicates.Select(d => new
-            {
-                hash = d.Hash,
-                size_bytes = d.Size,
-                files = d.Files.Select(f => f.Path)
-            })
-        };
-
-        return JsonSerializer.Serialize(metadata, new JsonSerializerOptions
-        {
-            WriteIndented = true,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-        });
-    }
-
-    private static string InferPattern(string path)
-    {
-        var normalizedPath = path.Replace('\\', '/').ToLowerInvariant();
-
-        if (normalizedPath.Contains("temp"))
-            return "temporary_files";
-        if (normalizedPath.Contains("node_modules"))
-            return "package_manager_cache";
-        if (normalizedPath.Contains(".npm"))
-            return "package_manager_cache";
-        if (normalizedPath.Contains(".nuget"))
-            return "package_manager_cache";
-        if (normalizedPath.Contains(".gradle"))
-            return "build_cache";
-        if (normalizedPath.Contains("/obj") || normalizedPath.Contains("/bin"))
-            return "build_cache";
-        if (normalizedPath.Contains("__pycache__"))
-            return "build_cache";
-        if (normalizedPath.Contains("cache"))
-            return "browser_cache";
-        if (normalizedPath.Contains("log"))
-            return "log_files";
-
-        return "other";
     }
 
     private static string BuildSystemPrompt()
@@ -237,7 +218,7 @@ public class RecommendationEngine : IRecommendationEngine
             - PackageManagerCache — node_modules, .npm/_cacache, .nuget caches
             - OldDownloads — stale files in Downloads folders
             - LogFiles — log files and log directories
-            - DuplicateFiles — files confirmed as duplicates by hash
+            - DuplicateFiles — files identified as likely duplicates (same name and size; not content-verified)
             - BrowserCache — browser cache directories
             - SystemCache — OS-level caches
             - Other — anything that doesn't fit the above
@@ -255,7 +236,7 @@ public class RecommendationEngine : IRecommendationEngine
             - Only recommend items present in the provided metadata
             - Include a clear, human-readable explanation for every recommendation
             - Focus on items that will recover meaningful disk space
-            - For duplicate files, recommend keeping one copy and removing extras
+            - For duplicate files (matched by name and size, not content-verified), recommend keeping one copy and note the user should verify before deleting
             """;
     }
 

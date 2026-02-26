@@ -13,7 +13,7 @@ public class AnthropicClient : ILlmClient
     private const int AnalysisMaxTokens = 8192;
     private const int ChatMaxTokens = 4096;
     private const int ValidationMaxTokens = 10;
-    private static readonly TimeSpan AnalysisTimeout = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan AnalysisTimeout = TimeSpan.FromSeconds(120);
 
     private readonly HttpClient _httpClient;
 

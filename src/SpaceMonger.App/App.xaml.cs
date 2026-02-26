@@ -30,7 +30,7 @@ public partial class App : Application
         services.AddHttpClient("Anthropic", client =>
         {
             client.BaseAddress = new Uri("https://api.anthropic.com");
-            client.Timeout = TimeSpan.FromSeconds(60);
+            client.Timeout = TimeSpan.FromSeconds(120);
         });
 
         // US1 services

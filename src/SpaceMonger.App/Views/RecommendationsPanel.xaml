@@ -72,6 +72,79 @@
                     Command="{Binding DeselectAllCautionCommand}" />
         </StackPanel>
 
+        <!-- Analyzing overlay (covers rows 1-2) -->
+        <Border Grid.Row="1" Grid.RowSpan="2"
+                Panel.ZIndex="10"
+                Background="#F5F5F5">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsAnalyzing}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <ProgressBar IsIndeterminate="True" Width="200" Height="16" Margin="0,0,0,8" />
+                <TextBlock Text="Analyzing scan results with AI..."
+                           FontSize="14"
+                           Foreground="#555555"
+                           HorizontalAlignment="Center" />
+                <TextBlock Text="This may take up to a minute"
+                           FontSize="11"
+                           Foreground="#999999"
+                           HorizontalAlignment="Center"
+                           Margin="0,4,0,0" />
+            </StackPanel>
+        </Border>
+
+        <!-- Error display (covers rows 1-2) -->
+        <Border Grid.Row="1" Grid.RowSpan="2"
+                Panel.ZIndex="5"
+                Background="#FFF3F3"
+                Padding="16">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding IsAnalyzing}" Value="False" />
+                                <Condition Binding="{Binding HasRecommendations}" Value="False" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Visibility" Value="Visible" />
+                        </MultiDataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="500">
+                <TextBlock Text="{Binding AnalysisError}"
+                           TextWrapping="Wrap"
+                           Foreground="#D32F2F"
+                           FontSize="13"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center" />
+                <TextBlock Foreground="#888888"
+                           FontSize="12"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center"
+                           Margin="0,8,0,0">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Text" Value="Click Analyze to run AI analysis on your scan results." />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding AnalysisError, TargetNullValue=''}" Value="">
+                                    <Setter Property="Text" Value="Click Analyze to run AI analysis on your scan results." />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+        </Border>
+
         <!-- Row 1: Recommendations List -->
         <ListView Grid.Row="1"
                   ItemsSource="{Binding FilteredRecommendations}"

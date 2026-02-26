@@ -15,6 +15,7 @@ public class TreemapControl : SKElement
     private readonly ToolTip _toolTip;
     private TreemapNode? _lastHoveredNode;
 
+
     public List<TreemapNode>? Nodes
     {
         get => _nodes;
@@ -48,68 +49,144 @@ public class TreemapControl : SKElement
         if (_nodes is null || _nodes.Count == 0)
             return;
 
-        var visibleNodes = _nodes
-            .Where(n => n.IsVisible)
-            .OrderBy(n => n.Depth)
-            .ToList();
-
         using var fillPaint = new SKPaint
         {
             Style = SKPaintStyle.Fill,
-            IsAntialias = true,
+            IsAntialias = false,
         };
 
         using var borderPaint = new SKPaint
         {
             Style = SKPaintStyle.Stroke,
             StrokeWidth = 1f,
-            IsAntialias = true,
+            IsAntialias = false,
         };
 
         using var textPaint = new SKPaint
+        {
+            Color = SKColors.Black,
+            IsAntialias = true,
+        };
+
+        using var fileTextPaint = new SKPaint
         {
             Color = SKColors.White,
             IsAntialias = true,
         };
 
-        using var textFont = new SKFont(SKTypeface.Default, 12f);
+        // Render in depth order: shallow first, deep on top.
+        // Directories first at each depth, then files on top.
+        var sortedNodes = _nodes
+            .Where(n => n.IsVisible)
+            .OrderBy(n => n.Depth)
+            .ThenBy(n => n.Entry.IsDirectory ? 0 : 1)
+            .ToList();
 
-        foreach (var node in visibleNodes)
+        foreach (var node in sortedNodes)
         {
-            float padding = 1f;
-            var rect = new SKRect(
-                node.X + padding,
-                node.Y + padding,
-                node.X + node.Width - padding,
-                node.Y + node.Height - padding);
-
-            if (rect.Width <= 0 || rect.Height <= 0)
-                continue;
-
-            SKColor nodeColor = SKColor.Parse(node.ColorHex);
-            fillPaint.Color = nodeColor;
-            canvas.DrawRect(rect, fillPaint);
-
-            borderPaint.Color = DarkenColor(nodeColor, 0.3f);
-            canvas.DrawRect(rect, borderPaint);
-
-            // Draw hatched overlay for access-denied entries
-            if (node.Entry.IsAccessDenied)
+            if (node.Entry.IsDirectory)
             {
-                DrawAccessDeniedOverlay(canvas, rect);
+                DrawDirectoryNode(canvas, node, fillPaint, borderPaint, textPaint);
             }
-
-            if (node.Label is not null)
+            else
             {
-                float textWidth = textFont.MeasureText(node.Label);
-                if (textWidth < rect.Width - 4 && textFont.Size < rect.Height - 4)
-                {
-                    float textX = rect.MidX - textWidth / 2f;
-                    float textY = rect.MidY + textFont.Size / 2f - 2f;
-                    canvas.DrawText(node.Label, textX, textY, SKTextAlign.Left, textFont, textPaint);
-                }
+                DrawFileNode(canvas, node, fillPaint, borderPaint, fileTextPaint);
             }
         }
+    }
+
+    private static void DrawDirectoryNode(
+        SKCanvas canvas, TreemapNode node,
+        SKPaint fillPaint, SKPaint borderPaint, SKPaint textPaint)
+    {
+        var fullRect = new SKRect(node.X, node.Y, node.X + node.Width, node.Y + node.Height);
+
+        // Fill the entire directory rect with its assigned palette color.
+        // This color shows through as the header bar and the border/frame around children.
+        SKColor dirColor = SKColor.Parse(node.ColorHex);
+        fillPaint.Color = dirColor;
+        canvas.DrawRect(fullRect, fillPaint);
+
+        // Darker border for definition.
+        borderPaint.Color = DarkenColor(dirColor, 0.35f);
+        borderPaint.StrokeWidth = node.Depth <= 1 ? 2f : 1f;
+        canvas.DrawRect(fullRect, borderPaint);
+
+        // Label in the header area — always black text like SpaceMonger.
+        if (node.Label is not null)
+        {
+            float headerHeight = GetHeaderHeight(node.Depth, node.Height);
+            float fontSize = Math.Max(8f, Math.Min(headerHeight - 2f, 13f));
+
+            using var headerFont = new SKFont(SKTypeface.Default, fontSize);
+            float textWidth = headerFont.MeasureText(node.Label);
+
+            if (textWidth < node.Width - 4)
+            {
+                float textX = node.X + 3f;
+                float textY = node.Y + headerHeight / 2f + fontSize / 2f - 1f;
+
+                textPaint.Color = SKColors.Black;
+                canvas.DrawText(node.Label, textX, textY, SKTextAlign.Left, headerFont, textPaint);
+            }
+        }
+
+        if (node.Entry.IsAccessDenied)
+        {
+            DrawAccessDeniedOverlay(canvas, fullRect);
+        }
+    }
+
+    private static void DrawFileNode(
+        SKCanvas canvas, TreemapNode node,
+        SKPaint fillPaint, SKPaint borderPaint, SKPaint textPaint)
+    {
+        float pad = 0.5f;
+        var rect = new SKRect(
+            node.X + pad,
+            node.Y + pad,
+            node.X + node.Width - pad,
+            node.Y + node.Height - pad);
+
+        if (rect.Width <= 0 || rect.Height <= 0)
+            return;
+
+        SKColor nodeColor = SKColor.Parse(node.ColorHex);
+        fillPaint.Color = nodeColor;
+        canvas.DrawRect(rect, fillPaint);
+
+        borderPaint.Color = DarkenColor(nodeColor, 0.25f);
+        borderPaint.StrokeWidth = 1f;
+        canvas.DrawRect(rect, borderPaint);
+
+        if (node.Label is not null)
+        {
+            float fontSize = Math.Max(8f, Math.Min(rect.Height - 4f, 11f));
+            using var font = new SKFont(SKTypeface.Default, fontSize);
+            float textWidth = font.MeasureText(node.Label);
+
+            if (textWidth < rect.Width - 4 && fontSize < rect.Height - 2)
+            {
+                float textX = rect.MidX - textWidth / 2f;
+                float textY = rect.MidY + fontSize / 2f - 1f;
+                // Black text on all file labels — matches SpaceMonger.
+                textPaint.Color = SKColors.Black;
+                canvas.DrawText(node.Label, textX, textY, SKTextAlign.Left, font, textPaint);
+            }
+        }
+
+        if (node.Entry.IsAccessDenied)
+        {
+            DrawAccessDeniedOverlay(canvas, rect);
+        }
+    }
+
+    private static float GetHeaderHeight(int depth, float availableHeight)
+    {
+        float h = 18f - depth * 1.5f;
+        h = Math.Max(h, 10f);
+        h = Math.Min(h, availableHeight * 0.4f);
+        return h;
     }
 
     public TreemapNode? HitTest(double x, double y)
@@ -241,24 +318,19 @@ public class TreemapControl : SKElement
         }
     }
 
-    /// <summary>
-    /// Draws diagonal hatched lines over a rectangle to indicate access-denied entries.
-    /// </summary>
     private static void DrawAccessDeniedOverlay(SKCanvas canvas, SKRect rect)
     {
         using var hatchPaint = new SKPaint
         {
             Style = SKPaintStyle.Stroke,
-            Color = new SKColor(255, 80, 80, 160), // Semi-transparent red
+            Color = new SKColor(255, 80, 80, 160),
             StrokeWidth = 1.5f,
             IsAntialias = true,
         };
 
-        // Save canvas state and clip to the node rectangle
         canvas.Save();
         canvas.ClipRect(rect);
 
-        // Draw diagonal lines from bottom-left to top-right across the rectangle
         float step = 8f;
         float totalSpan = rect.Width + rect.Height;
         for (float offset = 0; offset < totalSpan; offset += step)

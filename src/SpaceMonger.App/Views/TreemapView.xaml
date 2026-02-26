@@ -11,7 +11,6 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="30" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- Row 0: Breadcrumb bar -->
@@ -39,15 +38,5 @@
                                  NodeHovered="Treemap_NodeHovered"
                                  NodeRightClicked="Treemap_NodeRightClicked"
                                  SizeChanged="Treemap_SizeChanged" />
-
-        <!-- Row 2: Color legend -->
-        <Border Grid.Row="2"
-                Background="#F0F0F0"
-                BorderBrush="#D0D0D0"
-                BorderThickness="0,1,0,0"
-                Padding="6,4">
-            <WrapPanel x:Name="LegendPanel"
-                       Orientation="Horizontal" />
-        </Border>
     </Grid>
 </UserControl>

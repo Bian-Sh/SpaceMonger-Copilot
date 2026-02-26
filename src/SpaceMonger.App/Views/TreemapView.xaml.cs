@@ -4,13 +4,10 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Shapes;
 using SpaceMonger.App.Controls;
 using SpaceMonger.App.Converters;
 using SpaceMonger.App.ViewModels;
 using SpaceMonger.Core.Models;
-using SpaceMonger.Core.Services.Treemap;
 
 namespace SpaceMonger.App.Views;
 
@@ -21,44 +18,6 @@ public partial class TreemapView : UserControl
     public TreemapView()
     {
         InitializeComponent();
-        PopulateLegend();
-    }
-
-    private void PopulateLegend()
-    {
-        var legendPanel = FindName("LegendPanel") as WrapPanel;
-        if (legendPanel is null)
-            return;
-
-        foreach (var (category, colorHex) in FileTypeColorMap.GetLegendItems())
-        {
-            var itemPanel = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                Margin = new Thickness(0, 0, 12, 0),
-            };
-
-            var colorRect = new Rectangle
-            {
-                Width = 12,
-                Height = 12,
-                Fill = new BrushConverter().ConvertFromString(colorHex) as SolidColorBrush,
-                Margin = new Thickness(0, 0, 4, 0),
-                VerticalAlignment = VerticalAlignment.Center,
-            };
-
-            var label = new TextBlock
-            {
-                Text = category,
-                FontSize = 11,
-                VerticalAlignment = VerticalAlignment.Center,
-                Foreground = Brushes.DimGray,
-            };
-
-            itemPanel.Children.Add(colorRect);
-            itemPanel.Children.Add(label);
-            legendPanel.Children.Add(itemPanel);
-        }
     }
 
     public void SetViewModel(TreemapViewModel vm)

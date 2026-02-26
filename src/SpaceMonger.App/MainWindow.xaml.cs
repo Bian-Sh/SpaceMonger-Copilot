@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -104,7 +103,11 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (!_settingsViewModel.IsApiKeyValid)
+        // Retrieve the API key from settings (checks actual saved key, not just validation flag)
+        var settingsService = App.Services!.GetRequiredService<SpaceMonger.Core.Services.Settings.ISettingsService>();
+        var apiKey = settingsService.GetApiKey(settingsService.LoadSettings());
+
+        if (string.IsNullOrWhiteSpace(apiKey))
         {
             var result = MessageBox.Show(
                 "An Anthropic API key is required for AI analysis. Would you like to open Settings to configure it?",
@@ -117,8 +120,9 @@ public partial class MainWindow : Window
                 OpenSettingsDialog();
             }
 
-            // Re-check after settings dialog; user may have saved a valid key
-            if (!_settingsViewModel.IsApiKeyValid)
+            // Re-check after settings dialog
+            apiKey = settingsService.GetApiKey(settingsService.LoadSettings());
+            if (string.IsNullOrWhiteSpace(apiKey))
                 return;
         }
 
@@ -135,62 +139,27 @@ public partial class MainWindow : Window
                 return;
         }
 
-        // Retrieve the API key from settings
-        var settings = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions
-            .GetRequiredService<SpaceMonger.Core.Services.Settings.ISettingsService>(App.Services!);
-        var apiKey = settings.GetApiKey(settings.LoadSettings());
-
-        if (string.IsNullOrWhiteSpace(apiKey))
-        {
-            MessageBox.Show(
-                "Could not retrieve the API key. Please check your settings.",
-                "API Key Error",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
-            return;
-        }
+        // Show the panel immediately so the user sees the loading indicator
+        RecommendationsPanel.Visibility = Visibility.Visible;
 
         _recommendationsViewModel.SetContext(mainVm.CurrentSession, apiKey);
 
-        // LLM timeout and network error handling
-        try
-        {
-            await _recommendationsViewModel.AnalyzeCommand.ExecuteAsync(null);
-        }
-        catch (TaskCanceledException)
-        {
-            var retryResult = MessageBox.Show(
-                "Analysis timed out. Would you like to retry?",
-                "Analysis Timeout",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
+        mainVm.ScanProgressText = "Analyzing scan results...";
+        AnalyzeButton.IsEnabled = false;
 
-            if (retryResult == MessageBoxResult.Yes)
-            {
-                try
-                {
-                    await _recommendationsViewModel.AnalyzeCommand.ExecuteAsync(null);
-                }
-                catch (Exception retryEx)
-                {
-                    MessageBox.Show(
-                        $"Analysis failed on retry: {retryEx.Message}",
-                        "Analysis Error",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
-                }
-            }
-        }
-        catch (HttpRequestException)
-        {
-            MessageBox.Show(
-                "Unable to connect. Check your internet connection.",
-                "Connection Error",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
-        }
+        await _recommendationsViewModel.AnalyzeCommand.ExecuteAsync(null);
 
-        RecommendationsPanel.Visibility = Visibility.Visible;
+        AnalyzeButton.IsEnabled = true;
+
+        if (_recommendationsViewModel.AnalysisError is not null)
+        {
+            mainVm.ScanProgressText = $"Analysis failed: {_recommendationsViewModel.AnalysisError}";
+        }
+        else
+        {
+            var count = _recommendationsViewModel.Recommendations.Count;
+            mainVm.ScanProgressText = $"Analysis complete: {count} recommendation{(count == 1 ? "" : "s")} found.";
+        }
     }
 
     private void Window_KeyDown(object sender, KeyEventArgs e)

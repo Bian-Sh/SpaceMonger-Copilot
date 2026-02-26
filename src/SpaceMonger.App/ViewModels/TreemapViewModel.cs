@@ -134,7 +134,7 @@ public partial class TreemapViewModel : ObservableObject
             return;
         }
 
-        Nodes = _layoutEngine.ComputeLayout(CurrentRoot, ViewWidth, ViewHeight, maxDepth: 3);
+        Nodes = _layoutEngine.ComputeLayout(CurrentRoot, ViewWidth, ViewHeight, maxDepth: 8);
     }
 
     private void UpdateBreadcrumb()
