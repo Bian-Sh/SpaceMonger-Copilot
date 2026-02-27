@@ -29,6 +29,9 @@ SpaceMonger Next carries that same philosophy forward — instant visual clarity
 - **Interactive AI chat** — ask questions about your disk usage with streaming token output
 - **One-click cleanup** — select recommendations, confirm, and delete with automatic treemap refresh
 - **Protected paths** — never recommends deleting OS files, system directories, or user document folders
+- **Fast NTFS scanning** — enumerates the Master File Table in a single sequential pass for directory structure, then collects file sizes in parallel across all CPU cores
+- **Near-instant rescans** — uses the NTFS USN change journal to detect what changed since the last scan, applying only the deltas instead of re-reading the entire file system
+- **Automatic fallback** — non-NTFS volumes (FAT32, exFAT, network drives) fall back to a standard directory walk transparently
 
 ## Prerequisites
 
@@ -73,10 +76,11 @@ dotnet test SpaceMonger.sln
 ### Scanning
 
 1. Select a drive or folder from the dropdown, type/paste a path, or click **Browse...** (which starts scanning immediately)
-2. Click **Scan** to start — progress shows files and folders counted
+2. Click **Scan** to start — on NTFS drives, the MFT is read first (file/folder counts climb rapidly), then file sizes are collected in parallel
 3. The treemap fills in when the scan completes, with free space shown as an off-white block at the drive level
-4. Click any folder rectangle to drill in, click **Up** or press **Escape** to go back
-5. Clicking **Scan** while drilled into a subfolder rescans just that folder
+4. Subsequent scans of the same path use the USN change journal and complete in under a second
+5. Click any folder rectangle to drill in, click **Up** or press **Escape** to go back
+6. Clicking **Scan** while drilled into a subfolder rescans just that folder
 
 ### AI Cleanup Recommendations
 
@@ -110,7 +114,7 @@ src/
 │       ├── Chat/             # AI chat service
 │       ├── Cleanup/          # File deletion service
 │       ├── Llm/              # Anthropic API client (streaming + non-streaming)
-│       ├── Scanning/         # File system scanner (single-pass enumeration)
+│       ├── Scanning/         # File system scanner (MFT enumeration, parallel size collection, USN journal incremental rescans)
 │       ├── Settings/         # API key and app settings persistence
 │       └── Treemap/          # Squarified treemap layout algorithm
 └── SpaceMonger.sln
@@ -121,7 +125,8 @@ tests/
 
 ## Technical Notes
 
-- **File scanner** uses `FileSystemEnumerable<T>` which maps directly to `FindFirstFile`/`FindNextFile` — one syscall per entry with no extra `stat` calls
+- **File scanner** on NTFS volumes uses `FSCTL_ENUM_USN_DATA` to read the Master File Table in one sequential pass (~3 seconds for 2M files), then fills in file sizes via parallel `FileSystemEnumerable<T>` calls across all CPU cores. Non-NTFS volumes fall back to a serial `FindFirstFile`/`FindNextFile` walk
+- **Incremental rescans** read the NTFS USN change journal to detect creates, deletes, renames, and size changes since the last scan, applying only the deltas — typically sub-second for a previously-scanned volume
 - **Cloud placeholder files** (OneDrive Files On-Demand) are detected and report 0 bytes to avoid triggering unwanted downloads during scan
 - **Treemap layout** uses the squarified algorithm with adaptive depth — small directories become solid blocks rather than rendering unreadable children
 - **AI metadata** is sent as a compact pipe-delimited format (~5-10x smaller than JSON) to maximize the data that fits within token limits

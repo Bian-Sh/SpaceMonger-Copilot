@@ -93,7 +93,9 @@ public partial class MainViewModel : ObservableObject
         {
             var progress = new Progress<ScanProgress>(p =>
             {
-                ScanProgressText = $"Scanning: {p.FileCount:N0} files, {p.FolderCount:N0} folders";
+                ScanProgressText = p.FileCount > 0 || p.FolderCount > 0
+                    ? $"{p.CurrentPath} — {p.FileCount:N0} files, {p.FolderCount:N0} folders"
+                    : p.CurrentPath;
             });
 
             var session = await _fileScanner.ScanAsync(scanTarget, progress, _scanCts.Token);

@@ -16,6 +16,7 @@ internal static class NtfsUsnNative
     // FSCTL codes
     internal const uint FSCTL_QUERY_USN_JOURNAL = 0x000900F4;
     internal const uint FSCTL_READ_USN_JOURNAL = 0x000900BB;
+    internal const uint FSCTL_ENUM_USN_DATA = 0x000900B3;
 
     // USN_REASON flags
     internal const uint USN_REASON_DATA_OVERWRITE = 0x00000001;
@@ -37,6 +38,7 @@ internal static class NtfsUsnNative
 
     // Win32 error codes
     internal const int ERROR_JOURNAL_ENTRY_DELETED = 1181;
+    internal const int ERROR_HANDLE_EOF = 38;
 
     [StructLayout(LayoutKind.Sequential)]
     internal struct USN_JOURNAL_DATA_V1
@@ -59,6 +61,14 @@ internal static class NtfsUsnNative
         public ulong Timeout;
         public ulong BytesToWaitFor;
         public ulong UsnJournalID;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct MFT_ENUM_DATA_V0
+    {
+        public ulong StartFileReferenceNumber;
+        public long LowUsn;
+        public long HighUsn;
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
@@ -109,6 +119,18 @@ internal static class NtfsUsnNative
         nint lpInBuffer,
         int nInBufferSize,
         out USN_JOURNAL_DATA_V1 lpOutBuffer,
+        int nOutBufferSize,
+        out int lpBytesReturned,
+        nint lpOverlapped);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool DeviceIoControl(
+        SafeFileHandle hDevice,
+        uint dwIoControlCode,
+        ref MFT_ENUM_DATA_V0 lpInBuffer,
+        int nInBufferSize,
+        nint lpOutBuffer,
         int nOutBufferSize,
         out int lpBytesReturned,
         nint lpOverlapped);

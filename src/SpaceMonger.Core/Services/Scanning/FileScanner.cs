@@ -159,7 +159,7 @@ public class FileScanner : IFileScanner
         return session;
     }
 
-    private static void PopulateDriveInfo(ScanSession session, string path)
+    internal static void PopulateDriveInfo(ScanSession session, string path)
     {
         try
         {
@@ -199,7 +199,7 @@ public class FileScanner : IFileScanner
     /// Calculates directory sizes bottom-up using a post-order traversal.
     /// Each directory's size is the sum of its children's sizes.
     /// </summary>
-    private static void CalculateSizesBottomUp(FileEntry root)
+    internal static void CalculateSizesBottomUp(FileEntry root)
     {
         var stack = new Stack<FileEntry>();
         var postOrder = new List<FileEntry>();
