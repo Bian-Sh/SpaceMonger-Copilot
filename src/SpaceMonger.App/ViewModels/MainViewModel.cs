@@ -54,6 +54,12 @@ public partial class MainViewModel : ObservableObject
     public MainViewModel(IFileScanner fileScanner)
     {
         _fileScanner = fileScanner;
+        _fileScanner.IsReadyChanged += () =>
+        {
+            // Marshal to UI thread — the event may fire from a background thread.
+            System.Windows.Application.Current?.Dispatcher.BeginInvoke(
+                ScanCommand.NotifyCanExecuteChanged);
+        };
 
         DriveList = DriveInfo.GetDrives()
             .Where(d => d.IsReady)
@@ -107,7 +113,7 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    private bool CanScan() => !IsScanning && SelectedPath is not null;
+    private bool CanScan() => !IsScanning && SelectedPath is not null && _fileScanner.IsReady;
 
     partial void OnIsScanningChanged(bool value)
     {

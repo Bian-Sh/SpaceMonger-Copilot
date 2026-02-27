@@ -12,6 +12,7 @@ public class FileEntry
     public bool IsAccessDenied { get; set; }
     public bool IsCloudPlaceholder { get; set; }
     public byte[]? ContentHash { get; set; }
+    public long FileReferenceNumber { get; set; }
     public FileEntry? Parent { get; set; }
     public List<FileEntry> Children { get; set; } = new();
     public int Depth { get; set; }

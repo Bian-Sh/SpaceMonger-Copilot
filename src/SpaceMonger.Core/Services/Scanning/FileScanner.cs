@@ -5,6 +5,9 @@ namespace SpaceMonger.Core.Services.Scanning;
 
 public class FileScanner : IFileScanner
 {
+    public bool IsReady => true;
+    public event Action? IsReadyChanged { add { } remove { } }
+
     // Windows cloud placeholder file attributes (OneDrive Files On-Demand, etc.)
     private const FileAttributes RecallOnDataAccess = (FileAttributes)0x00400000;
     private const FileAttributes RecallOnOpen = (FileAttributes)0x00040000;

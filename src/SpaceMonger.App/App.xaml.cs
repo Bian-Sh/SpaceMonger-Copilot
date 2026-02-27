@@ -34,7 +34,8 @@ public partial class App : Application
         });
 
         // US1 services
-        services.AddSingleton<IFileScanner, FileScanner>();
+        services.AddSingleton<FileScanner>();
+        services.AddSingleton<IFileScanner, IncrementalFileScanner>();
         services.AddSingleton<ITreemapLayoutEngine, SquarifiedTreemapLayout>();
         services.AddTransient<MainViewModel>();
         services.AddTransient<TreemapViewModel>();
