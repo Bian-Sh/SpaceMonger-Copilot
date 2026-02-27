@@ -10,6 +10,14 @@ SpaceMonger Next is a spiritual successor to [SpaceMonger](https://www.werkema.c
 
 SpaceMonger Next carries that same philosophy forward — instant visual clarity about disk usage — and adds AI-powered analysis to help you decide what's safe to clean up.
 
+*Treemap view of ProgramData — each rectangle is proportional to its size on disk. Colors distinguish folders at a glance, and you can click any rectangle to drill into that directory.*
+
+![Treemap visualization of ProgramData](docs/screenshots/ui.png)
+
+*AI-powered cleanup in action — the right panel shows a chat conversation asking what can be safely deleted, with categorized recommendations and safety ratings. The bottom pane lists specific folders the AI flagged for cleanup, each with a size, safety rating (Safe, Review First, or Caution), and a description explaining why. Select items and click Clean Up to delete them in one step.*
+
+![AI chat and cleanup recommendations](docs/screenshots/ui_chat.png)
+
 **This project is not affiliated with or endorsed by Sean Werkema, Sixty-Five Software, Stardock, or EdgeRunner LLC.** It is an independent open-source reimagining built from scratch as a tribute to the original.
 
 ## Features
