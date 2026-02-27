@@ -41,7 +41,7 @@ SpaceMonger Next carries that same philosophy forward — instant visual clarity
 ## Installation
 
 ```bash
-git clone https://github.com/your-username/spacemonger-next.git
+git clone https://github.com/mrkozma/spacemonger-next.git
 cd spacemonger-next
 ```
 
