@@ -6,15 +6,15 @@ A modern disk space analyzer for Windows inspired by the legendary [SpaceMonger]
 
 ## About
 
-SpaceMonger Next is a spiritual successor to [SpaceMonger](https://www.werkema.com/programming/the-spacemonger-1-x-post-mortem/), the brilliant treemap-based disk space visualizer created by **Sean Werkema** in 1997. The original SpaceMonger — written in a single afternoon and posted online by a college student — became one of the most beloved Windows utilities of its era. Its genius was in its simplicity: one glance at the treemap and you could instantly see where your disk space went. Even decades later, people still swear by it.
+SpaceMonger Next is a spiritual successor to [SpaceMonger](https://www.werkema.com/programming/the-spacemonger-1-x-post-mortem/), the brilliant treemap-based disk space visualizer created by **Sean Werkema** in 1997. The original SpaceMonger 鈥?written in a single afternoon and posted online by a college student 鈥?became one of the most beloved Windows utilities of its era. Its genius was in its simplicity: one glance at the treemap and you could instantly see where your disk space went. Even decades later, people still swear by it.
 
-SpaceMonger Next carries that same philosophy forward — instant visual clarity about disk usage — and adds AI-powered analysis to help you decide what's safe to clean up.
+SpaceMonger Next carries that same philosophy forward 鈥?instant visual clarity about disk usage 鈥?and adds AI-powered analysis to help you decide what's safe to clean up.
 
-*Treemap view of ProgramData — each rectangle is proportional to its size on disk. Colors distinguish folders at a glance, and you can click any rectangle to drill into that directory.*
+*Treemap view of ProgramData 鈥?each rectangle is proportional to its size on disk. Colors distinguish folders at a glance, and you can click any rectangle to drill into that directory.*
 
 ![Treemap visualization of ProgramData](docs/screenshots/ui.png)
 
-*AI-powered cleanup in action — the right panel shows a chat conversation asking what can be safely deleted, with categorized recommendations and safety ratings. The bottom pane lists specific folders the AI flagged for cleanup, each with a size, safety rating (Safe, Review First, or Caution), and a description explaining why. Select items and click Clean Up to delete them in one step.*
+*AI-powered cleanup in action 鈥?the right panel shows a chat conversation asking what can be safely deleted, with categorized recommendations and safety ratings. The bottom pane lists specific folders the AI flagged for cleanup, each with a size, safety rating (Safe, Review First, or Caution), and a description explaining why. Select items and click Clean Up to delete them in one step.*
 
 ![AI chat and cleanup recommendations](docs/screenshots/ui_chat.png)
 
@@ -22,24 +22,24 @@ SpaceMonger Next carries that same philosophy forward — instant visual clarity
 
 ## Features
 
-- **Treemap visualization** — squarified layout with the classic SpaceMonger color palette, proportional rectangles, and drill-down navigation
-- **Free space indicator** — drive-level view shows free space as a distinct block so you see the full picture
-- **AI cleanup recommendations** — sends file metadata to Claude and returns categorized suggestions with safety ratings (Safe / Review First / Caution)
-- **Content-aware analysis** — the AI inspects file types, dates, and names inside ambiguous folders (like a folder named "Temp" that's actually full of important documents) instead of judging by name alone
-- **Interactive AI chat** — ask questions about your disk usage with streaming token output
-- **One-click cleanup** — select recommendations, confirm, and delete with automatic treemap refresh
-- **Protected paths** — never recommends deleting OS files, system directories, or user document folders
-- **Fast NTFS scanning** — enumerates the Master File Table in a single sequential pass for directory structure, then collects file sizes in parallel across all CPU cores
-- **Near-instant rescans** — uses the NTFS USN change journal to detect what changed since the last scan, applying only the deltas instead of re-reading the entire file system
-- **Automatic fallback** — non-NTFS volumes (FAT32, exFAT, network drives) fall back to a standard directory walk transparently
+- **Treemap visualization** 鈥?squarified layout with the classic SpaceMonger color palette, proportional rectangles, and drill-down navigation
+- **Free space indicator** 鈥?drive-level view shows free space as a distinct block so you see the full picture
+- **AI cleanup recommendations** 鈥?sends file metadata to Claude and returns categorized suggestions with safety ratings (Safe / Review First / Caution)
+- **Content-aware analysis** 鈥?the AI inspects file types, dates, and names inside ambiguous folders (like a folder named "Temp" that's actually full of important documents) instead of judging by name alone
+- **Interactive AI chat** 鈥?ask questions about your disk usage with streaming token output
+- **One-click cleanup** 鈥?select recommendations, confirm, and delete with automatic treemap refresh
+- **Protected paths** 鈥?never recommends deleting OS files, system directories, or user document folders
+- **Fast NTFS scanning** 鈥?enumerates the Master File Table in a single sequential pass for directory structure, then collects file sizes in parallel across all CPU cores
+- **Near-instant rescans** 鈥?uses the NTFS USN change journal to detect what changed since the last scan, applying only the deltas instead of re-reading the entire file system
+- **Automatic fallback** 鈥?non-NTFS volumes (FAT32, exFAT, network drives) fall back to a standard directory walk transparently
 
 ## Prerequisites
 
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) (or later)
 - Windows 10 or Windows 11
-- An [Anthropic API key](https://console.anthropic.com/) for AI features (optional — scanning and visualization work without it)
+- An [Anthropic API key](https://console.anthropic.com/) for AI features (optional 鈥?scanning and visualization work without it)
 
-> **Cost note:** AI features (cleanup recommendations and chat) use the Anthropic Messages API, which is billed per token. There is no free tier or subscription-based OAuth option — Anthropic closed the third-party OAuth route, so API key with pay-per-use billing is the only supported authentication method.
+> **Cost note:** AI features (cleanup recommendations and chat) use the Anthropic Messages API, which is billed per token. There is no free tier or subscription-based OAuth option 鈥?Anthropic closed the third-party OAuth route, so API key with pay-per-use billing is the only supported authentication method.
 
 ## Installation
 
@@ -71,12 +71,34 @@ cd src
 dotnet test SpaceMonger.sln
 ```
 
+## Configuration
+
+### Anthropic base URL override
+
+By default the app uses `https://api.anthropic.com`. To point SpaceMonger at another Anthropic-compatible endpoint, enter an Anthropic Base URL in **Settings**. Leave the field empty to use the built-in endpoint. Environment variables are still supported as a fallback before launching the app:
+
+- `SPACEMONGER_ANTHROPIC_BASE_URL` — preferred override for this app
+- `ANTHROPIC_BASE_URL` — fallback override for compatibility
+
+Settings and environment variable values must be absolute `http://` or `https://` URLs. The app falls back to the official Anthropic base URL when the Settings field is empty and neither variable is set.
+### Localization
+
+SpaceMonger keeps English source strings in `src/SpaceMonger.App/Localization/Strings.resx` and Simplified Chinese translations in `Strings.zh-CN.resx`. The app follows the Windows UI culture by default; set `SPACEMONGER_LANGUAGE=zh-CN` before launching to force Chinese.
+
+After pulling upstream changes, run:
+
+```bash
+python scripts/sync-localization.py --check
+```
+
+This verifies resource keys stay aligned and reports likely hard-coded UI strings that need to be moved into the resource files.
+
 ## Usage
 
 ### Scanning
 
 1. Select a drive or folder from the dropdown, type/paste a path, or click **Browse...** (which starts scanning immediately)
-2. Click **Scan** to start — on NTFS drives, the MFT is read first (file/folder counts climb rapidly), then file sizes are collected in parallel
+2. Click **Scan** to start 鈥?on NTFS drives, the MFT is read first (file/folder counts climb rapidly), then file sizes are collected in parallel
 3. The treemap fills in when the scan completes, with free space shown as an off-white block at the drive level
 4. Subsequent scans of the same path use the USN change journal and complete in under a second
 5. Click any folder rectangle to drill in, click **Up** or press **Escape** to go back
@@ -85,7 +107,7 @@ dotnet test SpaceMonger.sln
 ### AI Cleanup Recommendations
 
 1. Enter your Anthropic API key in **Settings** (gear icon)
-2. Click **Recommend Cleanup** — the AI analyzes your scan and returns items it thinks you can safely remove
+2. Click **Recommend Cleanup** 鈥?the AI analyzes your scan and returns items it thinks you can safely remove
 3. Recommendations are grouped by category (Temporary Files, Build Cache, Package Manager Cache, etc.) and rated by safety
 4. Check items to select them, then click **Clean Up** to delete
 
@@ -94,41 +116,41 @@ dotnet test SpaceMonger.sln
 ### Chat
 
 1. Click **Chat** to open the side panel
-2. Ask questions about your disk usage — the AI sees your current treemap view and any selected item
+2. Ask questions about your disk usage 鈥?the AI sees your current treemap view and any selected item
 3. Responses stream in token-by-token
 
 ## Project Structure
 
 ```
 src/
-├── SpaceMonger.App/          # WPF application (UI layer)
-│   ├── Controls/             # TreemapControl (SkiaSharp rendering)
-│   ├── Converters/           # Value converters for XAML bindings
-│   ├── ViewModels/           # MVVM view models
-│   └── Views/                # XAML views (Chat, Recommendations, Settings, Treemap)
-├── SpaceMonger.Core/         # Core library (no UI dependencies)
-│   ├── Enums/                # Safety ratings, categories, etc.
-│   ├── Models/               # FileEntry, TreemapNode, ScanSession, etc.
-│   └── Services/
-│       ├── Analysis/         # AI recommendation engine with content fingerprinting
-│       ├── Chat/             # AI chat service
-│       ├── Cleanup/          # File deletion service
-│       ├── Llm/              # Anthropic API client (streaming + non-streaming)
-│       ├── Scanning/         # File system scanner (MFT enumeration, parallel size collection, USN journal incremental rescans)
-│       ├── Settings/         # API key and app settings persistence
-│       └── Treemap/          # Squarified treemap layout algorithm
-└── SpaceMonger.sln
+鈹溾攢鈹€ SpaceMonger.App/          # WPF application (UI layer)
+鈹?  鈹溾攢鈹€ Controls/             # TreemapControl (SkiaSharp rendering)
+鈹?  鈹溾攢鈹€ Converters/           # Value converters for XAML bindings
+鈹?  鈹溾攢鈹€ ViewModels/           # MVVM view models
+鈹?  鈹斺攢鈹€ Views/                # XAML views (Chat, Recommendations, Settings, Treemap)
+鈹溾攢鈹€ SpaceMonger.Core/         # Core library (no UI dependencies)
+鈹?  鈹溾攢鈹€ Enums/                # Safety ratings, categories, etc.
+鈹?  鈹溾攢鈹€ Models/               # FileEntry, TreemapNode, ScanSession, etc.
+鈹?  鈹斺攢鈹€ Services/
+鈹?      鈹溾攢鈹€ Analysis/         # AI recommendation engine with content fingerprinting
+鈹?      鈹溾攢鈹€ Chat/             # AI chat service
+鈹?      鈹溾攢鈹€ Cleanup/          # File deletion service
+鈹?      鈹溾攢鈹€ Llm/              # Anthropic API client (streaming + non-streaming)
+鈹?      鈹溾攢鈹€ Scanning/         # File system scanner (MFT enumeration, parallel size collection, USN journal incremental rescans)
+鈹?      鈹溾攢鈹€ Settings/         # API key and app settings persistence
+鈹?      鈹斺攢鈹€ Treemap/          # Squarified treemap layout algorithm
+鈹斺攢鈹€ SpaceMonger.sln
 tests/
-├── SpaceMonger.App.Tests/
-└── SpaceMonger.Core.Tests/
+鈹溾攢鈹€ SpaceMonger.App.Tests/
+鈹斺攢鈹€ SpaceMonger.Core.Tests/
 ```
 
 ## Technical Notes
 
 - **File scanner** on NTFS volumes uses `FSCTL_ENUM_USN_DATA` to read the Master File Table in one sequential pass (~3 seconds for 2M files), then fills in file sizes via parallel `FileSystemEnumerable<T>` calls across all CPU cores. Non-NTFS volumes fall back to a serial `FindFirstFile`/`FindNextFile` walk
-- **Incremental rescans** read the NTFS USN change journal to detect creates, deletes, renames, and size changes since the last scan, applying only the deltas — typically sub-second for a previously-scanned volume
+- **Incremental rescans** read the NTFS USN change journal to detect creates, deletes, renames, and size changes since the last scan, applying only the deltas 鈥?typically sub-second for a previously-scanned volume
 - **Cloud placeholder files** (OneDrive Files On-Demand) are detected and report 0 bytes to avoid triggering unwanted downloads during scan
-- **Treemap layout** uses the squarified algorithm with adaptive depth — small directories become solid blocks rather than rendering unreadable children
+- **Treemap layout** uses the squarified algorithm with adaptive depth 鈥?small directories become solid blocks rather than rendering unreadable children
 - **AI metadata** is sent as a compact pipe-delimited format (~5-10x smaller than JSON) to maximize the data that fits within token limits
 - **Content fingerprints** attached to ambiguously-named directories include file type distribution, date ranges, user-content percentage, and sample file names so the AI can make informed safety judgments
 
@@ -136,10 +158,11 @@ tests/
 
 This project exists because of the original **SpaceMonger** by [Sean Werkema](https://www.werkema.com/). SpaceMonger 1.0 proved that a great idea, well executed, can outlast decades of technology change. The treemap visualization concept, the color palette, the drill-down navigation, and the philosophy of "do one thing and do it well" all trace directly back to Sean's work.
 
-- [SpaceMonger 1.4 source code](https://github.com/seanofw/spacemonger1) — preserved on GitHub for posterity
-- [The SpaceMonger 1.x Post-Mortem](https://www.werkema.com/programming/the-spacemonger-1-x-post-mortem/) — Sean's own account of building SpaceMonger
-- [Sean Werkema's Blog](https://www.werkema.com/) — includes additional SpaceMonger retrospectives
+- [SpaceMonger 1.4 source code](https://github.com/seanofw/spacemonger1) 鈥?preserved on GitHub for posterity
+- [The SpaceMonger 1.x Post-Mortem](https://www.werkema.com/programming/the-spacemonger-1-x-post-mortem/) 鈥?Sean's own account of building SpaceMonger
+- [Sean Werkema's Blog](https://www.werkema.com/) 鈥?includes additional SpaceMonger retrospectives
 
 ## License
 
 MIT
+
