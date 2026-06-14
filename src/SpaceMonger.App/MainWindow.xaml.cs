@@ -17,6 +17,8 @@ namespace SpaceMonger.App;
 /// </summary>
 public partial class MainWindow : Window
 {
+    private const double DefaultRecommendationsHeight = 260;
+
     private RecommendationsViewModel? _recommendationsViewModel;
     private TreemapViewModel? _treemapViewModel;
     private SettingsViewModel? _settingsViewModel;
@@ -35,7 +37,7 @@ public partial class MainWindow : Window
         _settingsViewModel = settingsVm;
         RecommendationsPanel.SetViewModel(recsVm);
         RecommendationsPanel.CleanupRequested += OnCleanupRequested;
-        RecommendationsPanel.CloseRequested += () => RecommendationsPanel.Visibility = Visibility.Collapsed;
+        RecommendationsPanel.CloseRequested += HideRecommendationsPanel;
     }
 
     public void SetTreemapViewModel(TreemapViewModel treemapVm)
@@ -87,6 +89,24 @@ public partial class MainWindow : Window
     {
         ChatPanelColumn.Width = new GridLength(0);
         ChatPanel.Visibility = Visibility.Collapsed;
+    }
+
+    private void ShowRecommendationsPanel()
+    {
+        RecommendationsPanel.Visibility = Visibility.Visible;
+        RecommendationsSplitter.Visibility = Visibility.Visible;
+
+        if (RecommendationsPanelRow.ActualHeight <= 0)
+        {
+            RecommendationsPanelRow.Height = new GridLength(DefaultRecommendationsHeight);
+        }
+    }
+
+    private void HideRecommendationsPanel()
+    {
+        RecommendationsPanel.Visibility = Visibility.Collapsed;
+        RecommendationsSplitter.Visibility = Visibility.Collapsed;
+        RecommendationsPanelRow.Height = new GridLength(0);
     }
 
     private async void AnalyzeButton_Click(object sender, RoutedEventArgs e)
@@ -144,7 +164,7 @@ public partial class MainWindow : Window
         }
 
         // Show the panel immediately so the user sees the loading indicator
-        RecommendationsPanel.Visibility = Visibility.Visible;
+        ShowRecommendationsPanel();
 
         // If the user has drilled into a folder, scope the analysis to that subtree.
         // At the top level (CurrentRoot == scan root), analyze the whole drive.
