@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="AppTitle" xml:space="preserve"><value>SpaceMonger Next</value></data>
+  <data name="ToolbarNavigation" xml:space="preserve"><value>导航</value></data>
+  <data name="PathSelectorToolTip" xml:space="preserve"><value>选择要扫描的磁盘或文件夹，也可以输入/粘贴路径</value></data>
+  <data name="BrowseButton" xml:space="preserve"><value>浏览...</value></data>
+  <data name="BrowseButtonToolTip" xml:space="preserve"><value>选择要扫描的文件夹</value></data>
+  <data name="ScanButton" xml:space="preserve"><value>扫描</value></data>
+  <data name="ScanButtonToolTip" xml:space="preserve"><value>开始扫描选中的磁盘或文件夹</value></data>
+  <data name="CancelButton" xml:space="preserve"><value>取消</value></data>
+  <data name="CancelScanToolTip" xml:space="preserve"><value>取消当前扫描</value></data>
+  <data name="RecommendCleanupButton" xml:space="preserve"><value>推荐清理</value></data>
+  <data name="RecommendCleanupToolTip" xml:space="preserve"><value>使用 AI 分析当前视图，并推荐可安全移除以释放磁盘空间的文件和文件夹。这里只显示可删除项，被认为重要的文件不会列出。</value></data>
+  <data name="ChatButton" xml:space="preserve"><value>聊天</value></data>
+  <data name="ChatToggleToolTip" xml:space="preserve"><value>切换 AI 聊天面板</value></data>
+  <data name="SettingsButtonToolTip" xml:space="preserve"><value>设置</value></data>
+  <data name="CapacityLabel" xml:space="preserve"><value>容量：</value></data>
+  <data name="UsedLabel" xml:space="preserve"><value>已用：</value></data>
+  <data name="FreeLabel" xml:space="preserve"><value>可用：</value></data>
+  <data name="FilesLabel" xml:space="preserve"><value>文件：</value></data>
+  <data name="FoldersLabel" xml:space="preserve"><value>文件夹：</value></data>
+  <data name="AnalyzeNoScanMessage" xml:space="preserve"><value>请先完成扫描再进行分析。</value></data>
+  <data name="AnalyzeNoScanTitle" xml:space="preserve"><value>没有扫描数据</value></data>
+  <data name="ApiKeyRequiredMessage" xml:space="preserve"><value>AI 分析需要 Anthropic API key。是否打开设置进行配置？</value></data>
+  <data name="ApiKeyRequiredTitle" xml:space="preserve"><value>需要 API Key</value></data>
+  <data name="ConfirmReanalysisMessage" xml:space="preserve"><value>重新分析会替换当前所有推荐，已接受的项目也会丢失。是否继续？</value></data>
+  <data name="ConfirmReanalysisTitle" xml:space="preserve"><value>确认重新分析</value></data>
+  <data name="AnalysisFailedStatus" xml:space="preserve"><value>分析失败：{0}</value></data>
+  <data name="AnalysisCompleteStatus" xml:space="preserve"><value>分析完成：找到 {0} 条推荐。</value></data>
+  <data name="CleaningStatus" xml:space="preserve"><value>正在清理：{0}/{1} — {2}</value></data>
+  <data name="CleanupCompleteStatus" xml:space="preserve"><value>清理完成：已移除 {0} 项（释放 {1}）</value></data>
+  <data name="CleanupPartialTitle" xml:space="preserve"><value>清理完成但存在错误</value></data>
+  <data name="CleanupPartialMessage" xml:space="preserve"><value>清理已完成，但有 {0} 项无法移除。请查看摘要了解详情。</value></data>
+  <data name="SettingsTitle" xml:space="preserve"><value>设置</value></data>
+  <data name="AnthropicApiKeyHeader" xml:space="preserve"><value>Anthropic API Key</value></data>
+  <data name="ApiKeyToolTip" xml:space="preserve"><value>输入 Anthropic API key。该密钥会加密保存。</value></data>
+  <data name="ValidateButton" xml:space="preserve"><value>验证</value></data>
+  <data name="DefaultDeletionModeHeader" xml:space="preserve"><value>默认删除模式</value></data>
+  <data name="DataPrivacyHeader" xml:space="preserve"><value>数据隐私</value></data>
+  <data name="DataPrivacyText" xml:space="preserve"><value>使用 AI 功能时，文件元数据（路径、大小、类型和日期）会发送到 Anthropic 云服务进行分析。文件内容绝不会被传输。</value></data>
+  <data name="SaveButton" xml:space="preserve"><value>保存</value></data>
+  <data name="ApiKeyEmptyMessage" xml:space="preserve"><value>API key 不能为空。</value></data>
+  <data name="ApiKeyInvalidMessage" xml:space="preserve"><value>API key 无效。</value></data>
+  <data name="ValidationFailedMessage" xml:space="preserve"><value>验证失败：{0}</value></data>
+  <data name="UpButton" xml:space="preserve"><value>← 上一级</value></data>
+  <data name="NavigateUpToolTip" xml:space="preserve"><value>向上导航一级</value></data>
+  <data name="PropertiesTitle" xml:space="preserve"><value>属性 - {0}</value></data>
+  <data name="PropertiesPath" xml:space="preserve"><value>路径：</value></data>
+  <data name="PropertiesType" xml:space="preserve"><value>类型：</value></data>
+  <data name="PropertiesSize" xml:space="preserve"><value>大小：</value></data>
+  <data name="PropertiesFiles" xml:space="preserve"><value>文件：</value></data>
+  <data name="PropertiesFolders" xml:space="preserve"><value>文件夹：</value></data>
+  <data name="PropertiesCreated" xml:space="preserve"><value>创建时间：</value></data>
+  <data name="PropertiesModified" xml:space="preserve"><value>修改时间：</value></data>
+  <data name="PropertiesUnknown" xml:space="preserve"><value>未知</value></data>
+  <data name="OkButton" xml:space="preserve"><value>确定</value></data>
+  <data name="ErrorTitle" xml:space="preserve"><value>错误</value></data>
+  <data name="OpenFailedMessage" xml:space="preserve"><value>无法打开路径：{0}</value></data>
+  <data name="PropertiesFailedMessage" xml:space="preserve"><value>无法显示属性：{0}</value></data>
+  <data name="ChatConfigureApiKey" xml:space="preserve"><value>请在设置中配置 API key 后使用聊天</value></data>
+  <data name="OpenSettingsButton" xml:space="preserve"><value>打开设置</value></data>
+  <data name="SendButton" xml:space="preserve"><value>发送</value></data>
+  <data name="ClearContextToolTip" xml:space="preserve"><value>清除关联上下文</value></data>
+  <data name="ChatContextLabel" xml:space="preserve"><value>上下文：</value></data>
+  <data name="ThinkingText" xml:space="preserve"><value>思考中...</value></data>
+  <data name="RecommendationsTitle" xml:space="preserve"><value>清理推荐</value></data>
+  <data name="RecommendationsEmpty" xml:space="preserve"><value>暂无清理推荐。运行分析以获取建议。</value></data>
+  <data name="SelectAllButton" xml:space="preserve"><value>全选</value></data>
+  <data name="SelectNoneButton" xml:space="preserve"><value>全不选</value></data>
+  <data name="SelectedLabel" xml:space="preserve"><value>已选：</value></data>
+  <data name="ItemsLabel" xml:space="preserve"><value> 项</value></data>
+  <data name="RecoverableLabel" xml:space="preserve"><value>可释放：</value></data>
+  <data name="CleanUpButton" xml:space="preserve"><value>清理</value></data>
+  <data name="CleanUpToolTip" xml:space="preserve"><value>执行选中推荐的清理操作</value></data>
+  <data name="CopyButton" xml:space="preserve"><value>复制</value></data>
+  <data name="NoItemsSelectedMessage" xml:space="preserve"><value>未选择任何推荐项。请勾选要清理的项目。</value></data>
+  <data name="NoItemsSelectedTitle" xml:space="preserve"><value>未选择项目</value></data>
+  <data name="CleanupFailedMessage" xml:space="preserve"><value>清理失败：{0}</value></data>
+  <data name="CleanupErrorTitle" xml:space="preserve"><value>清理错误</value></data>
+  <data name="OpenInExplorerMenu" xml:space="preserve"><value>在资源管理器中打开</value></data>
+  <data name="CopyPathMenu" xml:space="preserve"><value>复制路径</value></data>
+  <data name="PropertiesMenu" xml:space="preserve"><value>属性</value></data>
+  <data name="OpenExplorerFailedMessage" xml:space="preserve"><value>无法打开资源管理器：
+{0}</value></data>
+  <data name="CopyPathFailedMessage" xml:space="preserve"><value>无法复制路径到剪贴板：
+{0}</value></data>
+  <data name="FolderType" xml:space="preserve"><value>文件夹</value></data>
+  <data name="FileType" xml:space="preserve"><value>文件</value></data>
+  <data name="FileTypeFormat" xml:space="preserve"><value>{0} 文件</value></data>
+  <data name="CloseRecommendationsToolTip" xml:space="preserve"><value>关闭推荐面板</value></data>
+  <data name="FilterByLabel" xml:space="preserve"><value>筛选：</value></data>
+  <data name="AllCategoriesOption" xml:space="preserve"><value>所有类别</value></data>
+  <data name="AllRatingsOption" xml:space="preserve"><value>所有评级</value></data>
+  <data name="SelectAllSafeButton" xml:space="preserve"><value>全选安全项</value></data>
+  <data name="DeselectAllCautionButton" xml:space="preserve"><value>取消选择谨慎项</value></data>
+  <data name="AnalyzingFilesText" xml:space="preserve"><value>正在分析文件...</value></data>
+  <data name="AnalysisMayTakeText" xml:space="preserve"><value>这可能需要一些时间</value></data>
+  <data name="AnalyzingFolderStatus" xml:space="preserve"><value>正在分析 {0}...</value></data>
+  <data name="AnalyzingScanResultsStatus" xml:space="preserve"><value>正在分析扫描结果...</value></data>
+  <data name="ConfirmCleanupTitle" xml:space="preserve"><value>确认清理</value></data>
+  <data name="ConfirmCleanupPrompt" xml:space="preserve"><value>⚠ 确定要继续吗？</value></data>
+  <data name="DeletionModeHeader" xml:space="preserve"><value>删除模式</value></data>
+  <data name="MoveToRecycleBinOption" xml:space="preserve"><value>移到回收站</value></data>
+  <data name="PermanentlyDeleteOption" xml:space="preserve"><value>永久删除</value></data>
+  <data name="PermanentDeleteWarning" xml:space="preserve"><value>警告：文件将无法恢复！</value></data>
+  <data name="ConfirmButton" xml:space="preserve"><value>确认</value></data>
+  <data name="CleanupSummaryTitle" xml:space="preserve"><value>清理摘要</value></data>
+  <data name="SkippedItemsHeader" xml:space="preserve"><value>跳过项目</value></data>
+  <data name="PathColumn" xml:space="preserve"><value>路径</value></data>
+  <data name="ReasonColumn" xml:space="preserve"><value>原因</value></data>
+  <data name="TooltipSize" xml:space="preserve"><value>大小：{0}</value></data>
+  <data name="TooltipType" xml:space="preserve"><value>类型：{0}</value></data>
+  <data name="TooltipModified" xml:space="preserve"><value>修改时间：{0}</value></data>
+  <data name="AccessDenied" xml:space="preserve"><value>访问被拒绝</value></data>
+  <data name="ChatErrorAppend" xml:space="preserve"><value>
+
+[错误：{0}]</value></data>
+  <data name="ScanningStatus" xml:space="preserve"><value>正在扫描...</value></data>
+  <data name="ScanProgressStatus" xml:space="preserve"><value>{0} — {1:N0} 个文件，{2:N0} 个文件夹</value></data>
+  <data name="ScanCancelledStatus" xml:space="preserve"><value>扫描已取消。</value></data>
+  <data name="FreeSpaceName" xml:space="preserve"><value>可用空间</value></data>
+  <data name="FreeSpacePath" xml:space="preserve"><value>（可用空间）</value></data>
+  <data name="FreeSpaceWithSize" xml:space="preserve"><value>可用空间（{0}）</value></data>
+  <data name="ItemsToRemove" xml:space="preserve"><value>要移除的项目：{0}</value></data>
+  <data name="SpaceToFree" xml:space="preserve"><value>可释放空间：{0}</value></data>
+  <data name="CleanupSummarySuccess" xml:space="preserve"><value>已移除 {0} 项（释放 {1}）</value></data>
+  <data name="CleanupSummaryAlreadyRemoved" xml:space="preserve"><value>{0} 项已经被移除</value></data>
+  <data name="SkippedItemsWithCount" xml:space="preserve"><value>跳过项目（跳过 {0} 项）</value></data>
+  <data name="TotalSpaceRecovered" xml:space="preserve"><value>总释放空间：{0}</value></data>
+  <data name="PropertiesName" xml:space="preserve"><value>名称：</value></data>
+  <data name="AnthropicBaseUrlHeader" xml:space="preserve"><value>Anthropic Base URL</value></data>
+  <data name="AnthropicBaseUrlToolTip" xml:space="preserve"><value>可选。留空则使用内置 Anthropic endpoint。</value></data>
+  <data name="AnthropicBaseUrlHint" xml:space="preserve"><value>留空使用内置 endpoint；填写绝对 http(s) URL 可覆盖内置地址。</value></data>
+</root>

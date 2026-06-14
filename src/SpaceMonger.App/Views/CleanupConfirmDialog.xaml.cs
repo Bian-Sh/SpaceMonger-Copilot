@@ -1,5 +1,6 @@
 using System.Windows;
 using SpaceMonger.App.Converters;
+using SpaceMonger.App.Localization;
 using SpaceMonger.Core.Enums;
 
 namespace SpaceMonger.App.Views;
@@ -36,8 +37,8 @@ public partial class CleanupConfirmDialog : Window
         TotalItems = totalItems;
         TotalSpace = FileSizeConverter.FormatSize(totalSizeBytes);
 
-        ItemCount.Text = $"Items to remove: {TotalItems}";
-        SpaceToFree.Text = $"Space to free: {TotalSpace}";
+        ItemCount.Text = L.Format("ItemsToRemove", TotalItems);
+        SpaceToFree.Text = L.Format("SpaceToFree", TotalSpace);
     }
 
     private void ConfirmButton_Click(object sender, RoutedEventArgs e)

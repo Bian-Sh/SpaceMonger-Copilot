@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using SkiaSharp;
+using SpaceMonger.App.Localization;
 using SkiaSharp.Views.Desktop;
 using SkiaSharp.Views.WPF;
 using SpaceMonger.App.Converters;
@@ -263,7 +264,7 @@ public class TreemapControl : SKElement
     private void UpdateToolTipContent(TreemapNode node)
     {
         var entry = node.Entry;
-        string fileType = entry.IsDirectory ? "Folder" : (entry.Extension ?? "Unknown");
+        string fileType = entry.IsDirectory ? L.Text("FolderType") : (entry.Extension ?? L.Text("PropertiesUnknown"));
         string size = FileSizeConverter.FormatSize(entry.Size);
         string modified = entry.LastModified.ToString("g");
 
@@ -279,19 +280,19 @@ public class TreemapControl : SKElement
 
         panel.Children.Add(new TextBlock
         {
-            Text = $"Size: {size}",
+            Text = L.Format("TooltipSize", size),
             Margin = new Thickness(0, 2, 0, 0),
         });
 
         panel.Children.Add(new TextBlock
         {
-            Text = $"Type: {fileType}",
+            Text = L.Format("TooltipType", fileType),
             Margin = new Thickness(0, 2, 0, 0),
         });
 
         panel.Children.Add(new TextBlock
         {
-            Text = $"Modified: {modified}",
+            Text = L.Format("TooltipModified", modified),
             Margin = new Thickness(0, 2, 0, 0),
         });
 
@@ -299,7 +300,7 @@ public class TreemapControl : SKElement
         {
             panel.Children.Add(new TextBlock
             {
-                Text = "Access Denied",
+                Text = L.Text("AccessDenied"),
                 Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 80, 80)),
                 FontWeight = FontWeights.Bold,
                 Margin = new Thickness(0, 2, 0, 0),

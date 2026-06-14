@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SpaceMonger.App.Localization;
 using SpaceMonger.Core.Enums;
 using SpaceMonger.Core.Models;
 using SpaceMonger.Core.Services.Treemap;
@@ -132,9 +133,9 @@ public partial class TreemapViewModel : ObservableObject
 
     private static readonly FileEntry FreeSpaceSentinel = new()
     {
-        Name = "Free Space",
+        Name = L.Text("FreeSpaceName"),
         IsDirectory = false,
-        Path = "(free space)",
+        Path = L.Text("FreeSpacePath"),
     };
 
     private void RecomputeLayout()
@@ -174,7 +175,7 @@ public partial class TreemapViewModel : ObservableObject
                 if (node.Entry == FreeSpaceSentinel)
                 {
                     node.ColorHex = "#F0F0E8";
-                    node.Label = $"Free Space ({FormatSize(_session.DriveFreeSpace.Value)})";
+                    node.Label = FormatSize(_session.DriveFreeSpace.Value);
                 }
             }
 

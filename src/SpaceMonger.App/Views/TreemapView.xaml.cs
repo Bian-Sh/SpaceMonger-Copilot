@@ -4,6 +4,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using SpaceMonger.App.Localization;
 using SpaceMonger.App.Controls;
 using SpaceMonger.App.Converters;
 using SpaceMonger.App.ViewModels;
@@ -130,7 +131,7 @@ public partial class TreemapView : UserControl
         var contextMenu = new ContextMenu();
 
         // "Open in Explorer" menu item
-        var openInExplorerItem = new MenuItem { Header = "Open in Explorer" };
+        var openInExplorerItem = new MenuItem { Header = L.Text("OpenInExplorerMenu") };
         openInExplorerItem.Click += (_, _) =>
         {
             try
@@ -140,8 +141,8 @@ public partial class TreemapView : UserControl
             catch (Exception ex)
             {
                 MessageBox.Show(
-                    $"Could not open Explorer:\n{ex.Message}",
-                    "Error",
+                    L.Format("OpenExplorerFailedMessage", ex.Message),
+                    L.Text("ErrorTitle"),
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
@@ -149,7 +150,7 @@ public partial class TreemapView : UserControl
         contextMenu.Items.Add(openInExplorerItem);
 
         // "Copy Path" menu item
-        var copyPathItem = new MenuItem { Header = "Copy Path" };
+        var copyPathItem = new MenuItem { Header = L.Text("CopyPathMenu") };
         copyPathItem.Click += (_, _) =>
         {
             try
@@ -159,8 +160,8 @@ public partial class TreemapView : UserControl
             catch (Exception ex)
             {
                 MessageBox.Show(
-                    $"Could not copy path to clipboard:\n{ex.Message}",
-                    "Error",
+                    L.Format("CopyPathFailedMessage", ex.Message),
+                    L.Text("ErrorTitle"),
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
@@ -171,7 +172,7 @@ public partial class TreemapView : UserControl
         contextMenu.Items.Add(new Separator());
 
         // "Properties" menu item
-        var propertiesItem = new MenuItem { Header = "Properties" };
+        var propertiesItem = new MenuItem { Header = L.Text("PropertiesMenu") };
         propertiesItem.Click += (_, _) => ShowPropertiesDialog(entry);
         contextMenu.Items.Add(propertiesItem);
 
@@ -190,7 +191,7 @@ public partial class TreemapView : UserControl
         {
             if (entry.IsDirectory)
             {
-                type = "Folder";
+                type = L.Text("FolderType");
                 var dirInfo = new DirectoryInfo(entry.Path);
                 if (dirInfo.Exists)
                 {
@@ -201,8 +202,8 @@ public partial class TreemapView : UserControl
             else
             {
                 type = string.IsNullOrEmpty(entry.Extension)
-                    ? "File"
-                    : $"{entry.Extension.TrimStart('.').ToUpperInvariant()} File";
+                    ? L.Text("FileType")
+                    : L.Format("FileTypeFormat", entry.Extension.TrimStart('.').ToUpperInvariant());
                 var fileInfo = new FileInfo(entry.Path);
                 if (fileInfo.Exists)
                 {
@@ -213,12 +214,12 @@ public partial class TreemapView : UserControl
         }
         catch
         {
-            type = entry.IsDirectory ? "Folder" : "File";
+            type = entry.IsDirectory ? L.Text("FolderType") : L.Text("FileType");
         }
 
         var propertiesWindow = new Window
         {
-            Title = $"Properties - {entry.Name}",
+            Title = L.Format("PropertiesTitle", entry.Name),
             Width = 400,
             Height = 280,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
@@ -236,12 +237,12 @@ public partial class TreemapView : UserControl
 
         var labels = new[]
         {
-            ("Name:", entry.Name),
-            ("Path:", entry.Path),
-            ("Size:", FileSizeConverter.FormatSize(entry.Size)),
-            ("Type:", type),
-            ("Created:", createdDate == DateTime.MinValue ? "Unknown" : createdDate.ToString("yyyy-MM-dd HH:mm:ss")),
-            ("Modified:", lastModifiedDate == DateTime.MinValue ? "Unknown" : lastModifiedDate.ToString("yyyy-MM-dd HH:mm:ss")),
+            (L.Text("PropertiesName"), entry.Name),
+            (L.Text("PropertiesPath"), entry.Path),
+            (L.Text("PropertiesSize"), FileSizeConverter.FormatSize(entry.Size)),
+            (L.Text("PropertiesType"), type),
+            (L.Text("PropertiesCreated"), createdDate == DateTime.MinValue ? L.Text("PropertiesUnknown") : createdDate.ToString("yyyy-MM-dd HH:mm:ss")),
+            (L.Text("PropertiesModified"), lastModifiedDate == DateTime.MinValue ? L.Text("PropertiesUnknown") : lastModifiedDate.ToString("yyyy-MM-dd HH:mm:ss")),
         };
 
         for (int i = 0; i < labels.Length; i++)
@@ -274,7 +275,7 @@ public partial class TreemapView : UserControl
         grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(40) });
         var okButton = new Button
         {
-            Content = "OK",
+            Content = L.Text("OkButton"),
             Width = 80,
             Height = 28,
             HorizontalAlignment = HorizontalAlignment.Right,

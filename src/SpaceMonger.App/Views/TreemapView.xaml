@@ -4,6 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="clr-namespace:SpaceMonger.App.Controls"
+             xmlns:loc="clr-namespace:SpaceMonger.App.Localization"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="800">
 
@@ -19,12 +20,12 @@
                     VerticalAlignment="Center"
                     Background="#F0F0F0">
             <Button x:Name="UpButton"
-                    Content="&#x2190; Up"
+                    Content="{loc:Loc UpButton}"
                     Padding="6,2"
                     Margin="4,0"
                     IsEnabled="False"
                     Click="UpButton_Click"
-                    ToolTip="Navigate up one level" />
+                    ToolTip="{loc:Loc NavigateUpToolTip}" />
             <StackPanel x:Name="BreadcrumbPanel"
                         Orientation="Horizontal"
                         VerticalAlignment="Center"

@@ -1,5 +1,6 @@
 using System.Windows;
 using SpaceMonger.App.Converters;
+using SpaceMonger.App.Localization;
 using SpaceMonger.Core.Enums;
 using SpaceMonger.Core.Models;
 
@@ -22,12 +23,12 @@ public partial class CleanupSummaryDialog : Window
         long totalFreed = successActions.Sum(a => a.ActualSizeFreed);
 
         // Success summary
-        SuccessSummary.Text = $"{successActions.Count} items removed ({FileSizeConverter.FormatSize(totalFreed)} freed)";
+        SuccessSummary.Text = L.Format("CleanupSummarySuccess", successActions.Count, FileSizeConverter.FormatSize(totalFreed));
 
         // Already removed
         if (alreadyRemovedActions.Count > 0)
         {
-            AlreadyRemovedText.Text = $"{alreadyRemovedActions.Count} items were already removed";
+            AlreadyRemovedText.Text = L.Format("CleanupSummaryAlreadyRemoved", alreadyRemovedActions.Count);
             AlreadyRemovedText.Visibility = Visibility.Visible;
         }
         else
@@ -38,11 +39,11 @@ public partial class CleanupSummaryDialog : Window
         // Skipped items
         if (skippedActions.Count > 0)
         {
-            SkippedGroup.Header = $"Skipped Items ({skippedActions.Count} items skipped)";
+            SkippedGroup.Header = L.Format("SkippedItemsWithCount", skippedActions.Count);
             SkippedItemsList.ItemsSource = skippedActions.Select(a => new
             {
                 Path = a.Recommendation.TargetPath,
-                Reason = a.FailureReason ?? "Unknown"
+                Reason = a.FailureReason ?? L.Text("PropertiesUnknown")
             }).ToList();
             SkippedGroup.Visibility = Visibility.Visible;
         }
@@ -52,7 +53,7 @@ public partial class CleanupSummaryDialog : Window
         }
 
         // Total space recovered
-        TotalRecovered.Text = $"Total space recovered: {FileSizeConverter.FormatSize(totalFreed)}";
+        TotalRecovered.Text = L.Format("TotalSpaceRecovered", FileSizeConverter.FormatSize(totalFreed));
     }
 
     private void OkButton_Click(object sender, RoutedEventArgs e)

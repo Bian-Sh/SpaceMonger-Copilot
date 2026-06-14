@@ -4,6 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:converters="clr-namespace:SpaceMonger.App.Converters"
+             xmlns:loc="clr-namespace:SpaceMonger.App.Localization"
              xmlns:enums="clr-namespace:SpaceMonger.Core.Enums;assembly=SpaceMonger.Core"
              xmlns:vm="clr-namespace:SpaceMonger.App.ViewModels"
              mc:Ignorable="d"
@@ -36,10 +37,10 @@
                     BorderThickness="0"
                     Cursor="Hand"
                     Click="CloseButton_Click"
-                    ToolTip="Close recommendations panel" />
+                    ToolTip="{loc:Loc CloseRecommendationsToolTip}" />
         <StackPanel Orientation="Horizontal"
                     VerticalAlignment="Center">
-            <Label Content="Filter by:"
+            <Label Content="{loc:Loc FilterByLabel}"
                    VerticalAlignment="Center"
                    Margin="0,0,4,0" />
 
@@ -48,7 +49,7 @@
                       Margin="0,0,8,0"
                       SelectedItem="{Binding SelectedCategoryFilter, Mode=TwoWay}">
                 <ComboBox.Items>
-                    <ComboBoxItem Content="All Categories" IsSelected="True" />
+                    <ComboBoxItem Content="{loc:Loc AllCategoriesOption}" IsSelected="True" />
                     <enums:RecommendationCategory>TemporaryFiles</enums:RecommendationCategory>
                     <enums:RecommendationCategory>BuildCache</enums:RecommendationCategory>
                     <enums:RecommendationCategory>PackageManagerCache</enums:RecommendationCategory>
@@ -66,19 +67,19 @@
                       Margin="0,0,8,0"
                       SelectedItem="{Binding SelectedSafetyFilter, Mode=TwoWay}">
                 <ComboBox.Items>
-                    <ComboBoxItem Content="All Ratings" IsSelected="True" />
+                    <ComboBoxItem Content="{loc:Loc AllRatingsOption}" IsSelected="True" />
                     <enums:SafetyRating>Safe</enums:SafetyRating>
                     <enums:SafetyRating>ReviewFirst</enums:SafetyRating>
                     <enums:SafetyRating>Caution</enums:SafetyRating>
                 </ComboBox.Items>
             </ComboBox>
 
-            <Button Content="Select All Safe"
+            <Button Content="{loc:Loc SelectAllSafeButton}"
                     Padding="8,4"
                     Margin="0,0,4,0"
                     Command="{Binding SelectAllSafeCommand}" />
 
-            <Button Content="Deselect All Caution"
+            <Button Content="{loc:Loc DeselectAllCautionButton}"
                     Padding="8,4"
                     Margin="0,0,4,0"
                     Command="{Binding DeselectAllCautionCommand}" />
@@ -101,11 +102,11 @@
             </Border.Style>
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                 <ProgressBar IsIndeterminate="True" Width="200" Height="16" Margin="0,0,0,8" />
-                <TextBlock Text="Analyzing scan results with AI..."
+                <TextBlock Text="{loc:Loc AnalyzingFilesText}"
                            FontSize="14"
                            Foreground="#555555"
                            HorizontalAlignment="Center" />
-                <TextBlock Text="This may take up to a minute"
+                <TextBlock Text="{loc:Loc AnalysisMayTakeText}"
                            FontSize="11"
                            Foreground="#999999"
                            HorizontalAlignment="Center"
@@ -238,21 +239,21 @@
             <StackPanel Orientation="Horizontal">
                 <TextBlock VerticalAlignment="Center"
                            Margin="0,0,16,0">
-                    <Run Text="Selected: " />
+                    <Run Text="{loc:Loc SelectedLabel}" />
                     <Run Text="{Binding TotalSelectedCount, Mode=OneWay}" FontWeight="SemiBold" />
-                    <Run Text=" items" />
+                    <Run Text="{loc:Loc ItemsLabel}" />
                 </TextBlock>
 
                 <TextBlock VerticalAlignment="Center"
                            Margin="0,0,16,0">
-                    <Run Text="Recoverable: " />
+                    <Run Text="{loc:Loc RecoverableLabel}" />
                     <Run Text="{Binding TotalRecoverableSpace, Mode=OneWay}" FontWeight="SemiBold" />
                 </TextBlock>
 
-                <Button Content="Clean Up"
+                <Button Content="{loc:Loc CleanUpButton}"
                         Padding="12,4"
                         Click="CleanUpButton_Click"
-                        ToolTip="Execute cleanup for selected recommendations" />
+                        ToolTip="{loc:Loc CleanUpToolTip}" />
             </StackPanel>
         </Border>
     </Grid>

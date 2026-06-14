@@ -2,6 +2,7 @@ using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SpaceMonger.App.Converters;
+using SpaceMonger.App.Localization;
 using SpaceMonger.Core.Models;
 using SpaceMonger.Core.Services.Scanning;
 
@@ -86,7 +87,7 @@ public partial class MainViewModel : ObservableObject
         SelectedPath = scanTarget;
 
         IsScanning = true;
-        ScanProgressText = "Scanning...";
+        ScanProgressText = L.Text("ScanningStatus");
         _scanCts = new CancellationTokenSource();
 
         try
@@ -94,7 +95,7 @@ public partial class MainViewModel : ObservableObject
             var progress = new Progress<ScanProgress>(p =>
             {
                 ScanProgressText = p.FileCount > 0 || p.FolderCount > 0
-                    ? $"{p.CurrentPath} — {p.FileCount:N0} files, {p.FolderCount:N0} folders"
+                    ? L.Format("ScanProgressStatus", p.CurrentPath, p.FileCount, p.FolderCount)
                     : p.CurrentPath;
             });
 
@@ -105,7 +106,7 @@ public partial class MainViewModel : ObservableObject
         }
         catch (OperationCanceledException)
         {
-            ScanProgressText = "Scan cancelled.";
+            ScanProgressText = L.Text("ScanCancelledStatus");
         }
         finally
         {

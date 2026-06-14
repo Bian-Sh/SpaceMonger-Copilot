@@ -5,6 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:enums="clr-namespace:SpaceMonger.Core.Enums;assembly=SpaceMonger.Core"
              xmlns:vm="clr-namespace:SpaceMonger.App.ViewModels"
+             xmlns:loc="clr-namespace:SpaceMonger.App.Localization"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:ChatViewModel, IsDesignTimeCreatable=False}"
              d:DesignHeight="600" d:DesignWidth="380">
@@ -28,14 +29,14 @@
                 </Style>
             </Border.Style>
             <StackPanel HorizontalAlignment="Center">
-                <TextBlock Text="Configure your API key in Settings to use the chat"
+                <TextBlock Text="{loc:Loc ChatConfigureApiKey}"
                            TextWrapping="Wrap"
                            TextAlignment="Center"
                            Foreground="#E65100"
                            FontSize="12"
                            Margin="0,0,0,6" />
                 <Button x:Name="OpenSettingsButton"
-                        Content="Open Settings"
+                        Content="{loc:Loc OpenSettingsButton}"
                         HorizontalAlignment="Center"
                         Padding="12,4"
                         FontSize="11"
@@ -51,7 +52,7 @@
                 Padding="8">
             <DockPanel>
                 <Button DockPanel.Dock="Right"
-                        Content="Send"
+                        Content="{loc:Loc SendButton}"
                         Padding="12,6"
                         Margin="6,0,0,0"
                         VerticalAlignment="Stretch"
@@ -110,7 +111,7 @@
                         Margin="6,0,0,0"
                         VerticalAlignment="Center"
                         Click="ClearContextButton_Click"
-                        ToolTip="Clear linked context"
+                        ToolTip="{loc:Loc ClearContextToolTip}"
                         Background="Transparent"
                         BorderThickness="0"
                         Cursor="Hand" />
@@ -118,7 +119,7 @@
                            FontSize="11"
                            Foreground="#2E7D32"
                            TextTrimming="CharacterEllipsis">
-                    <Run Text="Context: " FontWeight="SemiBold" />
+                    <Run Text="{loc:Loc ChatContextLabel}" FontWeight="SemiBold" />
                     <Run Text="{Binding LinkedItemPath, Mode=OneWay}" />
                 </TextBlock>
             </DockPanel>
@@ -156,7 +157,7 @@
 
                             <StackPanel>
                                 <!-- Thinking indicator: shown while streaming with no text yet -->
-                                <TextBlock Text="Thinking..."
+                                <TextBlock Text="{loc:Loc ThinkingText}"
                                            FontStyle="Italic"
                                            Foreground="#9E9E9E"
                                            FontSize="13">

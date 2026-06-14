@@ -6,9 +6,10 @@
         xmlns:local="clr-namespace:SpaceMonger.App"
         xmlns:vm="clr-namespace:SpaceMonger.App.ViewModels"
         xmlns:views="clr-namespace:SpaceMonger.App.Views"
+        xmlns:loc="clr-namespace:SpaceMonger.App.Localization"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel, IsDesignTimeCreatable=False}"
-        Title="SpaceMonger Next"
+        Title="{loc:Loc AppTitle}"
         Height="800" Width="1200"
         WindowStartupLocation="CenterScreen"
         KeyDown="Window_KeyDown">
@@ -17,7 +18,7 @@
 
         <!-- Toolbar (top) -->
         <ToolBarTray DockPanel.Dock="Top" IsLocked="True">
-            <ToolBar Band="0" BandIndex="0" Header="Navigation">
+            <ToolBar Band="0" BandIndex="0" Header="{loc:Loc ToolbarNavigation}">
                 <ComboBox x:Name="DriveSelector"
                           Width="350"
                           VerticalAlignment="Center"
@@ -25,46 +26,46 @@
                           ItemsSource="{Binding DriveList}"
                           Text="{Binding SelectedPath, UpdateSourceTrigger=PropertyChanged}"
                           IsEditable="True"
-                          ToolTip="Select a drive or folder to scan, or type/paste a path" />
+                          ToolTip="{loc:Loc PathSelectorToolTip}" />
                 <Button x:Name="BrowseButton"
-                        Content="Browse..."
+                        Content="{loc:Loc BrowseButton}"
                         Padding="8,2"
                         Margin="4,2"
                         Command="{Binding BrowseCommand}"
-                        ToolTip="Pick a folder to scan" />
+                        ToolTip="{loc:Loc BrowseButtonToolTip}" />
                 <Separator Margin="4,0" />
                 <Button x:Name="ScanButton"
-                        Content="Scan"
+                        Content="{loc:Loc ScanButton}"
                         Padding="12,2"
                         Margin="4,2"
                         FontWeight="SemiBold"
                         Command="{Binding ScanCommand}"
-                        ToolTip="Start scanning the selected drive or folder" />
+                        ToolTip="{loc:Loc ScanButtonToolTip}" />
                 <Button x:Name="CancelScanButton"
-                        Content="Cancel"
+                        Content="{loc:Loc CancelButton}"
                         Padding="8,2"
                         Margin="4,2"
                         Command="{Binding CancelScanCommand}"
-                        ToolTip="Cancel the current scan" />
+                        ToolTip="{loc:Loc CancelScanToolTip}" />
                 <Button x:Name="AnalyzeButton"
-                        Content="Recommend Cleanup"
+                        Content="{loc:Loc RecommendCleanupButton}"
                         Padding="8,2"
                         Margin="4,2"
                         Click="AnalyzeButton_Click"
-                        ToolTip="Uses AI to scan the current view and recommend files and folders that can be safely removed to free up disk space. Only deletable items are shown — files deemed important are not listed." />
+                        ToolTip="{loc:Loc RecommendCleanupToolTip}" />
                 <Separator Margin="4,0" />
                 <ToggleButton x:Name="ChatToggleButton"
-                              Content="Chat"
+                              Content="{loc:Loc ChatButton}"
                               Padding="8,2"
                               Margin="4,2"
-                              ToolTip="Toggle the AI chat panel" />
+                              ToolTip="{loc:Loc ChatToggleToolTip}" />
                 <Button x:Name="SettingsButton"
                         Content="&#x2699;"
                         FontSize="16"
                         Padding="6,0"
                         Margin="4,2"
                         Click="SettingsButton_Click"
-                        ToolTip="Settings" />
+                        ToolTip="{loc:Loc SettingsButtonToolTip}" />
             </ToolBar>
         </ToolBarTray>
 
@@ -72,35 +73,35 @@
         <StatusBar DockPanel.Dock="Bottom" Padding="4,2">
             <StatusBarItem>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Capacity: " FontWeight="SemiBold" />
+                    <TextBlock Text="{loc:Loc CapacityLabel}" FontWeight="SemiBold" />
                     <TextBlock Text="{Binding DriveCapacity}" MinWidth="80" />
                 </StackPanel>
             </StatusBarItem>
             <Separator />
             <StatusBarItem>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Used: " FontWeight="SemiBold" />
+                    <TextBlock Text="{loc:Loc UsedLabel}" FontWeight="SemiBold" />
                     <TextBlock Text="{Binding UsedSpace}" MinWidth="80" />
                 </StackPanel>
             </StatusBarItem>
             <Separator />
             <StatusBarItem>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Free: " FontWeight="SemiBold" />
+                    <TextBlock Text="{loc:Loc FreeLabel}" FontWeight="SemiBold" />
                     <TextBlock Text="{Binding FreeSpace}" MinWidth="80" />
                 </StackPanel>
             </StatusBarItem>
             <Separator />
             <StatusBarItem>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Files: " FontWeight="SemiBold" />
+                    <TextBlock Text="{loc:Loc FilesLabel}" FontWeight="SemiBold" />
                     <TextBlock Text="{Binding FileCount}" MinWidth="60" />
                 </StackPanel>
             </StatusBarItem>
             <Separator />
             <StatusBarItem>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Folders: " FontWeight="SemiBold" />
+                    <TextBlock Text="{loc:Loc FoldersLabel}" FontWeight="SemiBold" />
                     <TextBlock Text="{Binding FolderCount}" MinWidth="60" />
                 </StackPanel>
             </StatusBarItem>
@@ -149,7 +150,7 @@
                         </Style>
                     </Border.Style>
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                        <TextBlock Text="Scanning..."
+                        <TextBlock Text="{loc:Loc AnalyzingScanResultsStatus}"
                                    FontSize="24"
                                    Foreground="White"
                                    HorizontalAlignment="Center" />

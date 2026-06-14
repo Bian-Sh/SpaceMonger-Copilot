@@ -3,8 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:loc="clr-namespace:SpaceMonger.App.Localization"
         mc:Ignorable="d"
-        Title="Cleanup Summary"
+        Title="{loc:Loc CleanupSummaryTitle}"
         Width="450" Height="350"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner">
@@ -35,15 +36,15 @@
         <!-- Row 2: Skipped items -->
         <GroupBox x:Name="SkippedGroup"
                   Grid.Row="2"
-                  Header="Skipped Items"
+                  Header="{loc:Loc SkippedItemsHeader}"
                   Margin="0,0,0,8">
             <ListView x:Name="SkippedItemsList"
                       BorderThickness="0">
                 <ListView.View>
                     <GridView>
-                        <GridViewColumn Header="Path" Width="240"
+                        <GridViewColumn Header="{loc:Loc PathColumn}" Width="240"
                                         DisplayMemberBinding="{Binding Path}" />
-                        <GridViewColumn Header="Reason" Width="160"
+                        <GridViewColumn Header="{loc:Loc ReasonColumn}" Width="160"
                                         DisplayMemberBinding="{Binding Reason}" />
                     </GridView>
                 </ListView.View>
@@ -61,7 +62,7 @@
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     Margin="0,8,0,0">
-            <Button Content="OK"
+            <Button Content="{loc:Loc OkButton}"
                     Width="80"
                     Height="28"
                     IsDefault="True"

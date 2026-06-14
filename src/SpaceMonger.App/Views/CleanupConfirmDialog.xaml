@@ -3,8 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:loc="clr-namespace:SpaceMonger.App.Localization"
         mc:Ignorable="d"
-        Title="Confirm Cleanup"
+        Title="{loc:Loc ConfirmCleanupTitle}"
         Width="400" Height="300"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner">
@@ -20,7 +21,7 @@
 
         <!-- Row 0: Warning -->
         <TextBlock Grid.Row="0"
-                   Text="&#x26A0; Are you sure you want to proceed?"
+                   Text="{loc:Loc ConfirmCleanupPrompt}"
                    FontSize="16"
                    FontWeight="SemiBold"
                    Margin="0,0,0,12" />
@@ -34,19 +35,19 @@
         </StackPanel>
 
         <!-- Row 2: Deletion mode selection -->
-        <GroupBox Grid.Row="2" Header="Deletion Mode" Margin="0,0,0,8">
+        <GroupBox Grid.Row="2" Header="{loc:Loc DeletionModeHeader}" Margin="0,0,0,8">
             <StackPanel Margin="8">
                 <RadioButton x:Name="RecycleBinRadio"
-                             Content="Move to Recycle Bin"
+                             Content="{loc:Loc MoveToRecycleBinOption}"
                              IsChecked="True"
                              Margin="0,0,0,8"
                              Checked="DeletionModeRadio_Checked" />
                 <RadioButton x:Name="PermanentDeleteRadio"
-                             Content="Permanently Delete"
+                             Content="{loc:Loc PermanentlyDeleteOption}"
                              Margin="0,0,0,4"
                              Checked="DeletionModeRadio_Checked" />
                 <TextBlock x:Name="PermanentDeleteWarning"
-                           Text="Warning: Files cannot be recovered!"
+                           Text="{loc:Loc PermanentDeleteWarning}"
                            Foreground="Red"
                            FontWeight="SemiBold"
                            Margin="20,0,0,0"
@@ -61,13 +62,13 @@
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     Margin="0,8,0,0">
-            <Button Content="Confirm"
+            <Button Content="{loc:Loc ConfirmButton}"
                     Width="80"
                     Height="28"
                     Margin="0,0,8,0"
                     IsDefault="True"
                     Click="ConfirmButton_Click" />
-            <Button Content="Cancel"
+            <Button Content="{loc:Loc CancelButton}"
                     Width="80"
                     Height="28"
                     IsCancel="True"
