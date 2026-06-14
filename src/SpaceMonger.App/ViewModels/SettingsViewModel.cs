@@ -27,6 +27,18 @@ public partial class SettingsViewModel : ObservableObject
     private string? _anthropicBaseUrl;
 
     [ObservableProperty]
+    private string? _analysisModelName;
+
+    [ObservableProperty]
+    private string? _chatModelName;
+
+    [ObservableProperty]
+    private bool _enableThinking;
+
+    [ObservableProperty]
+    private string _language = "zh-CN";
+
+    [ObservableProperty]
     private ValidationState _validationState = ValidationState.None;
 
     [ObservableProperty]
@@ -100,6 +112,14 @@ public partial class SettingsViewModel : ObservableObject
         settings.AnthropicBaseUrl = string.IsNullOrWhiteSpace(AnthropicBaseUrl)
             ? null
             : AnthropicBaseUrl.Trim();
+        settings.AnalysisModelName = string.IsNullOrWhiteSpace(AnalysisModelName)
+            ? null
+            : AnalysisModelName.Trim();
+        settings.ChatModelName = string.IsNullOrWhiteSpace(ChatModelName)
+            ? null
+            : ChatModelName.Trim();
+        settings.EnableThinking = EnableThinking;
+        settings.Language = string.IsNullOrWhiteSpace(Language) ? "zh-CN" : Language.Trim();
 
         _settingsService.SaveSettings(settings);
     }
@@ -114,6 +134,10 @@ public partial class SettingsViewModel : ObservableObject
         }
 
         AnthropicBaseUrl = settings.AnthropicBaseUrl;
+        AnalysisModelName = settings.AnalysisModelName;
+        ChatModelName = settings.ChatModelName;
+        EnableThinking = settings.EnableThinking;
+        Language = string.IsNullOrWhiteSpace(settings.Language) ? "zh-CN" : settings.Language;
         SelectedDeletionMode = settings.DeletionMode;
         IsApiKeyValid = settings.IsApiKeyValid;
 

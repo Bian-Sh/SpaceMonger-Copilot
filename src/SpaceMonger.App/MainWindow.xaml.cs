@@ -7,6 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
 using Microsoft.Extensions.DependencyInjection;
+using SpaceMonger.App.Diagnostics;
 using SpaceMonger.App.Localization;
 using SpaceMonger.App.Converters;
 using SpaceMonger.App.ViewModels;
@@ -41,12 +42,36 @@ public partial class MainWindow : Window
         InitializeComponent();
         Directory.CreateDirectory(Path.GetDirectoryName(_consoleLogPath)!);
         AppendConsoleLine("Console log file: " + _consoleLogPath, ConsoleLogLevel.Info);
+        Loaded += MainWindow_Loaded;
+    }
+
+    private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel mainVm)
+        {
+            mainVm.PropertyChanged += MainViewModel_PropertyChanged;
+            TreemapView.SetScanningState(mainVm.IsScanning, mainVm.ScanProgressText);
+        }
+    }
+
+    private void MainViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (sender is not MainViewModel mainVm)
+            return;
+
+        if (e.PropertyName is nameof(MainViewModel.IsScanning) or nameof(MainViewModel.ScanProgressText))
+        {
+            TreemapView.SetScanningState(mainVm.IsScanning, mainVm.ScanProgressText);
+        }
     }
 
     public void SetViewModels(RecommendationsViewModel recsVm, SettingsViewModel settingsVm)
     {
         _recommendationsViewModel = recsVm;
         _settingsViewModel = settingsVm;
+        SettingsPage.DataContext = settingsVm;
+        SettingsPage.BackRequested += HideSettingsPage;
+        SettingsPage.Saved += OnSettingsSaved;
         RecommendationsPanel.SetViewModel(recsVm);
         RecommendationsPanel.CleanupRequested += OnCleanupRequested;
         RecommendationsPanel.CloseRequested += HideRecommendationsPanel;
@@ -356,27 +381,30 @@ public partial class MainWindow : Window
 
     private void SettingsButton_Click(object sender, RoutedEventArgs e)
     {
-        OpenSettingsDialog();
+        ShowSettingsPage();
     }
 
-    private void OpenSettingsDialog()
+    private void OpenSettingsDialog() => ShowSettingsPage();
+
+    private void ShowSettingsPage()
     {
         if (_settingsViewModel is null)
             return;
 
-        // Reload settings before showing the dialog
         _settingsViewModel.LoadSettings();
+        SettingsPage.Visibility = Visibility.Visible;
+    }
 
-        var dialog = new SettingsDialog
-        {
-            Owner = this,
-            DataContext = _settingsViewModel
-        };
+    private void HideSettingsPage()
+    {
+        SettingsPage.Visibility = Visibility.Collapsed;
+    }
 
-        dialog.ShowDialog();
-
-        // Refresh chat panel API key status after settings dialog closes
+    private void OnSettingsSaved()
+    {
+        SpaceMonger.App.Localization.L.SetLanguage(_settingsViewModel?.Language);
         _chatViewModel?.RefreshApiKeyStatus();
+        HideSettingsPage();
     }
 
     private async void OnCleanupRequested()

@@ -36,6 +36,7 @@ public partial class TreemapView : UserControl
         Treemap.Nodes = _viewModel.Nodes;
         UpButton.IsEnabled = _viewModel.CanNavigateUp;
         RebuildBreadcrumbs();
+        UpdateEmptyState();
     }
 
     private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -44,6 +45,7 @@ public partial class TreemapView : UserControl
         {
             case nameof(TreemapViewModel.Nodes):
                 Treemap.Nodes = _viewModel?.Nodes;
+                UpdateEmptyState();
                 break;
 
             case nameof(TreemapViewModel.CanNavigateUp):
@@ -54,6 +56,19 @@ public partial class TreemapView : UserControl
                 RebuildBreadcrumbs();
                 break;
         }
+    }
+
+    public void SetScanningState(bool isScanning, string? progressText)
+    {
+        ScanningOverlay.Visibility = isScanning ? Visibility.Visible : Visibility.Collapsed;
+        ScanProgressText.Text = progressText ?? string.Empty;
+    }
+
+    private void UpdateEmptyState()
+    {
+        NoDataText.Visibility = _viewModel?.Nodes is { Count: > 0 }
+            ? Visibility.Collapsed
+            : Visibility.Visible;
     }
 
     private void RebuildBreadcrumbs()

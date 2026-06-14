@@ -33,11 +33,34 @@
         </StackPanel>
 
         <!-- Row 1: TreemapControl -->
-        <controls:TreemapControl Grid.Row="1"
-                                 x:Name="Treemap"
-                                 NodeClicked="Treemap_NodeClicked"
-                                 NodeHovered="Treemap_NodeHovered"
-                                 NodeRightClicked="Treemap_NodeRightClicked"
-                                 SizeChanged="Treemap_SizeChanged" />
+        <Grid Grid.Row="1">
+            <controls:TreemapControl x:Name="Treemap"
+                                     NodeClicked="Treemap_NodeClicked"
+                                     NodeHovered="Treemap_NodeHovered"
+                                     NodeRightClicked="Treemap_NodeRightClicked"
+                                     SizeChanged="Treemap_SizeChanged" />
+            <TextBlock x:Name="NoDataText"
+                       Text="无数据"
+                       Foreground="#C8C8C8"
+                       FontSize="22"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center" />
+            <Border x:Name="ScanningOverlay"
+                    Background="#80000000"
+                    Visibility="Collapsed"
+                    IsHitTestVisible="False">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <TextBlock Text="{loc:Loc ScanningStatus}"
+                               FontSize="24"
+                               Foreground="White"
+                               HorizontalAlignment="Center" />
+                    <TextBlock x:Name="ScanProgressText"
+                               FontSize="14"
+                               Foreground="#CCCCCC"
+                               HorizontalAlignment="Center"
+                               Margin="0,8,0,0" />
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 </UserControl>

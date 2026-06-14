@@ -1,0 +1,191 @@
+﻿<UserControl x:Class="SpaceMonger.App.Views.SettingsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:loc="clr-namespace:SpaceMonger.App.Localization"
+             xmlns:vm="clr-namespace:SpaceMonger.App.ViewModels"
+             xmlns:enums="clr-namespace:SpaceMonger.Core.Enums;assembly=SpaceMonger.Core"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:SettingsViewModel, IsDesignTimeCreatable=False}">
+    <Grid Background="#F4F6FA">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="260" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" Background="#E9EDF5" Padding="12">
+            <DockPanel>
+                <Button DockPanel.Dock="Top"
+                        Content="← 返回应用"
+                        HorizontalAlignment="Left"
+                        Padding="8,4"
+                        Margin="0,0,0,16"
+                        Click="BackButton_Click" />
+                <TextBox DockPanel.Dock="Top"
+                         Margin="0,0,0,20"
+                         Padding="8,5"
+                         IsEnabled="False"
+                         Text="搜索设置..." />
+                <StackPanel>
+                    <TextBlock Text="个人" Foreground="#77808C" Margin="4,0,0,8" />
+                    <Border Background="#DDE4EF" CornerRadius="8" Padding="12,8" Margin="0,0,0,6">
+                        <TextBlock Text="常规" FontWeight="SemiBold" />
+                    </Border>
+                    <TextBlock Text="AI" Foreground="#77808C" Margin="4,18,0,8" />
+                    <Border Background="#DDE4EF" CornerRadius="8" Padding="12,8" Margin="0,0,0,6">
+                        <TextBlock Text="模型与接口" FontWeight="SemiBold" />
+                    </Border>
+                    <Border Background="Transparent" CornerRadius="8" Padding="12,8" Margin="0,0,0,6">
+                        <TextBlock Text="清理策略" />
+                    </Border>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <Border Grid.Column="1" Margin="0" Background="White" CornerRadius="14,0,0,14" Padding="48,36">
+            <DockPanel LastChildFill="True">
+                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+                    <Button Content="{loc:Loc SaveButton}" Width="96" Height="32" IsDefault="True" Click="SaveButton_Click" />
+                </StackPanel>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel MaxWidth="760">
+                        <TextBlock Text="{loc:Loc SettingsTitle}" FontSize="24" FontWeight="SemiBold" Margin="0,0,0,28" />
+
+                        <TextBlock Text="AI 接口" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12" />
+                        <Border BorderBrush="#E5E5E5" BorderThickness="1" CornerRadius="10" Margin="0,0,0,24">
+                            <StackPanel>
+                                <Grid Margin="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="{loc:Loc AnthropicApiKeyHeader}" FontWeight="SemiBold" />
+                                        <TextBlock Text="密钥会加密保存在本机" Foreground="#666" FontSize="12" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBox Text="{Binding ApiKey, UpdateSourceTrigger=PropertyChanged}" Padding="6" ToolTip="{loc:Loc ApiKeyToolTip}" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                            <Button Content="{loc:Loc ValidateButton}" Command="{Binding ValidateCommand}" Width="90" />
+                                            <TextBlock Margin="10,2,0,0">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding ValidationState}" Value="{x:Static vm:ValidationState.Validating}">
+                                                                <Setter Property="Text" Value="Validating..." />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding ValidationState}" Value="{x:Static vm:ValidationState.Valid}">
+                                                                <Setter Property="Text" Value="✔ Valid" />
+                                                                <Setter Property="Foreground" Value="Green" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding ValidationState}" Value="{x:Static vm:ValidationState.Invalid}">
+                                                                <Setter Property="Text" Value="✘ Invalid" />
+                                                                <Setter Property="Foreground" Value="Red" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding ValidationMessage}" Foreground="Red" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                </Grid>
+                                <Separator />
+                                <Grid Margin="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="{loc:Loc AnthropicBaseUrlHeader}" FontWeight="SemiBold" />
+                                        <TextBlock Text="例如 https://api.deepseek.com/anthropic" Foreground="#666" FontSize="12" />
+                                    </StackPanel>
+                                    <TextBox Grid.Column="1" Text="{Binding AnthropicBaseUrl, UpdateSourceTrigger=PropertyChanged}" Padding="6" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Text="模型" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12" />
+                        <Border BorderBrush="#E5E5E5" BorderThickness="1" CornerRadius="10" Margin="0,0,0,24">
+                            <StackPanel>
+                                <Grid Margin="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="推荐分析模型" FontWeight="SemiBold" />
+                                        <TextBlock Text="DeepSeek endpoint 默认 deepseek-v4-pro" Foreground="#666" FontSize="12" />
+                                    </StackPanel>
+                                    <TextBox Grid.Column="1" Text="{Binding AnalysisModelName, UpdateSourceTrigger=PropertyChanged}" Padding="6" />
+                                </Grid>
+                                <Separator />
+                                <Grid Margin="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="聊天模型" FontWeight="SemiBold" />
+                                        <TextBlock Text="DeepSeek endpoint 默认 deepseek-v4-flash" Foreground="#666" FontSize="12" />
+                                    </StackPanel>
+                                    <TextBox Grid.Column="1" Text="{Binding ChatModelName, UpdateSourceTrigger=PropertyChanged}" Padding="6" />
+                                </Grid>
+                                <Separator />
+                                <Grid Margin="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="启用思考" FontWeight="SemiBold" />
+                                        <TextBlock Text="关闭时会请求 DeepSeek 不输出 thinking，减少 JSON 截断" Foreground="#666" FontSize="12" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <CheckBox Grid.Column="1" IsChecked="{Binding EnableThinking}" VerticalAlignment="Center" Content="允许模型思考" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Text="常规" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12" />
+                        <Border BorderBrush="#E5E5E5" BorderThickness="1" CornerRadius="10">
+                            <StackPanel>
+                                <Grid Margin="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="语言" FontWeight="SemiBold" />
+                                        <TextBlock Text="Prompt 会要求说明文字与 App 当前语言一致" Foreground="#666" FontSize="12" />
+                                    </StackPanel>
+                                    <ComboBox Grid.Column="1" SelectedValue="{Binding Language}" SelectedValuePath="Tag" Padding="4">
+                                        <ComboBoxItem Tag="zh-CN" Content="简体中文" />
+                                        <ComboBoxItem Tag="en" Content="English" />
+                                        <ComboBoxItem Tag="auto" Content="自动检测" />
+                                    </ComboBox>
+                                </Grid>
+                                <Separator />
+                                <Grid Margin="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="默认清理模式" FontWeight="SemiBold" />
+                                    <ComboBox Grid.Column="1" SelectedItem="{Binding SelectedDeletionMode}" Padding="4">
+                                        <ComboBox.Items>
+                                            <enums:DeletionMode>MoveToRecycleBin</enums:DeletionMode>
+                                            <enums:DeletionMode>PermanentDelete</enums:DeletionMode>
+                                        </ComboBox.Items>
+                                    </ComboBox>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

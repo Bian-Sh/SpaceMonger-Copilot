@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
+using SpaceMonger.App.Localization;
 using SpaceMonger.App.ViewModels;
 using SpaceMonger.Core.Services.Analysis;
 using SpaceMonger.Core.Services.Chat;
@@ -56,6 +57,9 @@ public partial class App : Application
         services.AddTransient<ChatViewModel>();
 
         Services = services.BuildServiceProvider();
+
+        var settingsService = Services.GetRequiredService<ISettingsService>();
+        L.SetLanguage(settingsService.LoadSettings().Language);
 
         var mainViewModel = Services.GetRequiredService<MainViewModel>();
         var treemapViewModel = Services.GetRequiredService<TreemapViewModel>();

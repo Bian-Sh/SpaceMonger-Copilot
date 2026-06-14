@@ -179,34 +179,6 @@
                     </TabItem>
                 </TabControl>
 
-                <!-- Scanning progress overlay -->
-                <Border x:Name="ScanningOverlay"
-                        Grid.Row="0" Grid.RowSpan="3"
-                        Panel.ZIndex="10"
-                        Background="#80000000"
-                        IsHitTestVisible="False">
-                    <Border.Style>
-                        <Style TargetType="Border">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsScanning}" Value="True">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Border.Style>
-                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                        <TextBlock Text="{loc:Loc AnalyzingScanResultsStatus}"
-                                   FontSize="24"
-                                   Foreground="White"
-                                   HorizontalAlignment="Center" />
-                        <TextBlock Text="{Binding ScanProgressText}"
-                                   FontSize="14"
-                                   Foreground="#CCCCCC"
-                                   HorizontalAlignment="Center"
-                                   Margin="0,8,0,0" />
-                    </StackPanel>
-                </Border>
             </Grid>
 
             <!-- Resizer between main workspace and chat panel -->
@@ -224,6 +196,12 @@
             <views:ChatPanel x:Name="ChatPanel"
                              Grid.Column="2"
                              Visibility="Visible" />
+
+            <views:SettingsPage x:Name="SettingsPage"
+                                Grid.Column="0"
+                                Grid.ColumnSpan="3"
+                                Panel.ZIndex="50"
+                                Visibility="Collapsed" />
         </Grid>
 
     </DockPanel>
