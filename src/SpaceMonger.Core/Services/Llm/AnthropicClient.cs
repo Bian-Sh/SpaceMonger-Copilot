@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using SpaceMonger.Core.Diagnostics;
 
 namespace SpaceMonger.Core.Services.Llm;
 
@@ -9,10 +10,15 @@ public class AnthropicClient : ILlmClient
 {
     private const string ApiVersion = "2023-06-01";
     private const string Model = "claude-sonnet-4-20250514";
+    private const string DeepSeekAnalysisModel = "deepseek-v4-pro";
+    private const string DeepSeekChatModel = "deepseek-v4-flash";
     private const int AnalysisMaxTokens = 8192;
     private const int ChatMaxTokens = 4096;
     private const int ValidationMaxTokens = 10;
     private static readonly TimeSpan AnalysisTimeout = TimeSpan.FromSeconds(120);
+    public static string LastResponseStopReason { get; private set; } = string.Empty;
+    public static string LastResponseEnvelopePath { get; private set; } = string.Empty;
+    public static string LastResponseThinkingPath { get; private set; } = string.Empty;
 
     private readonly HttpClient _httpClient;
 
@@ -27,6 +33,8 @@ public class AnthropicClient : ILlmClient
         string fileMetadataJson,
         string apiKey,
         string? baseUrl,
+        string? modelName,
+        bool enableThinking,
         CancellationToken cancellationToken)
     {
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -35,7 +43,10 @@ public class AnthropicClient : ILlmClient
         var requestBody = BuildRequestBody(
             systemPrompt,
             [new("user", fileMetadataJson)],
-            AnalysisMaxTokens);
+            AnalysisMaxTokens,
+            GetModel(baseUrl, preferDeepSeekPro: true, modelName),
+            IsDeepSeekAnthropicEndpoint(baseUrl) && !enableThinking);
+        DebugBreakpoints.Hit("llm-analysis-request-built");
 
         return await SendRequestWithRetryAsync(requestBody, apiKey, baseUrl, timeoutCts.Token).ConfigureAwait(false);
     }
@@ -47,7 +58,12 @@ public class AnthropicClient : ILlmClient
         string? baseUrl,
         CancellationToken cancellationToken)
     {
-        var requestBody = BuildRequestBody(systemPrompt, messages, ChatMaxTokens);
+        var requestBody = BuildRequestBody(
+            systemPrompt,
+            messages,
+            ChatMaxTokens,
+            GetModel(baseUrl, preferDeepSeekPro: false),
+            IsDeepSeekAnthropicEndpoint(baseUrl));
 
         return await SendRequestWithRetryAsync(requestBody, apiKey, baseUrl, cancellationToken).ConfigureAwait(false);
     }
@@ -60,7 +76,12 @@ public class AnthropicClient : ILlmClient
         Action<string> onToken,
         CancellationToken cancellationToken)
     {
-        var requestBody = BuildRequestBody(systemPrompt, messages, ChatMaxTokens);
+        var requestBody = BuildRequestBody(
+            systemPrompt,
+            messages,
+            ChatMaxTokens,
+            GetModel(baseUrl, preferDeepSeekPro: false),
+            IsDeepSeekAnthropicEndpoint(baseUrl));
         requestBody["stream"] = true;
 
         var jsonBody = requestBody.ToJsonString();
@@ -125,7 +146,7 @@ public class AnthropicClient : ILlmClient
     {
         var requestBody = new JsonObject
         {
-            ["model"] = Model,
+            ["model"] = GetModel(baseUrl, preferDeepSeekPro: false),
             ["max_tokens"] = ValidationMaxTokens,
             ["messages"] = new JsonArray
             {
@@ -160,7 +181,9 @@ public class AnthropicClient : ILlmClient
     private static JsonObject BuildRequestBody(
         string systemPrompt,
         List<(string role, string content)> messages,
-        int maxTokens)
+        int maxTokens,
+        string model,
+        bool disableThinking)
     {
         var messagesArray = new JsonArray();
         foreach (var (role, content) in messages)
@@ -172,13 +195,48 @@ public class AnthropicClient : ILlmClient
             });
         }
 
-        return new JsonObject
+        var body = new JsonObject
         {
-            ["model"] = Model,
+            ["model"] = model,
             ["max_tokens"] = maxTokens,
             ["system"] = systemPrompt,
             ["messages"] = messagesArray
         };
+
+        if (disableThinking)
+        {
+            body["thinking"] = new JsonObject
+            {
+                ["type"] = "disabled"
+            };
+        }
+
+        return body;
+    }
+
+    private static string GetModel(string? baseUrl, bool preferDeepSeekPro, string? configuredModel = null)
+    {
+        if (!string.IsNullOrWhiteSpace(configuredModel))
+        {
+            return configuredModel.Trim();
+        }
+
+        if (IsDeepSeekAnthropicEndpoint(baseUrl))
+        {
+            return preferDeepSeekPro ? DeepSeekAnalysisModel : DeepSeekChatModel;
+        }
+
+        return Model;
+    }
+
+    private static bool IsDeepSeekAnthropicEndpoint(string? baseUrl)
+    {
+        if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri))
+        {
+            return false;
+        }
+
+        return uri.Host.Contains("deepseek.com", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task<string> SendRequestWithRetryAsync(
@@ -261,9 +319,13 @@ public class AnthropicClient : ILlmClient
         CancellationToken cancellationToken)
     {
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        DebugBreakpoints.Hit("llm-response-body-read");
+        LastResponseEnvelopePath = WriteResponseEnvelope(responseBody) ?? string.Empty;
 
         using var document = JsonDocument.Parse(responseBody);
         var root = document.RootElement;
+        LastResponseStopReason = ExtractStopReason(root) ?? string.Empty;
+        LastResponseThinkingPath = WriteThinkingIfPresent(root) ?? string.Empty;
 
         var text = TryExtractAnthropicText(root)
             ?? TryExtractOpenAiCompatibleText(root);
@@ -323,6 +385,82 @@ public class AnthropicClient : ILlmClient
         }
 
         return null;
+    }
+
+    private static string? ExtractStopReason(JsonElement root)
+    {
+        if (root.TryGetProperty("stop_reason", out var stopReason)
+            && stopReason.ValueKind == JsonValueKind.String)
+        {
+            return stopReason.GetString();
+        }
+
+        if (root.TryGetProperty("choices", out var choices)
+            && choices.ValueKind == JsonValueKind.Array
+            && choices.GetArrayLength() > 0
+            && choices[0].TryGetProperty("finish_reason", out var finishReason)
+            && finishReason.ValueKind == JsonValueKind.String)
+        {
+            return finishReason.GetString();
+        }
+
+        return null;
+    }
+
+    private static string? WriteThinkingIfPresent(JsonElement root)
+    {
+        var builder = new StringBuilder();
+
+        if (root.TryGetProperty("content", out var contentArray) && contentArray.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var block in contentArray.EnumerateArray())
+            {
+                if (block.TryGetProperty("thinking", out var thinking) && thinking.ValueKind == JsonValueKind.String)
+                {
+                    builder.AppendLine(thinking.GetString());
+                }
+                else if (block.TryGetProperty("reasoning", out var reasoning) && reasoning.ValueKind == JsonValueKind.String)
+                {
+                    builder.AppendLine(reasoning.GetString());
+                }
+            }
+        }
+
+        if (root.TryGetProperty("reasoning_content", out var reasoningContent) && reasoningContent.ValueKind == JsonValueKind.String)
+        {
+            builder.AppendLine(reasoningContent.GetString());
+        }
+
+        if (builder.Length == 0)
+            return null;
+
+        return WriteDiagnosticFile("thinking", "thinking", builder.ToString());
+    }
+
+    private static string? WriteResponseEnvelope(string responseBody)
+    {
+        try
+        {
+            return WriteDiagnosticFile("api-envelopes", "api-envelope", responseBody, ".json");
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string WriteDiagnosticFile(string directoryName, string filePrefix, string content, string extension = ".txt")
+    {
+        var directory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "SpaceMonger.Next",
+            "logs",
+            directoryName);
+        Directory.CreateDirectory(directory);
+
+        var path = Path.Combine(directory, $"{filePrefix}-{DateTime.Now:yyyyMMdd-HHmmss-fff}{extension}");
+        File.WriteAllText(path, content);
+        return path;
     }
 
     private static TimeSpan GetRetryAfterDelay(HttpResponseMessage response)

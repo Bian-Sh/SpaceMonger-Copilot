@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SpaceMonger.App.Diagnostics;
 using SpaceMonger.App.Converters;
 using SpaceMonger.Core.Enums;
 using SpaceMonger.Core.Models;
@@ -14,6 +15,9 @@ public partial class RecommendationsViewModel : ObservableObject
     private ScanSession? _currentSession;
     private string? _apiKey;
     private string? _baseUrl;
+    private string? _modelName;
+    private bool _enableThinking;
+    private string? _responseLanguage;
     private FileEntry? _focusEntry;
 
     [ObservableProperty]
@@ -58,11 +62,14 @@ public partial class RecommendationsViewModel : ObservableObject
         _recommendationEngine = recommendationEngine;
     }
 
-    public void SetContext(ScanSession session, string apiKey, string? baseUrl, FileEntry? focusEntry = null)
+    public void SetContext(ScanSession session, string apiKey, string? baseUrl, string? modelName, bool enableThinking, string? responseLanguage, FileEntry? focusEntry = null)
     {
         _currentSession = session;
         _apiKey = apiKey;
         _baseUrl = baseUrl;
+        _modelName = modelName;
+        _enableThinking = enableThinking;
+        _responseLanguage = responseLanguage;
         _focusEntry = focusEntry;
     }
 
@@ -82,19 +89,23 @@ public partial class RecommendationsViewModel : ObservableObject
 
         try
         {
+            DebugBreakpoints.Hit("recommendation-engine-before");
             var result = await _recommendationEngine.AnalyzeWithDiagnosticsAsync(
-                _currentSession, _apiKey, _baseUrl, CancellationToken.None, _focusEntry);
+                _currentSession, _apiKey, _baseUrl, _modelName, _enableThinking, _responseLanguage, CancellationToken.None, _focusEntry);
+            DebugBreakpoints.Hit("recommendation-engine-after");
 
             LastDiagnostics = result.Diagnostics;
             Recommendations = new ObservableCollection<CleanupRecommendation>(result.Recommendations);
             ApplyFilters();
             HasRecommendations = Recommendations.Count > 0;
+            DebugBreakpoints.Hit("recommendations-applied");
         }
         catch (Exception ex)
         {
             AnalysisError = ex.Message;
             LastDiagnostics = null;
             HasRecommendations = false;
+            DebugBreakpoints.Hit("recommendation-error");
         }
         finally
         {

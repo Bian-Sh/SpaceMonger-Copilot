@@ -191,6 +191,26 @@ public partial class MainWindow : Window
             AppendConsoleLine("DIAG: parse_error=" + diagnostics.ParseError, ConsoleLogLevel.Warning);
         }
 
+        if (!string.IsNullOrWhiteSpace(diagnostics.RawResponsePath))
+        {
+            AppendConsoleLine("DIAG: raw_response_path=" + diagnostics.RawResponsePath);
+        }
+
+        if (!string.IsNullOrWhiteSpace(diagnostics.ResponseEnvelopePath))
+        {
+            AppendConsoleLine("DIAG: response_envelope_path=" + diagnostics.ResponseEnvelopePath);
+        }
+
+        if (!string.IsNullOrWhiteSpace(diagnostics.StopReason))
+        {
+            AppendConsoleLine("DIAG: stop_reason=" + diagnostics.StopReason);
+        }
+
+        if (!string.IsNullOrWhiteSpace(diagnostics.ThinkingPath))
+        {
+            AppendConsoleLine("DIAG: thinking_path=" + diagnostics.ThinkingPath);
+        }
+
         if (!string.IsNullOrWhiteSpace(diagnostics.ExtractedJsonPreview))
         {
             AppendConsoleLine("DIAG: extracted_json_preview=" + diagnostics.ExtractedJsonPreview);
@@ -257,6 +277,7 @@ public partial class MainWindow : Window
 
         // Show the panel immediately so the user sees the loading indicator
         ShowRecommendationsPanel();
+        DebugBreakpoints.Hit("analyze-click");
 
         // If the user has drilled into a folder, scope the analysis to that subtree.
         // At the top level (CurrentRoot == scan root), analyze the whole drive.
@@ -267,7 +288,15 @@ public partial class MainWindow : Window
             focusEntry = _treemapViewModel.CurrentRoot;
         }
 
-        _recommendationsViewModel.SetContext(mainVm.CurrentSession, apiKey, loadedSettings.AnthropicBaseUrl, focusEntry);
+        _recommendationsViewModel.SetContext(
+            mainVm.CurrentSession,
+            apiKey,
+            loadedSettings.AnthropicBaseUrl,
+            loadedSettings.AnalysisModelName,
+            loadedSettings.EnableThinking,
+            loadedSettings.Language,
+            focusEntry);
+        DebugBreakpoints.Hit("analyze-context-ready");
 
         var scopeLabel = focusEntry is not null
             ? L.Format("AnalyzingFolderStatus", focusEntry.Name)
@@ -280,6 +309,7 @@ public partial class MainWindow : Window
         AnalyzeButton.IsEnabled = false;
 
         await _recommendationsViewModel.AnalyzeCommand.ExecuteAsync(null);
+        DebugBreakpoints.Hit("analyze-command-returned");
 
         AnalyzeButton.IsEnabled = true;
 

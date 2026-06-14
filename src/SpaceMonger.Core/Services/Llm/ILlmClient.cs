@@ -7,6 +7,8 @@ public interface ILlmClient
         string fileMetadataJson,
         string apiKey,
         string? baseUrl,
+        string? modelName,
+        bool enableThinking,
         CancellationToken cancellationToken);
 
     Task<string> SendChatAsync(

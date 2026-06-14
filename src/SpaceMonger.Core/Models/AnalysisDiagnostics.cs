@@ -16,4 +16,8 @@ public class AnalysisDiagnostics
     public string? ParseError { get; set; }
     public string ResponsePreview { get; set; } = string.Empty;
     public string ExtractedJsonPreview { get; set; } = string.Empty;
+    public string? RawResponsePath { get; set; }
+    public string? ResponseEnvelopePath { get; set; }
+    public string? StopReason { get; set; }
+    public string? ThinkingPath { get; set; }
 }

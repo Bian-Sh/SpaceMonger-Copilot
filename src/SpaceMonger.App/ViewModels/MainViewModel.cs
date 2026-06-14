@@ -2,6 +2,7 @@ using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SpaceMonger.App.Converters;
+using SpaceMonger.App.Diagnostics;
 using SpaceMonger.App.Localization;
 using SpaceMonger.Core.Models;
 using SpaceMonger.Core.Services.Scanning;
@@ -100,8 +101,10 @@ public partial class MainViewModel : ObservableObject
             });
 
             var session = await _fileScanner.ScanAsync(scanTarget, progress, _scanCts.Token);
+            DebugBreakpoints.Hit("scan-returned");
             CurrentSession = session;
             UpdateStatusBar(session);
+            DebugBreakpoints.Hit("scan-session-set");
             ScanCompleted?.Invoke(session);
         }
         catch (OperationCanceledException)

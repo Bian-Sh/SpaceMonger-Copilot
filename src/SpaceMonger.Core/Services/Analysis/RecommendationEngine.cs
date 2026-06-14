@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.RegularExpressions;
+using SpaceMonger.Core.Diagnostics;
 using SpaceMonger.Core.Enums;
 using SpaceMonger.Core.Models;
 using SpaceMonger.Core.Services.Llm;
@@ -88,11 +89,14 @@ public class RecommendationEngine : IRecommendationEngine
         ScanSession session,
         string apiKey,
         string? baseUrl,
+        string? modelName,
+        bool enableThinking,
+        string? responseLanguage,
         CancellationToken cancellationToken,
         FileEntry? focusEntry = null)
     {
         var result = await AnalyzeWithDiagnosticsAsync(
-            session, apiKey, baseUrl, cancellationToken, focusEntry);
+            session, apiKey, baseUrl, modelName, enableThinking, responseLanguage, cancellationToken, focusEntry);
         return result.Recommendations;
     }
 
@@ -100,6 +104,9 @@ public class RecommendationEngine : IRecommendationEngine
         ScanSession session,
         string apiKey,
         string? baseUrl,
+        string? modelName,
+        bool enableThinking,
+        string? responseLanguage,
         CancellationToken cancellationToken,
         FileEntry? focusEntry = null)
     {
@@ -116,7 +123,8 @@ public class RecommendationEngine : IRecommendationEngine
         var analysisRoot = focusEntry ?? session.RootEntry;
 
         var metadataJson = BuildCompactMetadata(session, analysisRoot);
-        var systemPrompt = BuildSystemPrompt();
+        DebugBreakpoints.Hit("analysis-metadata-built");
+        var systemPrompt = BuildSystemPrompt(responseLanguage);
 
         result.Diagnostics = new AnalysisDiagnostics
         {
@@ -126,11 +134,17 @@ public class RecommendationEngine : IRecommendationEngine
             MetadataLength = metadataJson.Length,
         };
 
-        var response = await _llmClient.SendAnalysisAsync(systemPrompt, metadataJson, apiKey, baseUrl, cancellationToken);
+        var response = await _llmClient.SendAnalysisAsync(systemPrompt, metadataJson, apiKey, baseUrl, modelName, enableThinking, cancellationToken);
+        DebugBreakpoints.Hit("analysis-response-received");
         result.Diagnostics.ResponseLength = response.Length;
         result.Diagnostics.ResponsePreview = BuildPreview(response);
+        result.Diagnostics.RawResponsePath = WriteRawResponse(response);
+        result.Diagnostics.ResponseEnvelopePath = AnthropicClient.LastResponseEnvelopePath;
+        result.Diagnostics.StopReason = AnthropicClient.LastResponseStopReason;
+        result.Diagnostics.ThinkingPath = AnthropicClient.LastResponseThinkingPath;
 
         var recommendations = ParseResponse(response, session.RootEntry, result.Diagnostics);
+        DebugBreakpoints.Hit("analysis-response-parsed");
         result.Diagnostics.ParsedRecommendationCount = recommendations.Count;
 
         if (focusEntry is not null)
@@ -400,16 +414,16 @@ public class RecommendationEngine : IRecommendationEngine
         return $"{bytes / (1024.0 * 1024 * 1024 * 1024):F1}TB";
     }
 
-    private static string BuildSystemPrompt()
+    private static string BuildSystemPrompt(string? responseLanguage)
     {
+        var language = string.IsNullOrWhiteSpace(responseLanguage) ? "the same language as the app UI" : responseLanguage.Trim();
         return """
             You are a disk space analysis assistant. Analyze the provided file metadata and return cleanup recommendations as a JSON object.
 
             ## Response Format
 
-            Return a JSON object wrapped in a ```json code block with this exact structure:
+            Return ONLY a raw JSON object with this exact structure. Do not wrap it in markdown fences and do not add explanatory text before or after the JSON:
 
-            ```json
             {
               "recommendations": [
                 {
@@ -421,7 +435,6 @@ public class RecommendationEngine : IRecommendationEngine
                 }
               ]
             }
-            ```
 
             ## Categories
 
@@ -465,10 +478,12 @@ public class RecommendationEngine : IRecommendationEngine
             - NEVER assume a folder is safe to delete based solely on its name. Always reason about the actual contents (file types, dates, names, location).
             - Only recommend items present in the provided metadata
             - Include a clear, human-readable explanation for every recommendation
+            - Return at most 20 recommendations
+            - Keep each explanation under 160 characters
             - Focus on items that will recover meaningful disk space
             - For duplicate files (matched by name and size, not content-verified), recommend keeping one copy and note the user should verify before deleting
             - When uncertain, prefer ReviewFirst or Caution over Safe — a false "Safe" rating can cause irreversible data loss
-            """;
+            """ + Environment.NewLine + $"- Localization: write all user-facing explanation text in {language}.";
     }
 
     private static List<CleanupRecommendation> ParseResponse(string response, FileEntry rootEntry, AnalysisDiagnostics diagnostics)
@@ -563,6 +578,27 @@ public class RecommendationEngine : IRecommendationEngine
             : normalized[..maxPreviewLength] + "...";
     }
 
+    private static string? WriteRawResponse(string response)
+    {
+        try
+        {
+            var directory = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "SpaceMonger.Next",
+                "logs",
+                "analysis-responses");
+            Directory.CreateDirectory(directory);
+
+            var path = Path.Combine(directory, $"analysis-response-{DateTime.Now:yyyyMMdd-HHmmss-fff}.txt");
+            File.WriteAllText(path, response);
+            return path;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private static string? ExtractJsonFromResponse(string response)
     {
         // Try to extract JSON from markdown code blocks
@@ -579,11 +615,77 @@ public class RecommendationEngine : IRecommendationEngine
             return match.Groups[1].Value.Trim();
         }
 
-        // Try the raw response as JSON
         var trimmed = response.Trim();
-        if (trimmed.StartsWith('{'))
+
+        // Some providers occasionally omit the closing markdown fence while
+        // still returning valid JSON after ```json. Treat that as recoverable.
+        foreach (var fencePrefix in new[] { "```json", "```" })
         {
-            return trimmed;
+            if (trimmed.StartsWith(fencePrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                var afterFence = trimmed[fencePrefix.Length..].Trim();
+                var fencedJson = ExtractBalancedJsonObject(afterFence);
+                if (fencedJson is not null)
+                {
+                    return fencedJson;
+                }
+            }
+        }
+
+        // Try the raw response, or a JSON object embedded after explanatory text.
+        return ExtractBalancedJsonObject(trimmed);
+    }
+
+    private static string? ExtractBalancedJsonObject(string text)
+    {
+        var start = text.IndexOf('{');
+        if (start < 0)
+            return null;
+
+        var depth = 0;
+        var inString = false;
+        var escaped = false;
+
+        for (var i = start; i < text.Length; i++)
+        {
+            var current = text[i];
+
+            if (inString)
+            {
+                if (escaped)
+                {
+                    escaped = false;
+                }
+                else if (current == '\\')
+                {
+                    escaped = true;
+                }
+                else if (current == '"')
+                {
+                    inString = false;
+                }
+
+                continue;
+            }
+
+            if (current == '"')
+            {
+                inString = true;
+                continue;
+            }
+
+            if (current == '{')
+            {
+                depth++;
+            }
+            else if (current == '}')
+            {
+                depth--;
+                if (depth == 0)
+                {
+                    return text[start..(i + 1)].Trim();
+                }
+            }
         }
 
         return null;
