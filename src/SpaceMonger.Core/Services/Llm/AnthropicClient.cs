@@ -7,7 +7,6 @@ namespace SpaceMonger.Core.Services.Llm;
 
 public class AnthropicClient : ILlmClient
 {
-    private const string ApiBaseUrl = "https://api.anthropic.com";
     private const string ApiVersion = "2023-06-01";
     private const string Model = "claude-sonnet-4-20250514";
     private const int AnalysisMaxTokens = 8192;
@@ -20,13 +19,14 @@ public class AnthropicClient : ILlmClient
     public AnthropicClient(IHttpClientFactory httpClientFactory)
     {
         _httpClient = httpClientFactory.CreateClient("Anthropic");
-        _httpClient.BaseAddress = new Uri(ApiBaseUrl);
+        _httpClient.BaseAddress ??= AnthropicOptions.GetBaseUri();
     }
 
     public async Task<string> SendAnalysisAsync(
         string systemPrompt,
         string fileMetadataJson,
         string apiKey,
+        string? baseUrl,
         CancellationToken cancellationToken)
     {
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -37,24 +37,26 @@ public class AnthropicClient : ILlmClient
             [new("user", fileMetadataJson)],
             AnalysisMaxTokens);
 
-        return await SendRequestWithRetryAsync(requestBody, apiKey, timeoutCts.Token).ConfigureAwait(false);
+        return await SendRequestWithRetryAsync(requestBody, apiKey, baseUrl, timeoutCts.Token).ConfigureAwait(false);
     }
 
     public async Task<string> SendChatAsync(
         string systemPrompt,
         List<(string role, string content)> messages,
         string apiKey,
+        string? baseUrl,
         CancellationToken cancellationToken)
     {
         var requestBody = BuildRequestBody(systemPrompt, messages, ChatMaxTokens);
 
-        return await SendRequestWithRetryAsync(requestBody, apiKey, cancellationToken).ConfigureAwait(false);
+        return await SendRequestWithRetryAsync(requestBody, apiKey, baseUrl, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<string> StreamChatAsync(
         string systemPrompt,
         List<(string role, string content)> messages,
         string apiKey,
+        string? baseUrl,
         Action<string> onToken,
         CancellationToken cancellationToken)
     {
@@ -62,7 +64,7 @@ public class AnthropicClient : ILlmClient
         requestBody["stream"] = true;
 
         var jsonBody = requestBody.ToJsonString();
-        using var request = CreateRequest(jsonBody, apiKey);
+        using var request = CreateRequest(jsonBody, apiKey, baseUrl);
 
         using var response = await _httpClient.SendAsync(
             request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
@@ -119,7 +121,7 @@ public class AnthropicClient : ILlmClient
         return fullResponse.ToString();
     }
 
-    public async Task<bool> ValidateApiKeyAsync(string apiKey)
+    public async Task<bool> ValidateApiKeyAsync(string apiKey, string? baseUrl)
     {
         var requestBody = new JsonObject
         {
@@ -135,7 +137,7 @@ public class AnthropicClient : ILlmClient
             }
         };
 
-        using var request = CreateRequest(requestBody.ToJsonString(), apiKey);
+        using var request = CreateRequest(requestBody.ToJsonString(), apiKey, baseUrl);
 
         using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead)
             .ConfigureAwait(false);
@@ -182,11 +184,12 @@ public class AnthropicClient : ILlmClient
     private async Task<string> SendRequestWithRetryAsync(
         JsonObject requestBody,
         string apiKey,
+        string? baseUrl,
         CancellationToken cancellationToken)
     {
         var jsonBody = requestBody.ToJsonString();
 
-        using var request = CreateRequest(jsonBody, apiKey);
+        using var request = CreateRequest(jsonBody, apiKey, baseUrl);
 
         using var response = await _httpClient.SendAsync(
             request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
@@ -204,7 +207,7 @@ public class AnthropicClient : ILlmClient
             var retryAfter = GetRetryAfterDelay(response);
             await Task.Delay(retryAfter, cancellationToken).ConfigureAwait(false);
 
-            using var retryRequest = CreateRequest(jsonBody, apiKey);
+            using var retryRequest = CreateRequest(jsonBody, apiKey, baseUrl);
 
             using var retryResponse = await _httpClient.SendAsync(
                 retryRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
@@ -242,9 +245,10 @@ public class AnthropicClient : ILlmClient
             $"Anthropic API request failed with status {statusCode}: {errorBody}");
     }
 
-    private HttpRequestMessage CreateRequest(string jsonBody, string apiKey)
+    private static HttpRequestMessage CreateRequest(string jsonBody, string apiKey, string? baseUrl)
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, "/v1/messages");
+        var requestUri = AnthropicOptions.GetMessagesUri(baseUrl);
+        var request = new HttpRequestMessage(HttpMethod.Post, requestUri);
         request.Headers.Add("x-api-key", apiKey);
         request.Headers.Add("anthropic-version", ApiVersion);
         request.Content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
@@ -261,19 +265,64 @@ public class AnthropicClient : ILlmClient
         using var document = JsonDocument.Parse(responseBody);
         var root = document.RootElement;
 
-        if (root.TryGetProperty("content", out var contentArray)
-            && contentArray.GetArrayLength() > 0)
+        var text = TryExtractAnthropicText(root)
+            ?? TryExtractOpenAiCompatibleText(root);
+
+        if (!string.IsNullOrWhiteSpace(text))
         {
-            var firstBlock = contentArray[0];
-            if (firstBlock.TryGetProperty("text", out var textElement))
-            {
-                return textElement.GetString()
-                    ?? throw new InvalidOperationException("Response content[0].text was null.");
-            }
+            return text;
         }
 
         throw new InvalidOperationException(
-            "Unexpected response format: could not extract content[0].text from response.");
+            "Unexpected response format: could not extract response text. The endpoint returned a supported status code but not Anthropic content[0].text or OpenAI choices[0].message.content.");
+    }
+
+    private static string? TryExtractAnthropicText(JsonElement root)
+    {
+        if (!root.TryGetProperty("content", out var contentArray)
+            || contentArray.ValueKind != JsonValueKind.Array)
+        {
+            return null;
+        }
+
+        var builder = new StringBuilder();
+        foreach (var block in contentArray.EnumerateArray())
+        {
+            if (block.TryGetProperty("text", out var textElement)
+                && textElement.ValueKind == JsonValueKind.String)
+            {
+                builder.Append(textElement.GetString());
+            }
+        }
+
+        return builder.Length > 0 ? builder.ToString() : null;
+    }
+
+    private static string? TryExtractOpenAiCompatibleText(JsonElement root)
+    {
+        if (!root.TryGetProperty("choices", out var choices)
+            || choices.ValueKind != JsonValueKind.Array
+            || choices.GetArrayLength() == 0)
+        {
+            return null;
+        }
+
+        var firstChoice = choices[0];
+
+        if (firstChoice.TryGetProperty("message", out var message)
+            && message.TryGetProperty("content", out var messageContent)
+            && messageContent.ValueKind == JsonValueKind.String)
+        {
+            return messageContent.GetString();
+        }
+
+        if (firstChoice.TryGetProperty("text", out var textElement)
+            && textElement.ValueKind == JsonValueKind.String)
+        {
+            return textElement.GetString();
+        }
+
+        return null;
     }
 
     private static TimeSpan GetRetryAfterDelay(HttpResponseMessage response)
@@ -293,3 +342,4 @@ public class AnthropicClient : ILlmClient
         return TimeSpan.FromSeconds(5);
     }
 }
+

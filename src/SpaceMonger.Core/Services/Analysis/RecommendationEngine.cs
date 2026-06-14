@@ -87,6 +87,7 @@ public class RecommendationEngine : IRecommendationEngine
     public async Task<List<CleanupRecommendation>> AnalyzeAsync(
         ScanSession session,
         string apiKey,
+        string? baseUrl,
         CancellationToken cancellationToken,
         FileEntry? focusEntry = null)
     {
@@ -102,7 +103,7 @@ public class RecommendationEngine : IRecommendationEngine
         var metadataJson = BuildCompactMetadata(session, analysisRoot);
         var systemPrompt = BuildSystemPrompt();
 
-        var response = await _llmClient.SendAnalysisAsync(systemPrompt, metadataJson, apiKey, cancellationToken);
+        var response = await _llmClient.SendAnalysisAsync(systemPrompt, metadataJson, apiKey, baseUrl, cancellationToken);
 
         var recommendations = ParseResponse(response, session.RootEntry);
 

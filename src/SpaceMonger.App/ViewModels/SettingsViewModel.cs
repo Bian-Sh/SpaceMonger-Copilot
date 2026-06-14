@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SpaceMonger.App.Localization;
 using SpaceMonger.Core.Enums;
 using SpaceMonger.Core.Services.Llm;
 using SpaceMonger.Core.Services.Settings;
@@ -21,6 +22,9 @@ public partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private string? _apiKey;
+
+    [ObservableProperty]
+    private string? _anthropicBaseUrl;
 
     [ObservableProperty]
     private ValidationState _validationState = ValidationState.None;
@@ -48,7 +52,7 @@ public partial class SettingsViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(ApiKey))
         {
             ValidationState = ValidationState.Invalid;
-            ValidationMessage = "API key cannot be empty.";
+            ValidationMessage = L.Text("ApiKeyEmptyMessage");
             IsApiKeyValid = false;
             return;
         }
@@ -58,7 +62,7 @@ public partial class SettingsViewModel : ObservableObject
 
         try
         {
-            var isValid = await _llmClient.ValidateApiKeyAsync(ApiKey);
+            var isValid = await _llmClient.ValidateApiKeyAsync(ApiKey, AnthropicBaseUrl);
 
             if (isValid)
             {
@@ -70,14 +74,14 @@ public partial class SettingsViewModel : ObservableObject
             {
                 ValidationState = ValidationState.Invalid;
                 IsApiKeyValid = false;
-                ValidationMessage = "API key is invalid.";
+                ValidationMessage = L.Text("ApiKeyInvalidMessage");
             }
         }
         catch (Exception ex)
         {
             ValidationState = ValidationState.Invalid;
             IsApiKeyValid = false;
-            ValidationMessage = $"Validation failed: {ex.Message}";
+            ValidationMessage = L.Format("ValidationFailedMessage", ex.Message);
         }
     }
 
@@ -93,6 +97,9 @@ public partial class SettingsViewModel : ObservableObject
 
         settings.IsApiKeyValid = IsApiKeyValid;
         settings.DeletionMode = SelectedDeletionMode;
+        settings.AnthropicBaseUrl = string.IsNullOrWhiteSpace(AnthropicBaseUrl)
+            ? null
+            : AnthropicBaseUrl.Trim();
 
         _settingsService.SaveSettings(settings);
     }
@@ -106,6 +113,7 @@ public partial class SettingsViewModel : ObservableObject
             ApiKey = _settingsService.GetApiKey(settings);
         }
 
+        AnthropicBaseUrl = settings.AnthropicBaseUrl;
         SelectedDeletionMode = settings.DeletionMode;
         IsApiKeyValid = settings.IsApiKeyValid;
 

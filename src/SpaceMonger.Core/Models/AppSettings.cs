@@ -8,4 +8,5 @@ public class AppSettings
     public bool IsApiKeyValid { get; set; } = false;
     public DeletionMode DeletionMode { get; set; } = DeletionMode.MoveToRecycleBin;
     public string? LastScanPath { get; set; }
+    public string? AnthropicBaseUrl { get; set; }
 }

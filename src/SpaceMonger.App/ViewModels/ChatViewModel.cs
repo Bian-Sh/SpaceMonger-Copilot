@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SpaceMonger.App.Localization;
 using SpaceMonger.Core.Enums;
 using SpaceMonger.Core.Models;
 using SpaceMonger.Core.Services.Chat;
@@ -115,6 +116,7 @@ public partial class ChatViewModel : ObservableObject
         {
             var settings = _settingsService.LoadSettings();
             var apiKey = _settingsService.GetApiKey(settings)!;
+            var baseUrl = settings.AnthropicBaseUrl;
 
             var userInput = InputText;
             await _chatService.StreamMessageAsync(
@@ -124,6 +126,7 @@ public partial class ChatViewModel : ObservableObject
                 _currentViewRoot!,
                 _currentSession!,
                 apiKey,
+                baseUrl,
                 token => assistantMessage.Text += token,
                 CancellationToken.None);
 
@@ -139,7 +142,7 @@ public partial class ChatViewModel : ObservableObject
             if (!string.IsNullOrEmpty(assistantMessage.Text))
             {
                 assistantMessage.IsStreaming = false;
-                assistantMessage.Text += $"\n\n[Error: {ex.Message}]";
+                assistantMessage.Text += L.Format("ChatErrorAppend", ex.Message);
                 assistantMessage.IsError = true;
             }
             else

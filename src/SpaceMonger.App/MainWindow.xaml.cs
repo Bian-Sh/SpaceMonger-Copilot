@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Microsoft.Extensions.DependencyInjection;
+using SpaceMonger.App.Localization;
 using SpaceMonger.App.Converters;
 using SpaceMonger.App.ViewModels;
 using SpaceMonger.App.Views;
@@ -97,8 +98,8 @@ public partial class MainWindow : Window
         if (mainVm?.CurrentSession is null)
         {
             MessageBox.Show(
-                "Please complete a scan first before analyzing.",
-                "No Scan Data",
+                L.Text("AnalyzeNoScanMessage"),
+                L.Text("AnalyzeNoScanTitle"),
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
             return;
@@ -106,13 +107,14 @@ public partial class MainWindow : Window
 
         // Retrieve the API key from settings (checks actual saved key, not just validation flag)
         var settingsService = App.Services!.GetRequiredService<SpaceMonger.Core.Services.Settings.ISettingsService>();
-        var apiKey = settingsService.GetApiKey(settingsService.LoadSettings());
+        var loadedSettings = settingsService.LoadSettings();
+        var apiKey = settingsService.GetApiKey(loadedSettings);
 
         if (string.IsNullOrWhiteSpace(apiKey))
         {
             var result = MessageBox.Show(
-                "An Anthropic API key is required for AI analysis. Would you like to open Settings to configure it?",
-                "API Key Required",
+                L.Text("ApiKeyRequiredMessage"),
+                L.Text("ApiKeyRequiredTitle"),
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
 
@@ -122,7 +124,8 @@ public partial class MainWindow : Window
             }
 
             // Re-check after settings dialog
-            apiKey = settingsService.GetApiKey(settingsService.LoadSettings());
+            loadedSettings = settingsService.LoadSettings();
+            apiKey = settingsService.GetApiKey(loadedSettings);
             if (string.IsNullOrWhiteSpace(apiKey))
                 return;
         }
@@ -131,8 +134,8 @@ public partial class MainWindow : Window
         if (_recommendationsViewModel.HasAcceptedRecommendations)
         {
             var confirmResult = MessageBox.Show(
-                "Re-running analysis will replace all current recommendations. Accepted items will be lost. Continue?",
-                "Confirm Re-Analysis",
+                L.Text("ConfirmReanalysisMessage"),
+                L.Text("ConfirmReanalysisTitle"),
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning);
 
@@ -152,11 +155,11 @@ public partial class MainWindow : Window
             focusEntry = _treemapViewModel.CurrentRoot;
         }
 
-        _recommendationsViewModel.SetContext(mainVm.CurrentSession, apiKey, focusEntry);
+        _recommendationsViewModel.SetContext(mainVm.CurrentSession, apiKey, loadedSettings.AnthropicBaseUrl, focusEntry);
 
         var scopeLabel = focusEntry is not null
-            ? $"Analyzing {focusEntry.Name}..."
-            : "Analyzing scan results...";
+            ? L.Format("AnalyzingFolderStatus", focusEntry.Name)
+            : L.Text("AnalyzingScanResultsStatus");
         mainVm.ScanProgressText = scopeLabel;
         AnalyzeButton.IsEnabled = false;
 
@@ -166,12 +169,12 @@ public partial class MainWindow : Window
 
         if (_recommendationsViewModel.AnalysisError is not null)
         {
-            mainVm.ScanProgressText = $"Analysis failed: {_recommendationsViewModel.AnalysisError}";
+            mainVm.ScanProgressText = L.Format("AnalysisFailedStatus", _recommendationsViewModel.AnalysisError);
         }
         else
         {
             var count = _recommendationsViewModel.Recommendations.Count;
-            mainVm.ScanProgressText = $"Analysis complete: {count} recommendation{(count == 1 ? "" : "s")} found.";
+            mainVm.ScanProgressText = L.Format("AnalysisCompleteStatus", count, count == 1 ? "" : "s");
         }
     }
 
@@ -237,8 +240,8 @@ public partial class MainWindow : Window
         if (accepted.Count == 0)
         {
             MessageBox.Show(
-                "No recommendations are selected. Please check the items you want to clean up.",
-                "No Items Selected",
+                L.Text("NoItemsSelectedMessage"),
+                L.Text("NoItemsSelectedTitle"),
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
             return;
@@ -258,7 +261,7 @@ public partial class MainWindow : Window
         var cleanupService = App.Services!.GetRequiredService<ICleanupService>();
         var progress = new Progress<CleanupProgress>(p =>
         {
-            mainVm.ScanProgressText = $"Cleaning: {p.CompletedCount + 1}/{p.TotalCount} — {p.CurrentItemPath}";
+            mainVm.ScanProgressText = L.Format("CleaningStatus", p.CompletedCount + 1, p.TotalCount, p.CurrentItemPath);
         });
 
         List<CleanupAction> results;
@@ -270,8 +273,8 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             MessageBox.Show(
-                $"Cleanup failed: {ex.Message}",
-                "Cleanup Error",
+                L.Format("CleanupFailedMessage", ex.Message),
+                L.Text("CleanupErrorTitle"),
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
             return;
@@ -290,7 +293,7 @@ public partial class MainWindow : Window
             a.Result is Core.Enums.CleanupResult.Success or Core.Enums.CleanupResult.AlreadyRemoved);
         var freedBytes = results.Where(a => a.Result == Core.Enums.CleanupResult.Success)
             .Sum(a => a.ActualSizeFreed);
-        mainVm.ScanProgressText = $"Cleanup complete: {successCount} items removed ({FileSizeConverter.FormatSize(freedBytes)} freed)";
+        mainVm.ScanProgressText = L.Format("CleanupCompleteStatus", successCount, FileSizeConverter.FormatSize(freedBytes));
 
         // 7. Remove completed items from recommendations
         var completedPaths = results

@@ -13,6 +13,7 @@ public partial class RecommendationsViewModel : ObservableObject
     private readonly IRecommendationEngine _recommendationEngine;
     private ScanSession? _currentSession;
     private string? _apiKey;
+    private string? _baseUrl;
     private FileEntry? _focusEntry;
 
     [ObservableProperty]
@@ -54,10 +55,11 @@ public partial class RecommendationsViewModel : ObservableObject
         _recommendationEngine = recommendationEngine;
     }
 
-    public void SetContext(ScanSession session, string apiKey, FileEntry? focusEntry = null)
+    public void SetContext(ScanSession session, string apiKey, string? baseUrl, FileEntry? focusEntry = null)
     {
         _currentSession = session;
         _apiKey = apiKey;
+        _baseUrl = baseUrl;
         _focusEntry = focusEntry;
     }
 
@@ -78,7 +80,7 @@ public partial class RecommendationsViewModel : ObservableObject
         try
         {
             var results = await _recommendationEngine.AnalyzeAsync(
-                _currentSession, _apiKey, CancellationToken.None, _focusEntry);
+                _currentSession, _apiKey, _baseUrl, CancellationToken.None, _focusEntry);
 
             Recommendations = new ObservableCollection<CleanupRecommendation>(results);
             ApplyFilters();

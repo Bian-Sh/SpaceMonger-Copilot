@@ -31,6 +31,7 @@ public class ChatService : IChatService
         FileEntry currentViewRoot,
         ScanSession session,
         string apiKey,
+        string? baseUrl,
         CancellationToken cancellationToken)
     {
         // Step 1: Build context block JSON
@@ -50,6 +51,7 @@ public class ChatService : IChatService
             systemPrompt,
             _conversationHistory,
             apiKey,
+            baseUrl,
             cancellationToken);
 
         // Step 6: Add assistant response to conversation history
@@ -68,6 +70,7 @@ public class ChatService : IChatService
         FileEntry currentViewRoot,
         ScanSession session,
         string apiKey,
+        string? baseUrl,
         Action<string> onToken,
         CancellationToken cancellationToken)
     {
@@ -78,7 +81,7 @@ public class ChatService : IChatService
         _conversationHistory.Add(("user", fullUserMessage));
 
         var fullResponse = await _llmClient.StreamChatAsync(
-            systemPrompt, _conversationHistory, apiKey, onToken, cancellationToken);
+            systemPrompt, _conversationHistory, apiKey, baseUrl, onToken, cancellationToken);
 
         _conversationHistory.Add(("assistant", fullResponse));
         TruncateHistoryIfNeeded(systemPrompt);

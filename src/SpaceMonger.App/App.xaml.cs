@@ -29,7 +29,7 @@ public partial class App : Application
 
         services.AddHttpClient("Anthropic", client =>
         {
-            client.BaseAddress = new Uri("https://api.anthropic.com");
+            client.BaseAddress = AnthropicOptions.GetBaseUri();
             client.Timeout = TimeSpan.FromSeconds(120);
         });
 
@@ -93,4 +93,5 @@ public partial class App : Application
         mainWindow.Show();
     }
 }
+
 
