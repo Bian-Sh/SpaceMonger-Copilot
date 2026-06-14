@@ -1,4 +1,4 @@
-<Window x:Class="SpaceMonger.App.MainWindow"
+﻿<Window x:Class="SpaceMonger.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -54,11 +54,6 @@
                         Click="AnalyzeButton_Click"
                         ToolTip="{loc:Loc RecommendCleanupToolTip}" />
                 <Separator Margin="4,0" />
-                <ToggleButton x:Name="ChatToggleButton"
-                              Content="{loc:Loc ChatButton}"
-                              Padding="8,2"
-                              Margin="4,2"
-                              ToolTip="{loc:Loc ChatToggleToolTip}" />
                 <Button x:Name="SettingsButton"
                         Content="&#x2699;"
                         FontSize="16"
@@ -107,22 +102,28 @@
             </StatusBarItem>
             <Separator />
             <StatusBarItem>
-                <TextBlock Text="{Binding ScanProgressText}" FontStyle="Italic" Foreground="#666666" />
+                <TextBlock FontStyle="Italic">
+                    <Hyperlink Click="StatusConsoleLink_Click"
+                               ToolTip="打开控制台">
+                        <Run Text="{Binding ScanProgressText}" />
+                    </Hyperlink>
+                </TextBlock>
             </StatusBarItem>
         </StatusBar>
 
         <!-- Central content area (fills remaining space) -->
         <Grid x:Name="ContentArea" Margin="4">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition x:Name="ChatPanelColumn" Width="0" />
+                <ColumnDefinition Width="*" MinWidth="420" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition x:Name="ChatPanelColumn" Width="360" MinWidth="260" />
             </Grid.ColumnDefinitions>
 
             <Grid Grid.Column="0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*" MinHeight="220" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition x:Name="RecommendationsPanelRow" Height="0" />
+                    <RowDefinition x:Name="RecommendationsPanelRow" Height="260" MinHeight="120" />
                 </Grid.RowDefinitions>
 
                 <!-- Treemap view -->
@@ -138,14 +139,45 @@
                               ShowsPreview="True"
                               ResizeDirection="Rows"
                               ResizeBehavior="PreviousAndNext"
-                              Visibility="Collapsed"
+                              Visibility="Visible"
                               Cursor="SizeNS" />
 
-                <!-- Recommendations panel (initially collapsed, shown after analysis) -->
-                <views:RecommendationsPanel x:Name="RecommendationsPanel"
-                                            Grid.Row="2"
-                                            MinHeight="120"
-                                            Visibility="Collapsed" />
+                <!-- Bottom tool window: recommendations and console share the same resizable area. -->
+                <TabControl x:Name="BottomTabs"
+                            Grid.Row="2"
+                            MinHeight="120"
+                            Visibility="Visible">
+                    <TabItem x:Name="RecommendationsTab" Header="推荐清理">
+                        <views:RecommendationsPanel x:Name="RecommendationsPanel" />
+                    </TabItem>
+                    <TabItem x:Name="ConsoleTab" Header="控制台">
+                        <DockPanel Background="#1E1E1E">
+                            <Menu DockPanel.Dock="Top"
+                                  HorizontalAlignment="Right"
+                                  Background="#2D2D30"
+                                  Foreground="#DCDCDC">
+                                <MenuItem Header="Log Level">
+                                    <MenuItem x:Name="ConsoleLevelVerboseMenuItem" Header="Verbose" IsCheckable="True" Click="ConsoleLogLevel_Click" />
+                                    <MenuItem x:Name="ConsoleLevelInfoMenuItem" Header="Info" IsCheckable="True" IsChecked="True" Click="ConsoleLogLevel_Click" />
+                                    <MenuItem x:Name="ConsoleLevelWarningMenuItem" Header="Warning" IsCheckable="True" Click="ConsoleLogLevel_Click" />
+                                    <MenuItem x:Name="ConsoleLevelErrorMenuItem" Header="Error" IsCheckable="True" Click="ConsoleLogLevel_Click" />
+                                </MenuItem>
+                            </Menu>
+                            <TextBox x:Name="ConsoleTextBox"
+                                     Margin="0"
+                                     Padding="8"
+                                     Background="#1E1E1E"
+                                     Foreground="#DCDCDC"
+                                     BorderThickness="0"
+                                     FontFamily="Consolas"
+                                     FontSize="12"
+                                     IsReadOnly="True"
+                                     TextWrapping="Wrap"
+                                     VerticalScrollBarVisibility="Auto"
+                                     HorizontalScrollBarVisibility="Auto" />
+                        </DockPanel>
+                    </TabItem>
+                </TabControl>
 
                 <!-- Scanning progress overlay -->
                 <Border x:Name="ScanningOverlay"
@@ -177,12 +209,25 @@
                 </Border>
             </Grid>
 
-            <!-- Chat panel (initially collapsed, shown via toggle button) -->
+            <!-- Resizer between main workspace and chat panel -->
+            <GridSplitter Grid.Column="1"
+                          Width="6"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          Background="#D0D0D0"
+                          ShowsPreview="True"
+                          ResizeDirection="Columns"
+                          ResizeBehavior="PreviousAndNext"
+                          Cursor="SizeWE" />
+
+            <!-- Chat panel is always visible and resizable. -->
             <views:ChatPanel x:Name="ChatPanel"
-                             Grid.Column="1"
-                             Visibility="Collapsed" />
+                             Grid.Column="2"
+                             Visibility="Visible" />
         </Grid>
 
     </DockPanel>
 
 </Window>
+
+

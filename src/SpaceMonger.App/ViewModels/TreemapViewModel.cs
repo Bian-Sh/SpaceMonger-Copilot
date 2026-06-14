@@ -67,6 +67,25 @@ public partial class TreemapViewModel : ObservableObject
         RecomputeLayout();
     }
 
+    public void NavigateToEntry(FileEntry entry)
+    {
+        var viewRoot = entry.IsDirectory ? entry : entry.Parent;
+        if (viewRoot is null || viewRoot == CurrentRoot)
+            return;
+
+        if (!IsInCurrentScan(viewRoot))
+            return;
+
+        if (CurrentRoot is not null)
+        {
+            _navigationStack.Push(CurrentRoot);
+        }
+
+        CurrentRoot = viewRoot;
+        UpdateBreadcrumb();
+        RecomputeLayout();
+    }
+
     [RelayCommand(CanExecute = nameof(CanNavigateUp))]
     public void NavigateUp()
     {
@@ -195,6 +214,23 @@ public partial class TreemapViewModel : ObservableObject
         if (bytes < 1024L * 1024 * 1024) return $"{bytes / (1024.0 * 1024):F1} MB";
         if (bytes < 1024L * 1024 * 1024 * 1024) return $"{bytes / (1024.0 * 1024 * 1024):F1} GB";
         return $"{bytes / (1024.0 * 1024 * 1024 * 1024):F1} TB";
+    }
+
+    private bool IsInCurrentScan(FileEntry entry)
+    {
+        if (_scanRoot is null)
+            return false;
+
+        var current = entry;
+        while (current is not null)
+        {
+            if (current == _scanRoot)
+                return true;
+
+            current = current.Parent;
+        }
+
+        return false;
     }
 
     private void UpdateBreadcrumb()

@@ -1,6 +1,10 @@
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using Microsoft.Extensions.DependencyInjection;
 using SpaceMonger.App.Localization;
@@ -19,6 +23,14 @@ public partial class MainWindow : Window
 {
     private const double DefaultRecommendationsHeight = 260;
 
+    private readonly ObservableCollection<ConsoleLogEntry> _consoleEntries = new();
+    private readonly StringBuilder _consoleLog = new();
+    private readonly string _consoleLogPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "SpaceMonger.Next",
+        "logs",
+        $"console-{DateTime.Now:yyyyMMdd-HHmmss}.log");
+    private ConsoleLogLevel _minimumConsoleLevel = ConsoleLogLevel.Info;
     private RecommendationsViewModel? _recommendationsViewModel;
     private TreemapViewModel? _treemapViewModel;
     private SettingsViewModel? _settingsViewModel;
@@ -27,8 +39,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        ChatToggleButton.Checked += ChatToggleButton_Checked;
-        ChatToggleButton.Unchecked += ChatToggleButton_Unchecked;
+        Directory.CreateDirectory(Path.GetDirectoryName(_consoleLogPath)!);
+        AppendConsoleLine("Console log file: " + _consoleLogPath, ConsoleLogLevel.Info);
     }
 
     public void SetViewModels(RecommendationsViewModel recsVm, SettingsViewModel settingsVm)
@@ -38,6 +50,7 @@ public partial class MainWindow : Window
         RecommendationsPanel.SetViewModel(recsVm);
         RecommendationsPanel.CleanupRequested += OnCleanupRequested;
         RecommendationsPanel.CloseRequested += HideRecommendationsPanel;
+        RecommendationsPanel.RecommendationActivated += OnRecommendationActivated;
     }
 
     public void SetTreemapViewModel(TreemapViewModel treemapVm)
@@ -79,21 +92,36 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ChatToggleButton_Checked(object sender, RoutedEventArgs e)
+    private void OnRecommendationActivated(CleanupRecommendation recommendation)
     {
-        ChatPanelColumn.Width = new GridLength(350);
-        ChatPanel.Visibility = Visibility.Visible;
-    }
+        if (_treemapViewModel is null)
+            return;
 
-    private void ChatToggleButton_Unchecked(object sender, RoutedEventArgs e)
-    {
-        ChatPanelColumn.Width = new GridLength(0);
-        ChatPanel.Visibility = Visibility.Collapsed;
+        if (recommendation.Entry is not null)
+        {
+            _treemapViewModel.NavigateToEntry(recommendation.Entry);
+        }
     }
 
     private void ShowRecommendationsPanel()
     {
-        RecommendationsPanel.Visibility = Visibility.Visible;
+        ShowBottomPanel(RecommendationsTab);
+    }
+
+    private void HideRecommendationsPanel()
+    {
+        BottomTabs.SelectedItem = ConsoleTab;
+    }
+
+    private void ShowConsolePanel()
+    {
+        ShowBottomPanel(ConsoleTab);
+    }
+
+    private void ShowBottomPanel(TabItem selectedTab)
+    {
+        BottomTabs.Visibility = Visibility.Visible;
+        BottomTabs.SelectedItem = selectedTab;
         RecommendationsSplitter.Visibility = Visibility.Visible;
 
         if (RecommendationsPanelRow.ActualHeight <= 0)
@@ -102,11 +130,75 @@ public partial class MainWindow : Window
         }
     }
 
-    private void HideRecommendationsPanel()
+    private void AppendConsoleLine(string message, ConsoleLogLevel level = ConsoleLogLevel.Info)
     {
-        RecommendationsPanel.Visibility = Visibility.Collapsed;
-        RecommendationsSplitter.Visibility = Visibility.Collapsed;
-        RecommendationsPanelRow.Height = new GridLength(0);
+        var entry = new ConsoleLogEntry(DateTime.Now, level, message);
+        _consoleEntries.Add(entry);
+        File.AppendAllText(_consoleLogPath, entry.ToLogLine() + Environment.NewLine);
+        RefreshConsoleText();
+    }
+
+    private void RefreshConsoleText()
+    {
+        _consoleLog.Clear();
+        foreach (var entry in _consoleEntries.Where(e => e.Level >= _minimumConsoleLevel))
+        {
+            _consoleLog.AppendLine(entry.ToLogLine());
+        }
+
+        ConsoleTextBox.Text = _consoleLog.ToString();
+        ConsoleTextBox.ScrollToEnd();
+    }
+
+    private void ConsoleLogLevel_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender == ConsoleLevelVerboseMenuItem)
+            _minimumConsoleLevel = ConsoleLogLevel.Verbose;
+        else if (sender == ConsoleLevelInfoMenuItem)
+            _minimumConsoleLevel = ConsoleLogLevel.Info;
+        else if (sender == ConsoleLevelWarningMenuItem)
+            _minimumConsoleLevel = ConsoleLogLevel.Warning;
+        else if (sender == ConsoleLevelErrorMenuItem)
+            _minimumConsoleLevel = ConsoleLogLevel.Error;
+
+        ConsoleLevelVerboseMenuItem.IsChecked = _minimumConsoleLevel == ConsoleLogLevel.Verbose;
+        ConsoleLevelInfoMenuItem.IsChecked = _minimumConsoleLevel == ConsoleLogLevel.Info;
+        ConsoleLevelWarningMenuItem.IsChecked = _minimumConsoleLevel == ConsoleLogLevel.Warning;
+        ConsoleLevelErrorMenuItem.IsChecked = _minimumConsoleLevel == ConsoleLogLevel.Error;
+        RefreshConsoleText();
+    }
+
+    private void StatusConsoleLink_Click(object sender, RoutedEventArgs e)
+    {
+        ShowConsolePanel();
+    }
+
+    private void AppendAnalysisDiagnostics(AnalysisDiagnostics? diagnostics)
+    {
+        if (diagnostics is null)
+        {
+            AppendConsoleLine("DIAG: no diagnostics were produced; request likely failed before response parsing.");
+            return;
+        }
+
+        AppendConsoleLine("DIAG: target=" + diagnostics.TargetPath);
+        AppendConsoleLine("DIAG: scope=" + diagnostics.ScopePath + " focused=" + diagnostics.IsFocusedScope);
+        AppendConsoleLine("DIAG: metadata_chars=" + diagnostics.MetadataLength + " response_chars=" + diagnostics.ResponseLength + " extracted_json_chars=" + diagnostics.ExtractedJsonLength);
+        AppendConsoleLine("DIAG: parsed_recs=" + diagnostics.ParsedRecommendationCount + " protected_filtered=" + diagnostics.ProtectedFilteredCount + " missing_entry=" + diagnostics.MissingEntryCount + " malformed=" + diagnostics.MalformedRecommendationCount + " missing_fields=" + diagnostics.MissingFieldRecommendationCount);
+
+        if (!string.IsNullOrWhiteSpace(diagnostics.ParseError))
+        {
+            AppendConsoleLine("DIAG: parse_error=" + diagnostics.ParseError, ConsoleLogLevel.Warning);
+        }
+
+        if (!string.IsNullOrWhiteSpace(diagnostics.ExtractedJsonPreview))
+        {
+            AppendConsoleLine("DIAG: extracted_json_preview=" + diagnostics.ExtractedJsonPreview);
+        }
+        else if (!string.IsNullOrWhiteSpace(diagnostics.ResponsePreview))
+        {
+            AppendConsoleLine("DIAG: response_preview=" + diagnostics.ResponsePreview);
+        }
     }
 
     private async void AnalyzeButton_Click(object sender, RoutedEventArgs e)
@@ -181,6 +273,10 @@ public partial class MainWindow : Window
             ? L.Format("AnalyzingFolderStatus", focusEntry.Name)
             : L.Text("AnalyzingScanResultsStatus");
         mainVm.ScanProgressText = scopeLabel;
+        AppendConsoleLine(scopeLabel);
+        AppendConsoleLine(focusEntry is not null
+            ? $"Analysis scope: {focusEntry.Path}"
+            : $"Analysis scope: {mainVm.CurrentSession.TargetPath}");
         AnalyzeButton.IsEnabled = false;
 
         await _recommendationsViewModel.AnalyzeCommand.ExecuteAsync(null);
@@ -190,11 +286,21 @@ public partial class MainWindow : Window
         if (_recommendationsViewModel.AnalysisError is not null)
         {
             mainVm.ScanProgressText = L.Format("AnalysisFailedStatus", _recommendationsViewModel.AnalysisError);
+            AppendConsoleLine(mainVm.ScanProgressText, ConsoleLogLevel.Error);
+            AppendAnalysisDiagnostics(_recommendationsViewModel.LastDiagnostics);
+            ShowConsolePanel();
         }
         else
         {
             var count = _recommendationsViewModel.Recommendations.Count;
             mainVm.ScanProgressText = L.Format("AnalysisCompleteStatus", count, count == 1 ? "" : "s");
+            AppendConsoleLine(mainVm.ScanProgressText);
+            AppendAnalysisDiagnostics(_recommendationsViewModel.LastDiagnostics);
+            if (count == 0)
+            {
+                AppendConsoleLine("DIAG: zero final recommendations. Inspect parsed_recs/protected_filtered/parse_error above to determine whether this was an empty model result, parse failure, or post-filtering.");
+                ShowConsolePanel();
+            }
         }
     }
 
@@ -328,4 +434,22 @@ public partial class MainWindow : Window
         _recommendationsViewModel.Recommendations = new System.Collections.ObjectModel.ObservableCollection<CleanupRecommendation>(remaining);
         _recommendationsViewModel.RefreshAfterCleanup();
     }
+
+
 }
+
+public enum ConsoleLogLevel
+{
+    Verbose = 0,
+    Info = 1,
+    Warning = 2,
+    Error = 3,
+}
+
+public sealed record ConsoleLogEntry(DateTime Timestamp, ConsoleLogLevel Level, string Message)
+{
+    public string ToLogLine() => $"[{Timestamp:HH:mm:ss}] [{Level}] {Message}";
+}
+
+
+

@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SpaceMonger.App.Converters;
@@ -43,6 +43,9 @@ public partial class RecommendationsViewModel : ObservableObject
     [ObservableProperty]
     private bool _hasRecommendations;
 
+    [ObservableProperty]
+    private AnalysisDiagnostics? _lastDiagnostics;
+
     /// <summary>
     /// Returns true if any recommendation has been accepted by the user.
     /// Used to warn before re-running analysis that would replace accepted items.
@@ -79,16 +82,18 @@ public partial class RecommendationsViewModel : ObservableObject
 
         try
         {
-            var results = await _recommendationEngine.AnalyzeAsync(
+            var result = await _recommendationEngine.AnalyzeWithDiagnosticsAsync(
                 _currentSession, _apiKey, _baseUrl, CancellationToken.None, _focusEntry);
 
-            Recommendations = new ObservableCollection<CleanupRecommendation>(results);
+            LastDiagnostics = result.Diagnostics;
+            Recommendations = new ObservableCollection<CleanupRecommendation>(result.Recommendations);
             ApplyFilters();
             HasRecommendations = Recommendations.Count > 0;
         }
         catch (Exception ex)
         {
             AnalysisError = ex.Message;
+            LastDiagnostics = null;
             HasRecommendations = false;
         }
         finally
@@ -195,3 +200,4 @@ public partial class RecommendationsViewModel : ObservableObject
             Recommendations.Where(r => r.IsAccepted).Sum(r => r.Size));
     }
 }
+

@@ -114,7 +114,7 @@
             </StackPanel>
         </Border>
 
-        <!-- Error display (covers rows 1-2) -->
+        <!-- Error / empty display (covers rows 1-2) -->
         <Border Grid.Row="1" Grid.RowSpan="2"
                 Panel.ZIndex="5"
                 Background="#FFF3F3"
@@ -139,18 +139,31 @@
                            Foreground="#D32F2F"
                            FontSize="13"
                            HorizontalAlignment="Center"
-                           TextAlignment="Center" />
-                <TextBlock Foreground="#888888"
-                           FontSize="12"
+                           TextAlignment="Center">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Visible" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding AnalysisError, TargetNullValue=''}" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock Text="未找到可推荐清理项。可从状态栏打开控制台查看分析过程，或稍后重试。"
+                           TextWrapping="Wrap"
+                           Foreground="#666666"
+                           FontSize="13"
                            HorizontalAlignment="Center"
                            TextAlignment="Center"
                            Margin="0,8,0,0">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock">
-                            <Setter Property="Text" Value="Click Analyze to run AI analysis on your scan results." />
+                            <Setter Property="Visibility" Value="Collapsed" />
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding AnalysisError, TargetNullValue=''}" Value="">
-                                    <Setter Property="Text" Value="Click Analyze to run AI analysis on your scan results." />
+                                    <Setter Property="Visibility" Value="Visible" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
@@ -165,6 +178,7 @@
                   Margin="8,0,8,8"
                   BorderThickness="1"
                   BorderBrush="#CCCCCC"
+                  MouseDoubleClick="RecommendationsList_MouseDoubleClick"
                   ScrollViewer.HorizontalScrollBarVisibility="Disabled">
             <ListView.ItemTemplate>
                 <DataTemplate>
@@ -187,12 +201,20 @@
                                   Margin="0,0,8,0" />
 
                         <!-- File Path -->
-                        <TextBlock Grid.Row="0" Grid.Column="1"
-                                   Text="{Binding TargetPath}"
-                                   TextTrimming="CharacterEllipsis"
-                                   VerticalAlignment="Center"
-                                   ToolTip="{Binding TargetPath}"
-                                   Margin="0,0,8,0" />
+                        <Button Grid.Row="0" Grid.Column="1"
+                                Padding="0"
+                                Margin="0,0,8,0"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                VerticalAlignment="Center"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Cursor="Hand"
+                                Click="RecommendationPath_Click"
+                                ToolTip="{Binding TargetPath}">
+                            <TextBlock Text="{Binding TargetPath}"
+                                       TextTrimming="CharacterEllipsis" />
+                        </Button>
 
                         <!-- Size -->
                         <TextBlock Grid.Row="0" Grid.Column="2"

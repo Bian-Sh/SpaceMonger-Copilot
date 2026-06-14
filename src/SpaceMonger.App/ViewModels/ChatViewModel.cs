@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SpaceMonger.App.Localization;
@@ -48,6 +48,7 @@ public partial class ChatViewModel : ObservableObject
     {
         _chatService = chatService;
         _settingsService = settingsService;
+        RefreshApiKeyStatus();
     }
 
     public void SetContext(ScanSession session, FileEntry viewRoot)
@@ -84,8 +85,22 @@ public partial class ChatViewModel : ObservableObject
     [RelayCommand]
     private async Task SendAsync()
     {
-        if (string.IsNullOrWhiteSpace(InputText) || !IsChatAvailable || !IsApiKeyConfigured)
+        RefreshApiKeyStatus();
+
+        if (string.IsNullOrWhiteSpace(InputText) || !IsApiKeyConfigured)
         {
+            return;
+        }
+
+        if (_currentSession is null || _currentViewRoot is null)
+        {
+            Messages.Add(new ChatMessage
+            {
+                Sender = ChatSender.Assistant,
+                Text = "请先完成扫描，聊天需要当前磁盘分析上下文。",
+                Timestamp = DateTime.Now,
+                IsError = true
+            });
             return;
         }
 
@@ -160,3 +175,4 @@ public partial class ChatViewModel : ObservableObject
         }
     }
 }
+

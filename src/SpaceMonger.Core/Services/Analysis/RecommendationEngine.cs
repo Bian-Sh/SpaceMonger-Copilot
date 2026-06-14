@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.RegularExpressions;
 using SpaceMonger.Core.Enums;
 using SpaceMonger.Core.Models;
@@ -91,9 +91,24 @@ public class RecommendationEngine : IRecommendationEngine
         CancellationToken cancellationToken,
         FileEntry? focusEntry = null)
     {
+        var result = await AnalyzeWithDiagnosticsAsync(
+            session, apiKey, baseUrl, cancellationToken, focusEntry);
+        return result.Recommendations;
+    }
+
+    public async Task<AnalysisResult> AnalyzeWithDiagnosticsAsync(
+        ScanSession session,
+        string apiKey,
+        string? baseUrl,
+        CancellationToken cancellationToken,
+        FileEntry? focusEntry = null)
+    {
+        var result = new AnalysisResult();
+
         if (session.RootEntry is null)
         {
-            return [];
+            result.Diagnostics.ParseError = "ScanSession.RootEntry is null.";
+            return result;
         }
 
         // When a focusEntry is provided (user drilled into a folder), analyze
@@ -103,13 +118,24 @@ public class RecommendationEngine : IRecommendationEngine
         var metadataJson = BuildCompactMetadata(session, analysisRoot);
         var systemPrompt = BuildSystemPrompt();
 
-        var response = await _llmClient.SendAnalysisAsync(systemPrompt, metadataJson, apiKey, baseUrl, cancellationToken);
+        result.Diagnostics = new AnalysisDiagnostics
+        {
+            TargetPath = session.TargetPath,
+            ScopePath = analysisRoot.Path,
+            IsFocusedScope = focusEntry is not null,
+            MetadataLength = metadataJson.Length,
+        };
 
-        var recommendations = ParseResponse(response, session.RootEntry);
+        var response = await _llmClient.SendAnalysisAsync(systemPrompt, metadataJson, apiKey, baseUrl, cancellationToken);
+        result.Diagnostics.ResponseLength = response.Length;
+        result.Diagnostics.ResponsePreview = BuildPreview(response);
+
+        var recommendations = ParseResponse(response, session.RootEntry, result.Diagnostics);
+        result.Diagnostics.ParsedRecommendationCount = recommendations.Count;
 
         if (focusEntry is not null)
         {
-            // User explicitly drilled into this folder and requested analysis —
+            // User explicitly drilled into this folder and requested analysis -
             // don't silently discard results. Instead, bump any "Safe" rating
             // to "ReviewFirst" for paths under protected system directories so
             // the user still gets a warning before deleting system-adjacent files.
@@ -118,7 +144,7 @@ public class RecommendationEngine : IRecommendationEngine
                 if (IsProtectedPath(rec.TargetPath) && rec.SafetyRating == SafetyRating.Safe)
                 {
                     rec.SafetyRating = SafetyRating.ReviewFirst;
-                    rec.Explanation += " (This item is under a system directory — review carefully before deleting.)";
+                    rec.Explanation += " (This item is under a system directory - review carefully before deleting.)";
                 }
             }
         }
@@ -126,9 +152,11 @@ public class RecommendationEngine : IRecommendationEngine
         {
             // Full-drive analysis: filter out protected paths entirely to avoid
             // recommending OS/system files in broad recommendations.
+            var beforeFilterCount = recommendations.Count;
             recommendations = recommendations
                 .Where(r => !IsProtectedPath(r.TargetPath))
                 .ToList();
+            result.Diagnostics.ProtectedFilteredCount = beforeFilterCount - recommendations.Count;
         }
 
         for (int i = 0; i < recommendations.Count; i++)
@@ -136,7 +164,8 @@ public class RecommendationEngine : IRecommendationEngine
             recommendations[i].Id = $"REC-{(i + 1):D3}";
         }
 
-        return recommendations;
+        result.Recommendations = recommendations;
+        return result;
     }
 
     private static string BuildCompactMetadata(ScanSession session, FileEntry analysisRoot)
@@ -442,7 +471,7 @@ public class RecommendationEngine : IRecommendationEngine
             """;
     }
 
-    private static List<CleanupRecommendation> ParseResponse(string response, FileEntry rootEntry)
+    private static List<CleanupRecommendation> ParseResponse(string response, FileEntry rootEntry, AnalysisDiagnostics diagnostics)
     {
         var recommendations = new List<CleanupRecommendation>();
 
@@ -451,8 +480,12 @@ public class RecommendationEngine : IRecommendationEngine
             var json = ExtractJsonFromResponse(response);
             if (string.IsNullOrWhiteSpace(json))
             {
+                diagnostics.ParseError = "No JSON object or JSON code block was found in the LLM response.";
                 return recommendations;
             }
+
+            diagnostics.ExtractedJsonLength = json.Length;
+            diagnostics.ExtractedJsonPreview = BuildPreview(json);
 
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
@@ -460,6 +493,7 @@ public class RecommendationEngine : IRecommendationEngine
             if (!root.TryGetProperty("recommendations", out var recsArray) ||
                 recsArray.ValueKind != JsonValueKind.Array)
             {
+                diagnostics.ParseError = "Extracted JSON does not contain a recommendations array.";
                 return recommendations;
             }
 
@@ -487,6 +521,10 @@ public class RecommendationEngine : IRecommendationEngine
                     }
 
                     var entry = FindEntryByPath(rootEntry, path);
+                    if (entry is null)
+                    {
+                        diagnostics.MissingEntryCount++;
+                    }
 
                     recommendations.Add(new CleanupRecommendation
                     {
@@ -500,20 +538,29 @@ public class RecommendationEngine : IRecommendationEngine
                 }
                 catch (JsonException)
                 {
-                    // Skip malformed individual recommendations
+                    diagnostics.MalformedRecommendationCount++;
                 }
                 catch (KeyNotFoundException)
                 {
-                    // Skip recommendations with missing required fields
+                    diagnostics.MissingFieldRecommendationCount++;
                 }
             }
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
-            // Return empty list if entire response is unparseable
+            diagnostics.ParseError = ex.Message;
         }
 
         return recommendations;
+    }
+
+    private static string BuildPreview(string value)
+    {
+        const int maxPreviewLength = 1200;
+        var normalized = value.Replace("\r", " ").Replace("\n", " ").Trim();
+        return normalized.Length <= maxPreviewLength
+            ? normalized
+            : normalized[..maxPreviewLength] + "...";
     }
 
     private static string? ExtractJsonFromResponse(string response)
@@ -597,3 +644,4 @@ public class RecommendationEngine : IRecommendationEngine
         return false;
     }
 }
+
