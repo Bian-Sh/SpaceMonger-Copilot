@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Text;
@@ -31,7 +31,7 @@ public partial class MainWindow : Window
         "SpaceMonger.Next",
         "logs",
         $"console-{DateTime.Now:yyyyMMdd-HHmmss}.log");
-    private ConsoleLogLevel _minimumConsoleLevel = ConsoleLogLevel.Info;
+    private ConsoleLogLevel _visibleConsoleLevels = ConsoleLogLevel.Info | ConsoleLogLevel.Warning | ConsoleLogLevel.Error;
     private RecommendationsViewModel? _recommendationsViewModel;
     private TreemapViewModel? _treemapViewModel;
     private SettingsViewModel? _settingsViewModel;
@@ -73,8 +73,8 @@ public partial class MainWindow : Window
         SettingsPage.BackRequested += HideSettingsPage;
         SettingsPage.Saved += OnSettingsSaved;
         RecommendationsPanel.SetViewModel(recsVm);
+        RecommendationsPanel.AnalyzeRequested += OnAnalyzeRequested;
         RecommendationsPanel.CleanupRequested += OnCleanupRequested;
-        RecommendationsPanel.CloseRequested += HideRecommendationsPanel;
         RecommendationsPanel.RecommendationActivated += OnRecommendationActivated;
     }
 
@@ -155,6 +155,13 @@ public partial class MainWindow : Window
         }
     }
 
+    private void BottomTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        ConsoleToolbarOverlay.Visibility = BottomTabs.SelectedItem == ConsoleTab
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+    }
+
     private void AppendConsoleLine(string message, ConsoleLogLevel level = ConsoleLogLevel.Info)
     {
         var entry = new ConsoleLogEntry(DateTime.Now, level, message);
@@ -166,7 +173,7 @@ public partial class MainWindow : Window
     private void RefreshConsoleText()
     {
         _consoleLog.Clear();
-        foreach (var entry in _consoleEntries.Where(e => e.Level >= _minimumConsoleLevel))
+        foreach (var entry in _consoleEntries.Where(e => _visibleConsoleLevels.HasFlag(e.Level)))
         {
             _consoleLog.AppendLine(entry.ToLogLine());
         }
@@ -177,20 +184,25 @@ public partial class MainWindow : Window
 
     private void ConsoleLogLevel_Click(object sender, RoutedEventArgs e)
     {
-        if (sender == ConsoleLevelVerboseMenuItem)
-            _minimumConsoleLevel = ConsoleLogLevel.Verbose;
-        else if (sender == ConsoleLevelInfoMenuItem)
-            _minimumConsoleLevel = ConsoleLogLevel.Info;
-        else if (sender == ConsoleLevelWarningMenuItem)
-            _minimumConsoleLevel = ConsoleLogLevel.Warning;
-        else if (sender == ConsoleLevelErrorMenuItem)
-            _minimumConsoleLevel = ConsoleLogLevel.Error;
+        _visibleConsoleLevels = ConsoleLogLevel.None;
 
-        ConsoleLevelVerboseMenuItem.IsChecked = _minimumConsoleLevel == ConsoleLogLevel.Verbose;
-        ConsoleLevelInfoMenuItem.IsChecked = _minimumConsoleLevel == ConsoleLogLevel.Info;
-        ConsoleLevelWarningMenuItem.IsChecked = _minimumConsoleLevel == ConsoleLogLevel.Warning;
-        ConsoleLevelErrorMenuItem.IsChecked = _minimumConsoleLevel == ConsoleLogLevel.Error;
+        if (ConsoleLevelVerboseMenuItem.IsChecked)
+            _visibleConsoleLevels |= ConsoleLogLevel.Verbose;
+        if (ConsoleLevelInfoMenuItem.IsChecked)
+            _visibleConsoleLevels |= ConsoleLogLevel.Info;
+        if (ConsoleLevelWarningMenuItem.IsChecked)
+            _visibleConsoleLevels |= ConsoleLogLevel.Warning;
+        if (ConsoleLevelErrorMenuItem.IsChecked)
+            _visibleConsoleLevels |= ConsoleLogLevel.Error;
+
         RefreshConsoleText();
+    }
+
+    private void ConsoleFilterButton_Click(object sender, RoutedEventArgs e)
+    {
+        ConsoleFilterButton.ContextMenu.PlacementTarget = ConsoleFilterButton;
+        ConsoleFilterButton.ContextMenu.IsOpen = true;
+        e.Handled = true;
     }
 
     private void StatusConsoleLink_Click(object sender, RoutedEventArgs e)
@@ -246,9 +258,9 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void AnalyzeButton_Click(object sender, RoutedEventArgs e)
+    private async void OnAnalyzeRequested()
     {
-        if (_recommendationsViewModel is null || _settingsViewModel is null)
+        if (_recommendationsViewModel is null || _settingsViewModel is null || _recommendationsViewModel.IsAnalyzing)
             return;
 
         var mainVm = DataContext as MainViewModel;
@@ -331,12 +343,8 @@ public partial class MainWindow : Window
         AppendConsoleLine(focusEntry is not null
             ? $"Analysis scope: {focusEntry.Path}"
             : $"Analysis scope: {mainVm.CurrentSession.TargetPath}");
-        AnalyzeButton.IsEnabled = false;
-
         await _recommendationsViewModel.AnalyzeCommand.ExecuteAsync(null);
         DebugBreakpoints.Hit("analyze-command-returned");
-
-        AnalyzeButton.IsEnabled = true;
 
         if (_recommendationsViewModel.AnalysisError is not null)
         {
@@ -374,7 +382,7 @@ public partial class MainWindow : Window
         }
         else if (e.Key == Key.A && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
         {
-            AnalyzeButton_Click(sender, new RoutedEventArgs());
+            OnAnalyzeRequested();
             e.Handled = true;
         }
     }
@@ -496,12 +504,14 @@ public partial class MainWindow : Window
 
 }
 
+[Flags]
 public enum ConsoleLogLevel
 {
-    Verbose = 0,
-    Info = 1,
-    Warning = 2,
-    Error = 3,
+    None = 0,
+    Verbose = 1 << 0,
+    Info = 1 << 1,
+    Warning = 1 << 2,
+    Error = 1 << 3,
 }
 
 public sealed record ConsoleLogEntry(DateTime Timestamp, ConsoleLogLevel Level, string Message)

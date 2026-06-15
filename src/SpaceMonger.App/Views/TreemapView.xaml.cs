@@ -15,6 +15,7 @@ namespace SpaceMonger.App.Views;
 public partial class TreemapView : UserControl
 {
     private TreemapViewModel? _viewModel;
+    private bool _isScanning;
 
     public TreemapView()
     {
@@ -60,13 +61,15 @@ public partial class TreemapView : UserControl
 
     public void SetScanningState(bool isScanning, string? progressText)
     {
+        _isScanning = isScanning;
         ScanningOverlay.Visibility = isScanning ? Visibility.Visible : Visibility.Collapsed;
         ScanProgressText.Text = progressText ?? string.Empty;
+        UpdateEmptyState();
     }
 
     private void UpdateEmptyState()
     {
-        NoDataText.Visibility = _viewModel?.Nodes is { Count: > 0 }
+        NoDataText.Visibility = _isScanning || _viewModel?.Nodes is { Count: > 0 }
             ? Visibility.Collapsed
             : Visibility.Visible;
     }

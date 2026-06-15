@@ -126,13 +126,46 @@
         </Border>
 
         <!-- 2. Message List (scrollable, fills remaining space) -->
-        <ScrollViewer x:Name="MessagesScrollViewer"
-                      VerticalScrollBarVisibility="Auto"
-                      HorizontalScrollBarVisibility="Disabled">
-            <ItemsControl x:Name="MessagesItemsControl"
-                          ItemsSource="{Binding Messages}"
-                          Padding="8">
-                <ItemsControl.ItemTemplate>
+        <Grid>
+            <Border Padding="20"
+                    Background="#FAFAFA">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasMessages}" Value="False">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="260">
+                    <TextBlock Text="&#x1F4AC;"
+                               FontSize="28"
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,10" />
+                    <TextBlock Text="{loc:Loc ChatEmptyTitle}"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Foreground="#444444"
+                               HorizontalAlignment="Center" />
+                    <TextBlock Text="{loc:Loc ChatEmptyDescription}"
+                               TextWrapping="Wrap"
+                               TextAlignment="Center"
+                               Foreground="#777777"
+                               FontSize="12"
+                               Margin="0,8,0,0" />
+                </StackPanel>
+            </Border>
+
+            <ScrollViewer x:Name="MessagesScrollViewer"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+                <ItemsControl x:Name="MessagesItemsControl"
+                              ItemsSource="{Binding Messages}"
+                              Padding="8">
+                    <ItemsControl.ItemTemplate>
+
                     <DataTemplate>
                         <Border Margin="0,4" Padding="10,8" CornerRadius="6" MaxWidth="320">
                             <Border.Style>
@@ -220,6 +253,7 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </ScrollViewer>
+        </Grid>
 
     </DockPanel>
 </UserControl>

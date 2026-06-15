@@ -1,4 +1,5 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SpaceMonger.App.Localization;
@@ -19,6 +20,9 @@ public partial class ChatViewModel : ObservableObject
 
     [ObservableProperty]
     private ObservableCollection<ChatMessage> _messages = new();
+
+    [ObservableProperty]
+    private bool _hasMessages;
 
     [ObservableProperty]
     private string? _inputText;
@@ -48,7 +52,22 @@ public partial class ChatViewModel : ObservableObject
     {
         _chatService = chatService;
         _settingsService = settingsService;
+        Messages.CollectionChanged += Messages_CollectionChanged;
         RefreshApiKeyStatus();
+    }
+
+    partial void OnMessagesChanged(ObservableCollection<ChatMessage>? oldValue, ObservableCollection<ChatMessage> newValue)
+    {
+        if (oldValue is not null)
+            oldValue.CollectionChanged -= Messages_CollectionChanged;
+
+        newValue.CollectionChanged += Messages_CollectionChanged;
+        HasMessages = newValue.Count > 0;
+    }
+
+    private void Messages_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        HasMessages = Messages.Count > 0;
     }
 
     public void SetContext(ScanSession session, FileEntry viewRoot)
