@@ -27,10 +27,10 @@ public partial class RecommendationsViewModel : ObservableObject
     private ObservableCollection<CleanupRecommendation> _filteredRecommendations = new();
 
     [ObservableProperty]
-    private RecommendationCategory? _selectedCategoryFilter;
+    private object? _selectedCategoryFilter = string.Empty;
 
     [ObservableProperty]
-    private SafetyRating? _selectedSafetyFilter;
+    private object? _selectedSafetyFilter = string.Empty;
 
     [ObservableProperty]
     private string _totalRecoverableSpace = FileSizeConverter.FormatSize(0);
@@ -86,6 +86,7 @@ public partial class RecommendationsViewModel : ObservableObject
         // a different scope (e.g. subfolder) don't persist if this call fails.
         Recommendations = new ObservableCollection<CleanupRecommendation>();
         ApplyFilters();
+        UpdateTotals();
 
         try
         {
@@ -97,6 +98,7 @@ public partial class RecommendationsViewModel : ObservableObject
             LastDiagnostics = result.Diagnostics;
             Recommendations = new ObservableCollection<CleanupRecommendation>(result.Recommendations);
             ApplyFilters();
+            UpdateTotals();
             HasRecommendations = Recommendations.Count > 0;
             DebugBreakpoints.Hit("recommendations-applied");
         }
@@ -171,12 +173,12 @@ public partial class RecommendationsViewModel : ObservableObject
         UpdateTotals();
     }
 
-    partial void OnSelectedCategoryFilterChanged(RecommendationCategory? value)
+    partial void OnSelectedCategoryFilterChanged(object? value)
     {
         ApplyFilters();
     }
 
-    partial void OnSelectedSafetyFilterChanged(SafetyRating? value)
+    partial void OnSelectedSafetyFilterChanged(object? value)
     {
         ApplyFilters();
     }
@@ -185,14 +187,14 @@ public partial class RecommendationsViewModel : ObservableObject
     {
         var filtered = Recommendations.AsEnumerable();
 
-        if (SelectedCategoryFilter is not null)
+        if (SelectedCategoryFilter is RecommendationCategory category)
         {
-            filtered = filtered.Where(r => r.Category == SelectedCategoryFilter.Value);
+            filtered = filtered.Where(r => r.Category == category);
         }
 
-        if (SelectedSafetyFilter is not null)
+        if (SelectedSafetyFilter is SafetyRating safetyRating)
         {
-            filtered = filtered.Where(r => r.SafetyRating == SelectedSafetyFilter.Value);
+            filtered = filtered.Where(r => r.SafetyRating == safetyRating);
         }
 
         FilteredRecommendations = new ObservableCollection<CleanupRecommendation>(filtered);
@@ -204,7 +206,7 @@ public partial class RecommendationsViewModel : ObservableObject
         UpdateTotals();
     }
 
-    private void UpdateTotals()
+    public void UpdateTotals()
     {
         TotalSelectedCount = Recommendations.Count(r => r.IsAccepted);
         TotalRecoverableSpace = FileSizeConverter.FormatSize(

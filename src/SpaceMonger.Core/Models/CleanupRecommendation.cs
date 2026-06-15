@@ -1,14 +1,16 @@
 namespace SpaceMonger.Core.Models;
 
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using SpaceMonger.Core.Enums;
 
 /// <summary>
 /// Represents a cleanup recommendation for a scanned file or folder.
 /// </summary>
-public class CleanupRecommendation
+public class CleanupRecommendation : INotifyPropertyChanged
 {
     /// <summary>
-    /// Gets or sets the unique recommendation identifier (e.g., "REC-001").
+    /// Gets or sets the display recommendation identifier (e.g., "1").
     /// </summary>
     public string Id { get; set; } = string.Empty;
 
@@ -52,10 +54,17 @@ public class CleanupRecommendation
         get => _isAccepted;
         set
         {
+            if (_isAccepted == value)
+            {
+                return;
+            }
+
             _isAccepted = value;
-            if (value)
+            OnPropertyChanged();
+            if (value && _isDismissed)
             {
                 _isDismissed = false;
+                OnPropertyChanged(nameof(IsDismissed));
             }
         }
     }
@@ -70,11 +79,25 @@ public class CleanupRecommendation
         get => _isDismissed;
         set
         {
+            if (_isDismissed == value)
+            {
+                return;
+            }
+
             _isDismissed = value;
-            if (value)
+            OnPropertyChanged();
+            if (value && _isAccepted)
             {
                 _isAccepted = false;
+                OnPropertyChanged(nameof(IsAccepted));
             }
         }
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }

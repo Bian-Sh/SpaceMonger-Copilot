@@ -7,8 +7,8 @@ namespace SpaceMonger.App.Views;
 
 public partial class RecommendationsPanel : UserControl
 {
+    public event Action? AnalyzeRequested;
     public event Action? CleanupRequested;
-    public event Action? CloseRequested;
     public event Action<CleanupRecommendation>? RecommendationActivated;
 
     public RecommendationsPanel()
@@ -26,9 +26,27 @@ public partial class RecommendationsPanel : UserControl
         CleanupRequested?.Invoke();
     }
 
-    private void CloseButton_Click(object sender, RoutedEventArgs e)
+    private void AnalyzeButton_Click(object sender, RoutedEventArgs e)
     {
-        CloseRequested?.Invoke();
+        if (DataContext is RecommendationsViewModel { IsAnalyzing: true })
+        {
+            return;
+        }
+
+        AnalyzeRequested?.Invoke();
+    }
+
+    private void RecommendationItem_RequestBringIntoView(object sender, RequestBringIntoViewEventArgs e)
+    {
+        e.Handled = true;
+    }
+
+    private void RecommendationSelectionChanged(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is RecommendationsViewModel vm)
+        {
+            vm.UpdateTotals();
+        }
     }
 
     private void RecommendationsList_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)

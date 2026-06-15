@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using SpaceMonger.Core.Diagnostics;
 using SpaceMonger.Core.Enums;
@@ -175,7 +175,7 @@ public class RecommendationEngine : IRecommendationEngine
 
         for (int i = 0; i < recommendations.Count; i++)
         {
-            recommendations[i].Id = $"REC-{(i + 1):D3}";
+            recommendations[i].Id = (i + 1).ToString();
         }
 
         result.Recommendations = recommendations;
