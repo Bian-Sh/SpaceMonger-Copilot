@@ -9,88 +9,68 @@
              d:DesignHeight="600" d:DesignWidth="800">
 
     <Grid Margin="0,0,4,0">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
+        <!-- Treemap area: rounded container with clip -->
+        <Border x:Name="TreemapContainer"
+                CornerRadius="10"
+                ClipToBounds="True"
+                BorderBrush="{StaticResource VP.BorderSubtleBrush}"
+                BorderThickness="0.5">
+            <Grid>
+                <controls:TreemapControl x:Name="Treemap"
+                                         NodeClicked="Treemap_NodeClicked"
+                                         NodeHovered="Treemap_NodeHovered"
+                                         NodeRightClicked="Treemap_NodeRightClicked"
+                                         SizeChanged="Treemap_SizeChanged" />
 
-        <!-- Breadcrumb bar (glass) -->
-        <Border Grid.Row="0"
-                Style="{StaticResource VP.GlassPanel}"
-                Margin="0,0,0,4"
-                Padding="8,6">
-            <StackPanel Orientation="Horizontal"
-                        VerticalAlignment="Center">
-                <Button x:Name="UpButton"
-                        Content="{loc:Loc UpButton}"
-                        Style="{StaticResource VP.Button}"
-                        Padding="10,4"
-                        Margin="0,0,8,0"
-                        IsEnabled="False"
-                        Click="UpButton_Click"
-                        ToolTip="{loc:Loc NavigateUpToolTip}" />
-                <StackPanel x:Name="BreadcrumbPanel"
-                            Orientation="Horizontal"
+                <!-- Empty state: text overlay on canvas, no background panel -->
+                <StackPanel x:Name="EmptyStatePanel"
                             VerticalAlignment="Center"
-                            Margin="4,0" />
-            </StackPanel>
-        </Border>
-
-        <!-- Treemap area: simple structure, no container panel -->
-        <Grid Grid.Row="1">
-            <controls:TreemapControl x:Name="Treemap"
-                                     NodeClicked="Treemap_NodeClicked"
-                                     NodeHovered="Treemap_NodeHovered"
-                                     NodeRightClicked="Treemap_NodeRightClicked"
-                                     SizeChanged="Treemap_SizeChanged" />
-
-            <!-- Empty state: text overlay on canvas, no background panel -->
-            <StackPanel x:Name="EmptyStatePanel"
-                        VerticalAlignment="Center"
-                        HorizontalAlignment="Center"
-                        Visibility="Visible">
-                <TextBlock Text="&#xE946;"
-                           FontFamily="Segoe MDL2 Assets"
-                           FontSize="40"
-                           Foreground="{StaticResource VP.TextTertiaryBrush}"
-                           HorizontalAlignment="Center"
-                           Margin="0,0,0,14" />
-                <TextBlock Text="{loc:Loc TreemapEmptyTitle}"
-                           FontSize="16"
-                           FontWeight="SemiBold"
-                           Foreground="{StaticResource VP.TextSecondaryBrush}"
-                           HorizontalAlignment="Center" />
-                <TextBlock Text="{loc:Loc TreemapEmptyHint}"
-                           FontSize="13"
-                           Foreground="{StaticResource VP.TextTertiaryBrush}"
-                           HorizontalAlignment="Center"
-                           Margin="0,6,0,0" />
-            </StackPanel>
-
-            <!-- Scanning overlay -->
-            <Border x:Name="ScanningOverlay"
-                    Background="{StaticResource VP.OverlayBrush}"
-                    Visibility="Collapsed">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <TextBlock Text="{loc:Loc ScanningStatus}"
-                               FontSize="24"
-                               FontWeight="Light"
-                               Foreground="{StaticResource VP.TextPrimaryBrush}"
-                               HorizontalAlignment="Center" />
-                    <TextBlock x:Name="ScanProgressText"
-                               FontSize="14"
-                               Foreground="{StaticResource VP.TextSecondaryBrush}"
-                               HorizontalAlignment="Center"
-                               Margin="0,8,0,0" />
-                    <Button Content="{loc:Loc CancelButton}"
-                            Style="{StaticResource VP.Button}"
-                            Padding="20,8"
-                            Margin="0,16,0,0"
                             HorizontalAlignment="Center"
-                            Command="{Binding DataContext.CancelScanCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                            ToolTip="{loc:Loc CancelScanToolTip}" />
+                            Visibility="Visible">
+                    <TextBlock Text="&#xE946;"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="40"
+                               Foreground="{StaticResource VP.TextTertiaryBrush}"
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,14" />
+                    <TextBlock Text="{loc:Loc TreemapEmptyTitle}"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource VP.TextSecondaryBrush}"
+                               HorizontalAlignment="Center" />
+                    <TextBlock Text="{loc:Loc TreemapEmptyHint}"
+                               FontSize="13"
+                               Foreground="{StaticResource VP.TextTertiaryBrush}"
+                               HorizontalAlignment="Center"
+                               Margin="0,6,0,0" />
                 </StackPanel>
-            </Border>
-        </Grid>
+
+                <!-- Scanning overlay -->
+                <Border x:Name="ScanningOverlay"
+                        Background="{StaticResource VP.OverlayBrush}"
+                        CornerRadius="10"
+                        Visibility="Collapsed">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <TextBlock Text="{loc:Loc ScanningStatus}"
+                                   FontSize="24"
+                                   FontWeight="Light"
+                                   Foreground="{StaticResource VP.TextPrimaryBrush}"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock x:Name="ScanProgressText"
+                                   FontSize="14"
+                                   Foreground="{StaticResource VP.TextSecondaryBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,8,0,0" />
+                        <Button Content="{loc:Loc CancelButton}"
+                                Style="{StaticResource VP.Button}"
+                                Padding="20,8"
+                                Margin="0,16,0,0"
+                                HorizontalAlignment="Center"
+                                Command="{Binding DataContext.CancelScanCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                ToolTip="{loc:Loc CancelScanToolTip}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
     </Grid>
 </UserControl>

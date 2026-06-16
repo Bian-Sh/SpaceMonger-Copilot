@@ -150,6 +150,12 @@
   <data name="NavigateUpToolTip" xml:space="preserve">
     <value>向上导航一级</value>
   </data>
+  <data name="NavigateBackToolTip" xml:space="preserve">
+    <value>后退</value>
+  </data>
+  <data name="NavigateForwardToolTip" xml:space="preserve">
+    <value>前进</value>
+  </data>
   <data name="PropertiesTitle" xml:space="preserve">
     <value>属性 - {0}</value>
   </data>

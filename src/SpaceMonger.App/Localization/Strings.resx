@@ -150,6 +150,12 @@
   <data name="NavigateUpToolTip" xml:space="preserve">
     <value>Navigate up one level</value>
   </data>
+  <data name="NavigateBackToolTip" xml:space="preserve">
+    <value>Go back</value>
+  </data>
+  <data name="NavigateForwardToolTip" xml:space="preserve">
+    <value>Go forward</value>
+  </data>
   <data name="PropertiesTitle" xml:space="preserve">
     <value>Properties - {0}</value>
   </data>

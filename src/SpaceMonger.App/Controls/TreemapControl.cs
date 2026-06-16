@@ -47,6 +47,9 @@ public class TreemapControl : SKElement
         SKCanvas canvas = e.Surface.Canvas;
         canvas.Clear(SKColor.Parse("#1E1E1E"));
 
+        // Clip to rounded corners matching the container Border
+        canvas.ClipRoundRect(new SKRoundRect(new SKRect(0, 0, e.Info.Width, e.Info.Height), 10, 10));
+
         if (_nodes is null || _nodes.Count == 0)
             return;
 

@@ -200,6 +200,7 @@
                   Style="{StaticResource VP.ListView}"
                   ItemsSource="{Binding FilteredRecommendations}"
                   Margin="4,0,4,4"
+                  Padding="0,0,0,36"
                   MouseDoubleClick="RecommendationsList_MouseDoubleClick"
                   ScrollViewer.HorizontalScrollBarVisibility="Disabled">
             <ListView.ItemContainerStyle>
@@ -315,6 +316,8 @@
                                VerticalAlignment="Center">
                         <Run Text="{loc:Loc SelectedLabel}" />
                         <Run Text="{Binding TotalSelectedCount, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource VP.TextPrimaryBrush}" />
+                        <Run Text="/" />
+                        <Run Text="{Binding TotalItemCount, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource VP.TextPrimaryBrush}" />
                         <Run Text="{loc:Loc ItemsLabel}" />
                     </TextBlock>
 

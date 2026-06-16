@@ -456,6 +456,8 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bd" Property="Background"
+                                    Value="{StaticResource VP.SurfaceBrush}" />
                             <Setter TargetName="Bd" Property="BorderBrush"
                                     Value="{StaticResource VP.BorderLightBrush}" />
                             <Setter Property="Foreground"

@@ -175,6 +175,31 @@ public partial class MainWindow : Window
     public void SetTreemapViewModel(TreemapViewModel treemapVm)
     {
         _treemapViewModel = treemapVm;
+        _treemapViewModel.PropertyChanged += TreemapViewModel_NavigationChanged;
+    }
+
+    private void TreemapViewModel_NavigationChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (_treemapViewModel is null)
+            return;
+
+        switch (e.PropertyName)
+        {
+            case nameof(TreemapViewModel.CanGoBack):
+                BackButton.IsEnabled = _treemapViewModel.CanGoBack;
+                break;
+            case nameof(TreemapViewModel.CanGoForward):
+                ForwardButton.IsEnabled = _treemapViewModel.CanGoForward;
+                break;
+            case nameof(TreemapViewModel.CanNavigateUp):
+                UpButton.IsEnabled = _treemapViewModel.CanNavigateUp;
+                break;
+            case nameof(TreemapViewModel.CurrentRoot):
+                // Update path bar when navigating within the treemap
+                if (_treemapViewModel.CurrentRoot is not null)
+                    PathTextBox.Text = _treemapViewModel.CurrentRoot.Path;
+                break;
+        }
     }
 
     public void SetChatViewModel(ChatViewModel chatVm)
@@ -504,6 +529,34 @@ public partial class MainWindow : Window
     private void AnalyzeButton_Click(object sender, RoutedEventArgs e)
     {
         OnAnalyzeRequested();
+    }
+
+    private void BackButton_Click(object sender, RoutedEventArgs e)
+    {
+        _treemapViewModel?.NavigateBack();
+    }
+
+    private void ForwardButton_Click(object sender, RoutedEventArgs e)
+    {
+        _treemapViewModel?.NavigateForward();
+    }
+
+    private void UpButton_Click(object sender, RoutedEventArgs e)
+    {
+        _treemapViewModel?.NavigateUp();
+    }
+
+    private void PathTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Enter)
+        {
+            var path = PathTextBox.Text?.Trim();
+            if (!string.IsNullOrWhiteSpace(path))
+            {
+                TreemapView.NavigateToPath(path);
+            }
+            e.Handled = true;
+        }
     }
 
     private void OpenSettingsDialog() => ShowSettingsPage();

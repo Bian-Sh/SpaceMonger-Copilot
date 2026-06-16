@@ -35,8 +35,6 @@ public partial class TreemapView : UserControl
 
         // Sync initial state
         Treemap.Nodes = _viewModel.Nodes;
-        UpButton.IsEnabled = _viewModel.CanNavigateUp;
-        RebuildBreadcrumbs();
         UpdateEmptyState();
     }
 
@@ -47,14 +45,6 @@ public partial class TreemapView : UserControl
             case nameof(TreemapViewModel.Nodes):
                 Treemap.Nodes = _viewModel?.Nodes;
                 UpdateEmptyState();
-                break;
-
-            case nameof(TreemapViewModel.CanNavigateUp):
-                UpButton.IsEnabled = _viewModel?.CanNavigateUp ?? false;
-                break;
-
-            case nameof(TreemapViewModel.BreadcrumbPath):
-                RebuildBreadcrumbs();
                 break;
         }
     }
@@ -77,57 +67,9 @@ public partial class TreemapView : UserControl
         Treemap.Opacity = hasData ? 1.0 : 0.0;
     }
 
-    private void RebuildBreadcrumbs()
+    public void NavigateToPath(string path)
     {
-        BreadcrumbPanel.Children.Clear();
-
-        if (_viewModel?.BreadcrumbPath is null)
-            return;
-
-        for (int i = 0; i < _viewModel.BreadcrumbPath.Count; i++)
-        {
-            if (i > 0)
-            {
-                var separator = new TextBlock
-                {
-                    Text = " > ",
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x86, 0x86, 0x8B)),
-                };
-                BreadcrumbPanel.Children.Add(separator);
-            }
-
-            int index = i;
-            bool isLast = i == _viewModel.BreadcrumbPath.Count - 1;
-
-            var breadcrumbText = new TextBlock
-            {
-                Text = _viewModel.BreadcrumbPath[i],
-                VerticalAlignment = VerticalAlignment.Center,
-                Cursor = isLast ? Cursors.Arrow : Cursors.Hand,
-                FontWeight = isLast ? FontWeights.SemiBold : FontWeights.Normal,
-                TextDecorations = isLast ? null : TextDecorations.Underline,
-                Foreground = isLast
-                    ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF5, 0xF5, 0xF7))
-                    : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x0A, 0x84, 0xFF)),
-                Margin = new Thickness(2, 0, 2, 0),
-            };
-
-            if (!isLast)
-            {
-                breadcrumbText.MouseLeftButtonUp += (_, _) =>
-                {
-                    _viewModel?.NavigateTo(index);
-                };
-            }
-
-            BreadcrumbPanel.Children.Add(breadcrumbText);
-        }
-    }
-
-    private void UpButton_Click(object sender, RoutedEventArgs e)
-    {
-        _viewModel?.NavigateUp();
+        _viewModel?.NavigateToPath(path);
     }
 
     private void Treemap_NodeClicked(object? sender, TreemapNode node)

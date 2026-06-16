@@ -53,69 +53,7 @@
 
             <!-- ═══ Toolbar (glass) ═══ -->
             <Border Grid.Row="0" Style="{StaticResource VP.GlassPanel}" Padding="8,6">
-                <DockPanel LastChildFill="False">
-                    <!-- Left: nav controls -->
-                    <StackPanel DockPanel.Dock="Left"
-                                Orientation="Horizontal"
-                                VerticalAlignment="Center">
-
-                        <TextBlock Text="{loc:Loc ToolbarNavigation}"
-                                   Foreground="{StaticResource VP.TextSecondaryBrush}"
-                                   FontSize="12"
-                                   FontWeight="Medium"
-                                   VerticalAlignment="Center"
-                                   Margin="4,0,8,0" />
-
-                        <ComboBox x:Name="DriveSelector"
-                                  Width="320"
-                                  VerticalAlignment="Center"
-                                  Margin="0,0,6,0"
-                                  Style="{StaticResource VP.ComboBox}"
-                                  ItemsSource="{Binding DriveList}"
-                                  Text="{Binding SelectedPath, UpdateSourceTrigger=PropertyChanged}"
-                                  IsEditable="True"
-                                  ToolTip="{loc:Loc PathSelectorToolTip}" />
-
-                        <Button x:Name="BrowseButton"
-                                DockPanel.Dock="Left"
-                                Content="{loc:Loc BrowseButton}"
-                                Style="{StaticResource VP.Button}"
-                                Margin="0,0,4,0"
-                                Command="{Binding BrowseCommand}"
-                                ToolTip="{loc:Loc BrowseButtonToolTip}" />
-
-                        <Rectangle Width="1" Margin="8,4"
-                                   Fill="{StaticResource VP.BorderSubtleBrush}" />
-
-                        <Button x:Name="ScanButton"
-                                Content="{loc:Loc ScanButton}"
-                                Style="{StaticResource VP.AccentButton}"
-                                Padding="16,7"
-                                Margin="4,0"
-                                Command="{Binding ScanCommand}"
-                                ToolTip="{loc:Loc ScanButtonToolTip}" />
-
-                        <Button x:Name="AnalyzeButton"
-                                Content="{loc:Loc AnalyzeButton}"
-                                Margin="4,0"
-                                VerticalAlignment="Center"
-                                ToolTipService.ShowOnDisabled="True"
-                                Click="AnalyzeButton_Click">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource VP.AccentButton}">
-                                    <Setter Property="IsEnabled" Value="True" />
-                                    <Setter Property="ToolTip" Value="{loc:Loc RecommendCleanupToolTip}" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding DataContext.RecommendationsVM.IsAnalyzing, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
-                                            <Setter Property="IsEnabled" Value="False" />
-                                            <Setter Property="ToolTip" Value="{loc:Loc AnalysisInProgressToolTip}" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                    </StackPanel>
-
+                <DockPanel LastChildFill="True">
                     <!-- Right: settings -->
                     <Button x:Name="SettingsButton"
                             DockPanel.Dock="Right"
@@ -149,6 +87,112 @@
                                    VerticalAlignment="Center"
                                    TextAlignment="Center" />
                     </Button>
+
+                    <!-- Left: navigation buttons -->
+                    <StackPanel DockPanel.Dock="Left"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                        <Button x:Name="BackButton"
+                                Width="32" Height="32"
+                                Padding="0"
+                                Style="{StaticResource VP.Button}"
+                                Click="BackButton_Click"
+                                ToolTip="{loc:Loc NavigateBackToolTip}">
+                            <TextBlock Text="&#xE72B;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="14"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+                        </Button>
+                        <Button x:Name="ForwardButton"
+                                Width="32" Height="32"
+                                Padding="0"
+                                Style="{StaticResource VP.Button}"
+                                Click="ForwardButton_Click"
+                                IsEnabled="False"
+                                ToolTip="{loc:Loc NavigateForwardToolTip}">
+                            <TextBlock Text="&#xE72A;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="14"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+                        </Button>
+                        <Button x:Name="UpButton"
+                                Width="32" Height="32"
+                                Padding="0"
+                                Margin="2,0,6,0"
+                                Style="{StaticResource VP.Button}"
+                                Click="UpButton_Click"
+                                IsEnabled="False"
+                                ToolTip="{loc:Loc NavigateUpToolTip}">
+                            <TextBlock Text="&#xE74A;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="14"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+                        </Button>
+                    </StackPanel>
+
+                    <!-- Center: address bar + action buttons (fills remaining space) -->
+                    <Grid VerticalAlignment="Center">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Editable path / address bar -->
+                        <TextBox x:Name="PathTextBox"
+                                 Grid.Column="0"
+                                 Style="{StaticResource VP.TextBox}"
+                                 Text="{Binding SelectedPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 KeyDown="PathTextBox_KeyDown"
+                                 Margin="0,0,6,0"
+                                 ToolTip="{loc:Loc PathSelectorToolTip}" />
+
+                        <Button x:Name="BrowseButton"
+                                Grid.Column="1"
+                                Content="{loc:Loc BrowseButton}"
+                                Style="{StaticResource VP.Button}"
+                                Margin="0,0,4,0"
+                                Command="{Binding BrowseCommand}"
+                                ToolTip="{loc:Loc BrowseButtonToolTip}" />
+
+                        <Rectangle Grid.Column="2" Width="1" Margin="6,4"
+                                   Fill="{StaticResource VP.BorderSubtleBrush}" />
+
+                        <Button x:Name="ScanButton"
+                                Grid.Column="3"
+                                Content="{loc:Loc ScanButton}"
+                                Style="{StaticResource VP.AccentButton}"
+                                Padding="16,7"
+                                Margin="0,0,4,0"
+                                Command="{Binding ScanCommand}"
+                                ToolTip="{loc:Loc ScanButtonToolTip}" />
+
+                        <Button x:Name="AnalyzeButton"
+                                Grid.Column="4"
+                                Content="{loc:Loc AnalyzeButton}"
+                                Margin="0"
+                                VerticalAlignment="Center"
+                                ToolTipService.ShowOnDisabled="True"
+                                Click="AnalyzeButton_Click">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource VP.AccentButton}">
+                                    <Setter Property="IsEnabled" Value="True" />
+                                    <Setter Property="ToolTip" Value="{loc:Loc RecommendCleanupToolTip}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding DataContext.RecommendationsVM.IsAnalyzing, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                            <Setter Property="IsEnabled" Value="False" />
+                                            <Setter Property="ToolTip" Value="{loc:Loc AnalysisInProgressToolTip}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </Grid>
                 </DockPanel>
             </Border>
 
@@ -185,7 +229,11 @@
                         </Grid.RowDefinitions>
 
                         <!-- Tab bar (outside container border, Chrome-style) -->
-                        <DockPanel Grid.Row="0" Margin="0,0,0,-0.5">
+                        <Border Grid.Row="0"
+                                Background="{StaticResource VP.SurfaceBrush}"
+                                CornerRadius="10,10,0,0"
+                                Margin="0,0,0,-0.5">
+                        <DockPanel>
 
                             <!-- Console filter (docked right, only visible when console tab is active) -->
                             <Button x:Name="ConsoleFilterButton"
@@ -249,14 +297,22 @@
                                              GroupName="BottomTabs" />
                             </StackPanel>
                         </DockPanel>
+                        </Border>
 
                         <!-- Content area (border connects to active tab) -->
                         <Border Grid.Row="1"
-                                Background="Transparent"
+                                Background="{StaticResource VP.SurfaceBrush}"
                                 BorderBrush="{StaticResource VP.BorderLightBrush}"
-                                BorderThickness="0.5,0.5,0.5,0.5"
+                                BorderThickness="0.5,0,0.5,0.5"
                                 CornerRadius="0,0,10,10"
                                 Margin="0,0,0,0">
+                            <Border.Effect>
+                                <DropShadowEffect Color="Black"
+                                                  BlurRadius="12"
+                                                  ShadowDepth="2"
+                                                  Opacity="0.3"
+                                                  Direction="270" />
+                            </Border.Effect>
                             <Grid MinHeight="120">
                                 <!-- Recommendations panel content -->
                                 <views:RecommendationsPanel x:Name="RecommendationsPanel"
@@ -265,17 +321,17 @@
                                 <!-- Console panel content -->
                                 <TextBox x:Name="ConsoleTextBox"
                                          Margin="4,0,4,4"
-                                         Padding="10"
-                                         Background="Transparent"
-                                         Foreground="{StaticResource VP.TextSecondaryBrush}"
+                                         Padding="12,10"
+                                         Background="#1A1B26"
+                                         Foreground="#A9DC76"
                                          BorderThickness="0"
-                                         FontFamily="Cascadia Code, Consolas"
-                                         FontSize="12"
+                                         FontFamily="Cascadia Code, SF Mono, Menlo, Consolas, monospace"
+                                         FontSize="12.5"
                                          IsReadOnly="True"
                                          TextWrapping="Wrap"
                                          VerticalScrollBarVisibility="Auto"
                                          HorizontalScrollBarVisibility="Auto"
-                                         CaretBrush="{StaticResource VP.TextPrimaryBrush}"
+                                         CaretBrush="#A9DC76"
                                          Visibility="Collapsed" />
                             </Grid>
                         </Border>

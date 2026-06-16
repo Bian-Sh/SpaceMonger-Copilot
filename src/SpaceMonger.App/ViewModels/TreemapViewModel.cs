@@ -11,6 +11,7 @@ public partial class TreemapViewModel : ObservableObject
 {
     private readonly ITreemapLayoutEngine _layoutEngine;
     private readonly Stack<FileEntry> _navigationStack = new();
+    private readonly Stack<FileEntry> _forwardStack = new();
     private FileEntry? _scanRoot;
 
     public FileEntry? ScanRoot => _scanRoot;
@@ -35,6 +36,12 @@ public partial class TreemapViewModel : ObservableObject
     private bool _canNavigateUp;
 
     [ObservableProperty]
+    private bool _canGoBack;
+
+    [ObservableProperty]
+    private bool _canGoForward;
+
+    [ObservableProperty]
     private float _viewWidth;
 
     [ObservableProperty]
@@ -50,6 +57,7 @@ public partial class TreemapViewModel : ObservableObject
         _scanRoot = root;
         _session = session;
         _navigationStack.Clear();
+        _forwardStack.Clear();
         CurrentRoot = root;
         UpdateBreadcrumb();
         RecomputeLayout();
@@ -62,6 +70,7 @@ public partial class TreemapViewModel : ObservableObject
             _navigationStack.Push(CurrentRoot);
         }
 
+        _forwardStack.Clear();
         CurrentRoot = folder;
         UpdateBreadcrumb();
         RecomputeLayout();
@@ -81,6 +90,7 @@ public partial class TreemapViewModel : ObservableObject
             _navigationStack.Push(CurrentRoot);
         }
 
+        _forwardStack.Clear();
         CurrentRoot = viewRoot;
         UpdateBreadcrumb();
         RecomputeLayout();
@@ -92,9 +102,75 @@ public partial class TreemapViewModel : ObservableObject
         if (_navigationStack.Count == 0)
             return;
 
+        if (CurrentRoot is not null)
+            _forwardStack.Push(CurrentRoot);
+
         CurrentRoot = _navigationStack.Pop();
         UpdateBreadcrumb();
         RecomputeLayout();
+    }
+
+    public void NavigateBack()
+    {
+        if (_navigationStack.Count == 0)
+            return;
+
+        if (CurrentRoot is not null)
+            _forwardStack.Push(CurrentRoot);
+
+        CurrentRoot = _navigationStack.Pop();
+        UpdateBreadcrumb();
+        RecomputeLayout();
+    }
+
+    public void NavigateForward()
+    {
+        if (_forwardStack.Count == 0)
+            return;
+
+        if (CurrentRoot is not null)
+            _navigationStack.Push(CurrentRoot);
+
+        CurrentRoot = _forwardStack.Pop();
+        UpdateBreadcrumb();
+        RecomputeLayout();
+    }
+
+    public void NavigateToPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || _scanRoot is null)
+            return;
+
+        // Search the tree for an entry matching this path
+        var entry = FindEntryByPath(_scanRoot, path.Trim());
+        if (entry is null)
+            return;
+
+        if (CurrentRoot is not null)
+            _navigationStack.Push(CurrentRoot);
+
+        _forwardStack.Clear();
+        CurrentRoot = entry;
+        UpdateBreadcrumb();
+        RecomputeLayout();
+    }
+
+    private static FileEntry? FindEntryByPath(FileEntry root, string targetPath)
+    {
+        if (string.Equals(root.Path, targetPath, StringComparison.OrdinalIgnoreCase))
+            return root;
+
+        foreach (var child in root.Children)
+        {
+            if (child.IsDirectory)
+            {
+                var found = FindEntryByPath(child, targetPath);
+                if (found is not null)
+                    return found;
+            }
+        }
+
+        return null;
     }
 
     public void NavigateTo(int breadcrumbIndex)
@@ -250,6 +326,8 @@ public partial class TreemapViewModel : ObservableObject
         BreadcrumbPath = path;
 
         CanNavigateUp = _navigationStack.Count > 0;
+        CanGoBack = _navigationStack.Count > 0;
+        CanGoForward = _forwardStack.Count > 0;
         NavigateUpCommand.NotifyCanExecuteChanged();
     }
 }

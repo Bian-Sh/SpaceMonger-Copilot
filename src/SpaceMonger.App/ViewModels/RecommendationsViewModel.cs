@@ -39,6 +39,9 @@ public partial class RecommendationsViewModel : ObservableObject
     private int _totalSelectedCount;
 
     [ObservableProperty]
+    private int _totalItemCount;
+
+    [ObservableProperty]
     private bool _isAnalyzing;
 
     [ObservableProperty]
@@ -209,6 +212,7 @@ public partial class RecommendationsViewModel : ObservableObject
     public void UpdateTotals()
     {
         TotalSelectedCount = Recommendations.Count(r => r.IsAccepted);
+        TotalItemCount = Recommendations.Count;
         TotalRecoverableSpace = FileSizeConverter.FormatSize(
             Recommendations.Where(r => r.IsAccepted).Sum(r => r.Size));
     }
