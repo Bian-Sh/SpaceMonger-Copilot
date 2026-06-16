@@ -29,10 +29,38 @@
                        VerticalAlignment="Center" />
         </StackPanel>
 
-        <!-- Right: Window controls -->
+        <!-- Right: Settings + Window controls -->
         <StackPanel Grid.Column="1"
                     Orientation="Horizontal"
                     WindowChrome.IsHitTestVisibleInChrome="True">
+            <Button x:Name="SettingsButton"
+                    Content="&#xE713;"
+                    Style="{StaticResource VP.TitleBarButton}"
+                    Click="SettingsButton_Click"
+                    ToolTip="Settings" />
+            <Button x:Name="CollapseChatButton"
+                    Style="{StaticResource VP.TitleBarButton}"
+                    Click="CollapseChatButton_Click"
+                    ToolTip="Toggle chat panel">
+                <Button.Content>
+                    <Grid Width="16" Height="12">
+                        <!-- Chat open: rectangle with divider slightly right (right panel = chat) -->
+                        <Grid x:Name="PanelOpenIcon">
+                            <Border BorderBrush="{StaticResource VP.TextSecondaryBrush}"
+                                    BorderThickness="1" CornerRadius="2" />
+                            <Line X1="9.5" Y1="0" X2="9.5" Y2="12"
+                                  Stroke="{StaticResource VP.TextSecondaryBrush}" StrokeThickness="1" />
+                        </Grid>
+                        <!-- Chat collapsed: rectangle with divider slightly left (left panel = chat) -->
+                        <Grid x:Name="PanelClosedIcon" Visibility="Collapsed">
+                            <Border BorderBrush="{StaticResource VP.TextSecondaryBrush}"
+                                    BorderThickness="1" CornerRadius="2" />
+                            <Line X1="6.5" Y1="0" X2="6.5" Y2="12"
+                                  Stroke="{StaticResource VP.TextSecondaryBrush}" StrokeThickness="1" />
+                        </Grid>
+                    </Grid>
+                </Button.Content>
+            </Button>
             <Button x:Name="MinimizeButton"
                     Content="&#xE921;"
                     Style="{StaticResource VP.TitleBarButton}"

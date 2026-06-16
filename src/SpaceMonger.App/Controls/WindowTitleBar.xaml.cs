@@ -6,12 +6,37 @@ namespace SpaceMonger.App.Controls;
 
 public partial class WindowTitleBar : UserControl
 {
+    public event RoutedEventHandler? SettingsRequested;
+    public event RoutedEventHandler? CollapseChatRequested;
+
     public WindowTitleBar()
     {
         InitializeComponent();
     }
 
     private Window ParentWindow => Window.GetWindow(this);
+
+    private void SettingsButton_Click(object sender, RoutedEventArgs e)
+    {
+        SettingsRequested?.Invoke(this, e);
+    }
+
+    private void CollapseChatButton_Click(object sender, RoutedEventArgs e)
+    {
+        CollapseChatRequested?.Invoke(this, e);
+    }
+
+    /// <summary>
+    /// Updates the collapse button icon based on chat panel visibility.
+    /// PanelOpenIcon: sidebar with divider on right (chat is open).
+    /// PanelClosedIcon: sidebar with divider on left (chat is collapsed).
+    /// </summary>
+    public void UpdateCollapseIcon(bool isChatVisible)
+    {
+        PanelOpenIcon.Visibility = isChatVisible ? Visibility.Visible : Visibility.Collapsed;
+        PanelClosedIcon.Visibility = isChatVisible ? Visibility.Collapsed : Visibility.Visible;
+        CollapseChatButton.ToolTip = isChatVisible ? "Collapse chat panel" : "Expand chat panel";
+    }
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
