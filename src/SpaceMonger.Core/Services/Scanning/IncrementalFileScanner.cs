@@ -267,6 +267,13 @@ public class IncrementalFileScanner : IFileScanner
             }
 
             var rootEntry = frnToEntry[targetFrn];
+            if (IsWholeVolumeRoot(fullPath))
+            {
+                rootEntry.Children.RemoveAll(child => string.Equals(
+                    child.Name,
+                    "System Volume Information",
+                    StringComparison.OrdinalIgnoreCase));
+            }
             Trace.WriteLine("[MFT] " +$"Root entry: Name='{rootEntry.Name}', Children={rootEntry.Children.Count}");
 
             // Set root path and reconstruct paths via BFS
@@ -326,6 +333,17 @@ public class IncrementalFileScanner : IFileScanner
             Trace.WriteLine("[MFT] " +$"EXCEPTION: {ex}");
             return null;
         }
+    }
+
+    private static bool IsWholeVolumeRoot(string path)
+    {
+        var fullPath = Path.GetFullPath(path);
+        var root = Path.GetPathRoot(fullPath);
+        return !string.IsNullOrEmpty(root)
+               && string.Equals(
+                   fullPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                   root.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                   StringComparison.OrdinalIgnoreCase);
     }
 
     private void CaptureWatermark(ScanSession session, string fullPath, string volumeRoot)

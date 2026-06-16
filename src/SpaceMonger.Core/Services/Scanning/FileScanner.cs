@@ -84,6 +84,9 @@ public class FileScanner : IFileScanner
 
                         if (item.IsDir)
                         {
+                            if (IsSystemVolumeInformationAtVolumeRoot(current.Path, item.Name))
+                                continue;
+
                             var childDir = new FileEntry
                             {
                                 Path = item.FullPath,
@@ -178,6 +181,20 @@ public class FileScanner : IFileScanner
         {
             // Drive info is best-effort; failures are non-fatal.
         }
+    }
+
+    private static bool IsSystemVolumeInformationAtVolumeRoot(string parentPath, string name)
+    {
+        if (!string.Equals(name, "System Volume Information", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var fullParent = Path.GetFullPath(parentPath);
+        var root = Path.GetPathRoot(fullParent);
+        return !string.IsNullOrEmpty(root)
+               && string.Equals(
+                   fullParent.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                   root.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                   StringComparison.OrdinalIgnoreCase);
     }
 
     private static FileEntry CreateRootEntry(string path)
