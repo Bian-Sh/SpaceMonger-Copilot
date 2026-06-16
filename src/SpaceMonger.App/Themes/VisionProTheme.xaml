@@ -152,6 +152,44 @@
         <Setter Property="BorderBrush" Value="Transparent" />
     </Style>
 
+    <!-- ── Button (Transparent Icon — toolbar nav) ────────────────── -->
+    <Style x:Key="VP.ButtonIcon" TargetType="Button">
+        <Setter Property="FontFamily" Value="{StaticResource VP.FontFamily}" />
+        <Setter Property="Foreground" Value="{StaticResource VP.TextSecondaryBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Background="Transparent"
+                            CornerRadius="6" Padding="0"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background"
+                                    Value="{StaticResource VP.SurfaceHoverBrush}" />
+                            <Setter Property="Foreground"
+                                    Value="{StaticResource VP.TextPrimaryBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Background"
+                                    Value="{StaticResource VP.SurfaceActiveBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground"
+                                    Value="{StaticResource VP.TextTertiaryBrush}" />
+                            <Setter Property="Opacity" Value="0.4" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- ── Title Bar Button (Min/Max) ──────────────────────────────── -->
     <Style x:Key="VP.TitleBarButton" TargetType="Button">
         <Setter Property="Width" Value="46" />

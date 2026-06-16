@@ -148,19 +148,14 @@ public partial class MainViewModel : ObservableObject
     private bool CanCancelScan() => IsScanning;
 
     [RelayCommand]
-    private async Task BrowseAsync()
+    private Task BrowseAsync()
     {
         var dialog = new Microsoft.Win32.OpenFolderDialog();
         if (dialog.ShowDialog() == true)
         {
             SelectedPath = dialog.FolderName;
-
-            // Start scanning immediately after folder selection.
-            if (ScanCommand.CanExecute(null))
-            {
-                await ScanCommand.ExecuteAsync(null);
-            }
         }
+        return Task.CompletedTask;
     }
 
     public void UpdateStatusBar(ScanSession session)

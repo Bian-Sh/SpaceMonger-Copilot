@@ -42,6 +42,9 @@ public partial class TreemapViewModel : ObservableObject
     private bool _canGoForward;
 
     [ObservableProperty]
+    private bool _canGoUp;
+
+    [ObservableProperty]
     private float _viewWidth;
 
     [ObservableProperty]
@@ -132,6 +135,20 @@ public partial class TreemapViewModel : ObservableObject
             _navigationStack.Push(CurrentRoot);
 
         CurrentRoot = _forwardStack.Pop();
+        UpdateBreadcrumb();
+        RecomputeLayout();
+    }
+
+    public void NavigateToParent()
+    {
+        if (CurrentRoot?.Parent is null)
+            return;
+        if (!IsInCurrentScan(CurrentRoot.Parent))
+            return;
+
+        _navigationStack.Push(CurrentRoot);
+        _forwardStack.Clear();
+        CurrentRoot = CurrentRoot.Parent;
         UpdateBreadcrumb();
         RecomputeLayout();
     }
@@ -328,6 +345,7 @@ public partial class TreemapViewModel : ObservableObject
         CanNavigateUp = _navigationStack.Count > 0;
         CanGoBack = _navigationStack.Count > 0;
         CanGoForward = _forwardStack.Count > 0;
+        CanGoUp = CurrentRoot?.Parent is not null && CurrentRoot != _scanRoot;
         NavigateUpCommand.NotifyCanExecuteChanged();
     }
 }

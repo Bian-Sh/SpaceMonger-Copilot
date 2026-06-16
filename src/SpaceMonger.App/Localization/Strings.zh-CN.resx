@@ -156,6 +156,9 @@
   <data name="NavigateForwardToolTip" xml:space="preserve">
     <value>前进</value>
   </data>
+  <data name="NoSubfoldersText" xml:space="preserve">
+    <value>（无子文件夹）</value>
+  </data>
   <data name="PropertiesTitle" xml:space="preserve">
     <value>属性 - {0}</value>
   </data>

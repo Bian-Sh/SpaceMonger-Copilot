@@ -156,6 +156,9 @@
   <data name="NavigateForwardToolTip" xml:space="preserve">
     <value>Go forward</value>
   </data>
+  <data name="NoSubfoldersText" xml:space="preserve">
+    <value>(no subfolders)</value>
+  </data>
   <data name="PropertiesTitle" xml:space="preserve">
     <value>Properties - {0}</value>
   </data>
