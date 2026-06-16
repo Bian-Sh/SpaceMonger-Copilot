@@ -418,6 +418,12 @@
   <data name="TreemapNoDataText" xml:space="preserve">
     <value>No data to display. Please scan~</value>
   </data>
+  <data name="TreemapEmptyTitle" xml:space="preserve">
+    <value>Select a drive and start scanning</value>
+  </data>
+  <data name="TreemapEmptyHint" xml:space="preserve">
+    <value>Treemap visualization will appear here after scanning</value>
+  </data>
   <data name="ChatEmptyTitle" xml:space="preserve">
     <value>Chat assistant ready</value>
   </data>
@@ -431,7 +437,7 @@
     <value>Open the console from the status bar to inspect the analysis process, or adjust filters and try again.</value>
   </data>
   <data name="SettingsBackToAppButton" xml:space="preserve">
-    <value>? Back to app</value>
+    <value>← Back to app</value>
   </data>
   <data name="SettingsSearchPlaceholder" xml:space="preserve">
     <value>Search settings...</value>
@@ -458,28 +464,28 @@
     <value>The key is encrypted and stored on this device</value>
   </data>
   <data name="SettingsBaseUrlExample" xml:space="preserve">
-    <value>Example: https://api.deepseek.com/anthropic</value>
+    <value>Example: https://api.example.com/anthropic</value>
   </data>
   <data name="SettingsModelsSection" xml:space="preserve">
     <value>Models</value>
   </data>
   <data name="SettingsAnalysisModelLabel" xml:space="preserve">
-    <value>Recommendation analysis model</value>
+    <value>Analysis model</value>
   </data>
   <data name="SettingsAnalysisModelHint" xml:space="preserve">
-    <value>DeepSeek endpoint default: deepseek-v4-pro</value>
+    <value>Model used for cleanup recommendation analysis</value>
   </data>
   <data name="SettingsChatModelLabel" xml:space="preserve">
     <value>Chat model</value>
   </data>
   <data name="SettingsChatModelHint" xml:space="preserve">
-    <value>DeepSeek endpoint default: deepseek-v4-flash</value>
+    <value>Model used for AI chat conversations</value>
   </data>
   <data name="SettingsThinkingLabel" xml:space="preserve">
     <value>Enable thinking</value>
   </data>
   <data name="SettingsThinkingHint" xml:space="preserve">
-    <value>When off, requests ask DeepSeek not to output thinking to reduce JSON truncation</value>
+    <value>When off, requests the model to skip thinking output to reduce JSON truncation</value>
   </data>
   <data name="SettingsAllowThinkingOption" xml:space="preserve">
     <value>Allow model thinking</value>
@@ -501,5 +507,17 @@
   </data>
   <data name="SettingsDefaultCleanupModeLabel" xml:space="preserve">
     <value>Default cleanup mode</value>
+  </data>
+  <data name="SettingsDefaultCleanupModeHint" xml:space="preserve">
+    <value>Choose how files are removed during cleanup</value>
+  </data>
+  <data name="SettingsValidationValidating" xml:space="preserve">
+    <value>Validating...</value>
+  </data>
+  <data name="SettingsValidationValid" xml:space="preserve">
+    <value>✓ Valid</value>
+  </data>
+  <data name="SettingsValidationInvalid" xml:space="preserve">
+    <value>✗ Invalid</value>
   </data>
 </root>

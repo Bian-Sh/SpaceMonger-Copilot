@@ -418,6 +418,12 @@
   <data name="TreemapNoDataText" xml:space="preserve">
     <value>无数据可供展示，请扫描~</value>
   </data>
+  <data name="TreemapEmptyTitle" xml:space="preserve">
+    <value>选择磁盘并开始扫描</value>
+  </data>
+  <data name="TreemapEmptyHint" xml:space="preserve">
+    <value>扫描完成后此处将显示 Treemap 可视化</value>
+  </data>
   <data name="ChatEmptyTitle" xml:space="preserve">
     <value>聊天助手待命</value>
   </data>
@@ -458,28 +464,28 @@
     <value>密钥会加密保存在本机</value>
   </data>
   <data name="SettingsBaseUrlExample" xml:space="preserve">
-    <value>例如 https://api.deepseek.com/anthropic</value>
+    <value>例如 https://api.example.com/anthropic</value>
   </data>
   <data name="SettingsModelsSection" xml:space="preserve">
     <value>模型</value>
   </data>
   <data name="SettingsAnalysisModelLabel" xml:space="preserve">
-    <value>推荐分析模型</value>
+    <value>分析模型</value>
   </data>
   <data name="SettingsAnalysisModelHint" xml:space="preserve">
-    <value>DeepSeek endpoint 默认 deepseek-v4-pro</value>
+    <value>推荐清理分析使用的模型</value>
   </data>
   <data name="SettingsChatModelLabel" xml:space="preserve">
     <value>聊天模型</value>
   </data>
   <data name="SettingsChatModelHint" xml:space="preserve">
-    <value>DeepSeek endpoint 默认 deepseek-v4-flash</value>
+    <value>AI 聊天对话使用的模型</value>
   </data>
   <data name="SettingsThinkingLabel" xml:space="preserve">
     <value>启用思考</value>
   </data>
   <data name="SettingsThinkingHint" xml:space="preserve">
-    <value>关闭时会请求 DeepSeek 不输出 thinking，减少 JSON 截断</value>
+    <value>关闭时请求模型不输出思考过程，减少 JSON 截断</value>
   </data>
   <data name="SettingsAllowThinkingOption" xml:space="preserve">
     <value>允许模型思考</value>
@@ -501,5 +507,17 @@
   </data>
   <data name="SettingsDefaultCleanupModeLabel" xml:space="preserve">
     <value>默认清理模式</value>
+  </data>
+  <data name="SettingsDefaultCleanupModeHint" xml:space="preserve">
+    <value>选择清理时如何移除文件</value>
+  </data>
+  <data name="SettingsValidationValidating" xml:space="preserve">
+    <value>验证中...</value>
+  </data>
+  <data name="SettingsValidationValid" xml:space="preserve">
+    <value>✓ 有效</value>
+  </data>
+  <data name="SettingsValidationInvalid" xml:space="preserve">
+    <value>✗ 无效</value>
   </data>
 </root>

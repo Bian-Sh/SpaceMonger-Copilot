@@ -7,174 +7,224 @@
              xmlns:vm="clr-namespace:SpaceMonger.App.ViewModels"
              xmlns:enums="clr-namespace:SpaceMonger.Core.Enums;assembly=SpaceMonger.Core"
              mc:Ignorable="d"
-             d:DataContext="{d:DesignInstance Type=vm:SettingsViewModel, IsDesignTimeCreatable=False}">
-    <Grid Background="#F4F6FA">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="260" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
+             d:DataContext="{d:DesignInstance Type=vm:SettingsViewModel, IsDesignTimeCreatable=False}"
+             FontFamily="{StaticResource VP.FontFamily}">
 
-        <Border Grid.Column="0" Background="#E9EDF5" Padding="12">
-            <DockPanel>
-                <Button DockPanel.Dock="Top"
-                        Content="{loc:Loc SettingsBackToAppButton}"
-                        HorizontalAlignment="Left"
-                        Padding="8,4"
-                        Margin="0,0,0,16"
-                        Click="BackButton_Click" />
-                <TextBox DockPanel.Dock="Top"
-                         Margin="0,0,0,20"
-                         Padding="8,5"
-                         IsEnabled="False"
-                         Text="{loc:Loc SettingsSearchPlaceholder}" />
-                <StackPanel>
-                    <TextBlock Text="{loc:Loc SettingsPersonalGroup}" Foreground="#77808C" Margin="4,0,0,8" />
-                    <Border Background="#DDE4EF" CornerRadius="8" Padding="12,8" Margin="0,0,0,6">
-                        <TextBlock Text="{loc:Loc SettingsGeneralNav}" FontWeight="SemiBold" />
-                    </Border>
-                    <TextBlock Text="AI" Foreground="#77808C" Margin="4,18,0,8" />
-                    <Border Background="#DDE4EF" CornerRadius="8" Padding="12,8" Margin="0,0,0,6">
-                        <TextBlock Text="{loc:Loc SettingsModelInterfaceNav}" FontWeight="SemiBold" />
-                    </Border>
-                    <Border Background="Transparent" CornerRadius="8" Padding="12,8" Margin="0,0,0,6">
-                        <TextBlock Text="{loc:Loc SettingsCleanupPolicyNav}" />
-                    </Border>
-                </StackPanel>
-            </DockPanel>
-        </Border>
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <Style x:Key="SettingsLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Foreground" Value="{StaticResource VP.TextPrimaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="ToolTipService.InitialShowDelay" Value="120" />
+            <Setter Property="ToolTipService.ShowDuration" Value="12000" />
+        </Style>
+    </UserControl.Resources>
 
-        <Border Grid.Column="1" Margin="0" Background="White" CornerRadius="14,0,0,14" Padding="48,36">
-            <DockPanel LastChildFill="True">
-                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
-                    <Button Content="{loc:Loc SaveButton}" Width="96" Height="32" IsDefault="True" Click="SaveButton_Click" />
-                </StackPanel>
+    <Grid Background="{StaticResource VP.OverlayBrush}">
+        <!-- Centered card with solid background -->
+        <Border Background="{StaticResource VP.BackgroundAltBrush}"
+                BorderBrush="{StaticResource VP.BorderLightBrush}"
+                BorderThickness="1"
+                MaxWidth="640"
+                MaxHeight="680"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Padding="0"
+                CornerRadius="20">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
 
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel MaxWidth="760">
-                        <TextBlock Text="{loc:Loc SettingsTitle}" FontSize="24" FontWeight="SemiBold" Margin="0,0,0,28" />
+                <!-- Header -->
+                <DockPanel Grid.Row="0" Margin="24,20,24,12">
+                    <Button DockPanel.Dock="Left"
+                            Style="{StaticResource VP.Button}"
+                            Padding="12,7"
+                            HorizontalAlignment="Left"
+                            Click="BackButton_Click">
+                        <TextBlock Text="{loc:Loc SettingsBackToAppButton}"
+                                   VerticalAlignment="Center" />
+                    </Button>
+                    <TextBlock DockPanel.Dock="Right"
+                               Text="{loc:Loc SettingsTitle}"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource VP.TextPrimaryBrush}"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Right" />
+                </DockPanel>
 
-                        <TextBlock Text="{loc:Loc SettingsAiApiSection}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12" />
-                        <Border BorderBrush="#E5E5E5" BorderThickness="1" CornerRadius="10" Margin="0,0,0,24">
+                <!-- Scrollable content -->
+                <ScrollViewer Grid.Row="1"
+                              VerticalScrollBarVisibility="Auto"
+                              Padding="24,0,24,24">
+                    <StackPanel>
+                        <!-- AI & API Section -->
+                        <TextBlock Text="{loc:Loc SettingsAiApiSection}"
+                                   FontSize="15" FontWeight="SemiBold"
+                                   Foreground="{StaticResource VP.TextSecondaryBrush}"
+                                   Margin="0,0,0,10" />
+                        <Border Background="{StaticResource VP.SettingsCardBrush}"
+                                BorderBrush="{StaticResource VP.BorderSubtleBrush}"
+                                BorderThickness="1" CornerRadius="12" Margin="0,0,0,20">
                             <StackPanel>
-                                <Grid Margin="12">
+                                <Grid Margin="14,12">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="170" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
-                                    <StackPanel>
-                                        <TextBlock Text="{loc:Loc AnthropicApiKeyHeader}" FontWeight="SemiBold" />
-                                        <TextBlock Text="{loc:Loc SettingsApiKeyEncryptedHint}" Foreground="#666" FontSize="12" />
-                                    </StackPanel>
+                                    <TextBlock Text="{loc:Loc AnthropicApiKeyHeader}"
+                                               Style="{StaticResource SettingsLabelStyle}"
+                                               ToolTip="{loc:Loc SettingsApiKeyEncryptedHint}" />
                                     <StackPanel Grid.Column="1">
-                                        <TextBox Text="{Binding ApiKey, UpdateSourceTrigger=PropertyChanged}" Padding="6" ToolTip="{loc:Loc ApiKeyToolTip}" />
+                                        <TextBox Style="{StaticResource VP.TextBox}"
+                                                 Text="{Binding ApiKey, UpdateSourceTrigger=PropertyChanged}"
+                                                 ToolTip="{loc:Loc ApiKeyToolTip}"
+                                                 LostFocus="AutoSaveOnLostFocus" />
                                         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                            <Button Content="{loc:Loc ValidateButton}" Command="{Binding ValidateCommand}" Width="90" />
-                                            <TextBlock Margin="10,2,0,0">
+                                            <Button Content="{loc:Loc ValidateButton}"
+                                                    Style="{StaticResource VP.Button}"
+                                                    Command="{Binding ValidateCommand}"
+                                                    Width="90" Padding="8,5" />
+                                            <TextBlock Margin="10,4,0,0" Foreground="{StaticResource VP.TextSecondaryBrush}">
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
                                                         <Setter Property="Text" Value="" />
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding ValidationState}" Value="{x:Static vm:ValidationState.Validating}">
-                                                                <Setter Property="Text" Value="Validating..." />
+                                                                <Setter Property="Text" Value="{loc:Loc SettingsValidationValidating}" />
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding ValidationState}" Value="{x:Static vm:ValidationState.Valid}">
-                                                                <Setter Property="Text" Value="✔ Valid" />
-                                                                <Setter Property="Foreground" Value="Green" />
+                                                                <Setter Property="Text" Value="{loc:Loc SettingsValidationValid}" />
+                                                                <Setter Property="Foreground" Value="{StaticResource VP.SuccessBrush}" />
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding ValidationState}" Value="{x:Static vm:ValidationState.Invalid}">
-                                                                <Setter Property="Text" Value="✘ Invalid" />
-                                                                <Setter Property="Foreground" Value="Red" />
+                                                                <Setter Property="Text" Value="{loc:Loc SettingsValidationInvalid}" />
+                                                                <Setter Property="Foreground" Value="{StaticResource VP.DangerBrush}" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
                                                 </TextBlock.Style>
                                             </TextBlock>
                                         </StackPanel>
-                                        <TextBlock Text="{Binding ValidationMessage}" Foreground="Red" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                        <TextBlock Text="{Binding ValidationMessage}"
+                                                   Foreground="{StaticResource VP.DangerBrush}"
+                                                   TextWrapping="Wrap" Margin="0,4,0,0" />
                                     </StackPanel>
                                 </Grid>
-                                <Separator />
-                                <Grid Margin="12">
+                                <Separator Margin="14,0" />
+                                <Grid Margin="14,12">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="170" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
-                                    <StackPanel>
-                                        <TextBlock Text="{loc:Loc AnthropicBaseUrlHeader}" FontWeight="SemiBold" />
-                                        <TextBlock Text="{loc:Loc SettingsBaseUrlExample}" Foreground="#666" FontSize="12" />
-                                    </StackPanel>
-                                    <TextBox Grid.Column="1" Text="{Binding AnthropicBaseUrl, UpdateSourceTrigger=PropertyChanged}" Padding="6" />
-                                </Grid>
-                            </StackPanel>
-                        </Border>
-
-                        <TextBlock Text="{loc:Loc SettingsModelsSection}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12" />
-                        <Border BorderBrush="#E5E5E5" BorderThickness="1" CornerRadius="10" Margin="0,0,0,24">
-                            <StackPanel>
-                                <Grid Margin="12">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="190" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel>
-                                        <TextBlock Text="{loc:Loc SettingsAnalysisModelLabel}" FontWeight="SemiBold" />
-                                        <TextBlock Text="{loc:Loc SettingsAnalysisModelHint}" Foreground="#666" FontSize="12" />
-                                    </StackPanel>
-                                    <TextBox Grid.Column="1" Text="{Binding AnalysisModelName, UpdateSourceTrigger=PropertyChanged}" Padding="6" />
-                                </Grid>
-                                <Separator />
-                                <Grid Margin="12">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="190" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel>
-                                        <TextBlock Text="{loc:Loc SettingsChatModelLabel}" FontWeight="SemiBold" />
-                                        <TextBlock Text="{loc:Loc SettingsChatModelHint}" Foreground="#666" FontSize="12" />
-                                    </StackPanel>
-                                    <TextBox Grid.Column="1" Text="{Binding ChatModelName, UpdateSourceTrigger=PropertyChanged}" Padding="6" />
-                                </Grid>
-                                <Separator />
-                                <Grid Margin="12">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="190" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel>
-                                        <TextBlock Text="{loc:Loc SettingsThinkingLabel}" FontWeight="SemiBold" />
-                                        <TextBlock Text="{loc:Loc SettingsThinkingHint}" Foreground="#666" FontSize="12" TextWrapping="Wrap" />
-                                    </StackPanel>
-                                    <CheckBox Grid.Column="1" IsChecked="{Binding EnableThinking}" VerticalAlignment="Center" Content="{loc:Loc SettingsAllowThinkingOption}" />
+                                    <TextBlock Text="{loc:Loc AnthropicBaseUrlHeader}"
+                                               Style="{StaticResource SettingsLabelStyle}"
+                                               ToolTip="{loc:Loc SettingsBaseUrlExample}" />
+                                    <TextBox Grid.Column="1"
+                                             Style="{StaticResource VP.TextBox}"
+                                             Text="{Binding AnthropicBaseUrl, UpdateSourceTrigger=PropertyChanged}"
+                                             LostFocus="AutoSaveOnLostFocus" />
                                 </Grid>
                             </StackPanel>
                         </Border>
 
-                        <TextBlock Text="{loc:Loc SettingsGeneralNav}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12" />
-                        <Border BorderBrush="#E5E5E5" BorderThickness="1" CornerRadius="10">
+                        <!-- Models Section -->
+                        <TextBlock Text="{loc:Loc SettingsModelsSection}"
+                                   FontSize="15" FontWeight="SemiBold"
+                                   Foreground="{StaticResource VP.TextSecondaryBrush}"
+                                   Margin="0,0,0,10" />
+                        <Border Background="{StaticResource VP.SettingsCardBrush}"
+                                BorderBrush="{StaticResource VP.BorderSubtleBrush}"
+                                BorderThickness="1" CornerRadius="12" Margin="0,0,0,20">
                             <StackPanel>
-                                <Grid Margin="12">
+                                <Grid Margin="14,12">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="170" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
-                                    <StackPanel>
-                                        <TextBlock Text="{loc:Loc SettingsLanguageLabel}" FontWeight="SemiBold" />
-                                        <TextBlock Text="{loc:Loc SettingsLanguageHint}" Foreground="#666" FontSize="12" />
-                                    </StackPanel>
-                                    <ComboBox Grid.Column="1" SelectedValue="{Binding Language}" SelectedValuePath="Tag" Padding="4">
-                                        <ComboBoxItem Tag="zh-CN" Content="{loc:Loc SettingsLanguageSimplifiedChinese}" />
-                                        <ComboBoxItem Tag="en" Content="{loc:Loc SettingsLanguageEnglish}" />
-                                        <ComboBoxItem Tag="auto" Content="{loc:Loc SettingsLanguageAuto}" />
-                                    </ComboBox>
+                                    <TextBlock Text="{loc:Loc SettingsAnalysisModelLabel}"
+                                               Style="{StaticResource SettingsLabelStyle}"
+                                               ToolTip="{loc:Loc SettingsAnalysisModelHint}" />
+                                    <TextBox Grid.Column="1"
+                                             Style="{StaticResource VP.TextBox}"
+                                             Text="{Binding AnalysisModelName, UpdateSourceTrigger=PropertyChanged}"
+                                             LostFocus="AutoSaveOnLostFocus" />
                                 </Grid>
-                                <Separator />
-                                <Grid Margin="12">
+                                <Separator Margin="14,0" />
+                                <Grid Margin="14,12">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="170" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{loc:Loc SettingsDefaultCleanupModeLabel}" FontWeight="SemiBold" />
-                                    <ComboBox Grid.Column="1" SelectedItem="{Binding SelectedDeletionMode}" Padding="4">
+                                    <TextBlock Text="{loc:Loc SettingsChatModelLabel}"
+                                               Style="{StaticResource SettingsLabelStyle}"
+                                               ToolTip="{loc:Loc SettingsChatModelHint}" />
+                                    <TextBox Grid.Column="1"
+                                             Style="{StaticResource VP.TextBox}"
+                                             Text="{Binding ChatModelName, UpdateSourceTrigger=PropertyChanged}"
+                                             LostFocus="AutoSaveOnLostFocus" />
+                                </Grid>
+                                <Separator Margin="14,0" />
+                                <Grid Margin="14,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="170" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{loc:Loc SettingsThinkingLabel}"
+                                               Style="{StaticResource SettingsLabelStyle}"
+                                               ToolTip="{loc:Loc SettingsThinkingHint}" />
+                                    <CheckBox Grid.Column="1"
+                                              Style="{StaticResource VP.CheckBox}"
+                                              IsChecked="{Binding EnableThinking}"
+                                              VerticalAlignment="Center"
+                                              Content="{loc:Loc SettingsAllowThinkingOption}"
+                                              Click="AutoSaveOnChanged" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- General Section -->
+                        <TextBlock Text="{loc:Loc SettingsGeneralNav}"
+                                   FontSize="15" FontWeight="SemiBold"
+                                   Foreground="{StaticResource VP.TextSecondaryBrush}"
+                                   Margin="0,0,0,10" />
+                        <Border Background="{StaticResource VP.SettingsCardBrush}"
+                                BorderBrush="{StaticResource VP.BorderSubtleBrush}"
+                                BorderThickness="1" CornerRadius="12">
+                            <StackPanel>
+                                <Grid Margin="14,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="170" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{loc:Loc SettingsLanguageLabel}"
+                                               Style="{StaticResource SettingsLabelStyle}"
+                                               ToolTip="{loc:Loc SettingsLanguageHint}" />
+                                    <ComboBox Grid.Column="1"
+                                              Style="{StaticResource VP.ComboBox}"
+                                              ItemsSource="{x:Static vm:SettingsViewModel.LanguageOptions}"
+                                              SelectedValue="{Binding Language, UpdateSourceTrigger=PropertyChanged}"
+                                              SelectedValuePath="Code"
+                                              DisplayMemberPath="DisplayName"
+                                              SelectionChanged="AutoSaveOnChanged" />
+                                </Grid>
+                                <Separator Margin="14,0" />
+                                <Grid Margin="14,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="170" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{loc:Loc SettingsDefaultCleanupModeLabel}"
+                                               Style="{StaticResource SettingsLabelStyle}"
+                                               ToolTip="{loc:Loc SettingsDefaultCleanupModeHint}" />
+                                    <ComboBox Grid.Column="1"
+                                              Style="{StaticResource VP.ComboBox}"
+                                              SelectedItem="{Binding SelectedDeletionMode}"
+                                              SelectionChanged="AutoSaveOnChanged">
                                         <ComboBox.Items>
                                             <enums:DeletionMode>MoveToRecycleBin</enums:DeletionMode>
                                             <enums:DeletionMode>PermanentDelete</enums:DeletionMode>
@@ -185,7 +235,20 @@
                         </Border>
                     </StackPanel>
                 </ScrollViewer>
-            </DockPanel>
+
+                <!-- Save Toast -->
+                <Border HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Background="{StaticResource VP.AccentBrush}"
+                        CornerRadius="10"
+                        Padding="14,8"
+                        Margin="0,16,16,0"
+                        Visibility="{Binding IsSaveToastVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <TextBlock Text="{Binding SaveToastMessage}"
+                               Foreground="White"
+                               FontSize="12" />
+                </Border>
+            </Grid>
         </Border>
     </Grid>
 </UserControl>

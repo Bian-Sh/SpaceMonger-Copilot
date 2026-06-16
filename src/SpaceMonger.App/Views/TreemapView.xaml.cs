@@ -69,9 +69,12 @@ public partial class TreemapView : UserControl
 
     private void UpdateEmptyState()
     {
-        NoDataText.Visibility = _isScanning || _viewModel?.Nodes is { Count: > 0 }
-            ? Visibility.Collapsed
-            : Visibility.Visible;
+        bool hasData = _viewModel?.Nodes is { Count: > 0 };
+        bool showEmpty = !_isScanning && !hasData;
+
+        EmptyStatePanel.Visibility = showEmpty ? Visibility.Visible : Visibility.Collapsed;
+        // Hide opaque SkiaSharp canvas when empty (Opacity=0 keeps element in visual tree)
+        Treemap.Opacity = hasData ? 1.0 : 0.0;
     }
 
     private void RebuildBreadcrumbs()
@@ -89,7 +92,7 @@ public partial class TreemapView : UserControl
                 {
                     Text = " > ",
                     VerticalAlignment = VerticalAlignment.Center,
-                    Foreground = System.Windows.Media.Brushes.Gray,
+                    Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x86, 0x86, 0x8B)),
                 };
                 BreadcrumbPanel.Children.Add(separator);
             }
@@ -105,8 +108,8 @@ public partial class TreemapView : UserControl
                 FontWeight = isLast ? FontWeights.SemiBold : FontWeights.Normal,
                 TextDecorations = isLast ? null : TextDecorations.Underline,
                 Foreground = isLast
-                    ? System.Windows.Media.Brushes.Black
-                    : System.Windows.Media.Brushes.DodgerBlue,
+                    ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF5, 0xF5, 0xF7))
+                    : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x0A, 0x84, 0xFF)),
                 Margin = new Thickness(2, 0, 2, 0),
             };
 

@@ -44,6 +44,13 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private string _folderCount = "--";
 
+    /// <summary>
+    /// Reference to the recommendations view model, set from MainWindow.SetViewModels.
+    /// Used by the AnalyzeButton DataTrigger binding in MainWindow.xaml.
+    /// </summary>
+    [ObservableProperty]
+    private RecommendationsViewModel? _recommendationsVM;
+
     public event Action<ScanSession>? ScanCompleted;
 
     /// <summary>

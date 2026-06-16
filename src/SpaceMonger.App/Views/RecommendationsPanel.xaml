@@ -10,12 +10,12 @@
              xmlns:vm="clr-namespace:SpaceMonger.App.ViewModels"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:RecommendationsViewModel, IsDesignTimeCreatable=False}"
-             d:DesignHeight="600" d:DesignWidth="800">
+             d:DesignHeight="600" d:DesignWidth="800"
+             FontFamily="{StaticResource VP.FontFamily}">
 
     <UserControl.Resources>
         <converters:FileSizeConverter x:Key="FileSizeConverter" />
         <converters:SafetyRatingToBrushConverter x:Key="SafetyRatingToBrushConverter" />
-
     </UserControl.Resources>
 
     <Grid>
@@ -25,82 +25,74 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Row 0: Filter Bar -->
-        <DockPanel Grid.Row="0"
-                   Margin="8"
-                   LastChildFill="True">
-            <Button DockPanel.Dock="Right"
-                    Content="{loc:Loc AnalyzeButton}"
-                    Padding="12,4"
-                    Margin="8,0,0,0"
-                    VerticalAlignment="Center"
-                    ToolTipService.ShowOnDisabled="True"
-                    Click="AnalyzeButton_Click">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="IsEnabled" Value="True" />
-                        <Setter Property="ToolTip" Value="{loc:Loc RecommendCleanupToolTip}" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsAnalyzing}" Value="True">
-                                <Setter Property="IsEnabled" Value="False" />
-                                <Setter Property="ToolTip" Value="{loc:Loc AnalysisInProgressToolTip}" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Button.Style>
-            </Button>
-        <StackPanel Orientation="Horizontal"
-                    VerticalAlignment="Center">
-            <Label Content="{loc:Loc FilterByLabel}"
-                   VerticalAlignment="Center"
-                   Margin="0,0,4,0" />
+        <!-- Row 0: Filter Bar (hidden when no recommendations) -->
+        <DockPanel x:Name="FilterBar" Grid.Row="0" Margin="8,2,8,2" LastChildFill="True">
+            <DockPanel.Style>
+                <Style TargetType="DockPanel">
+                    <Setter Property="Visibility" Value="Visible" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding HasRecommendations}" Value="False">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DockPanel.Style>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="{loc:Loc FilterByLabel}"
+                           Foreground="{StaticResource VP.TextSecondaryBrush}"
+                           FontSize="12"
+                           VerticalAlignment="Center"
+                           Margin="0,0,6,0" />
 
-            <!-- Category Filter -->
-            <ComboBox Width="160"
-                      Margin="0,0,8,0"
-                      SelectedItem="{Binding SelectedCategoryFilter, Mode=TwoWay}">
-                <ComboBox.Items>
-                    <ComboBoxItem Content="{loc:Loc AllCategoriesOption}" Tag="" IsSelected="True" />
-                    <enums:RecommendationCategory>TemporaryFiles</enums:RecommendationCategory>
-                    <enums:RecommendationCategory>BuildCache</enums:RecommendationCategory>
-                    <enums:RecommendationCategory>PackageManagerCache</enums:RecommendationCategory>
-                    <enums:RecommendationCategory>OldDownloads</enums:RecommendationCategory>
-                    <enums:RecommendationCategory>LogFiles</enums:RecommendationCategory>
-                    <enums:RecommendationCategory>DuplicateFiles</enums:RecommendationCategory>
-                    <enums:RecommendationCategory>BrowserCache</enums:RecommendationCategory>
-                    <enums:RecommendationCategory>SystemCache</enums:RecommendationCategory>
-                    <enums:RecommendationCategory>Other</enums:RecommendationCategory>
-                </ComboBox.Items>
-            </ComboBox>
+                <ComboBox Width="140"
+                          Margin="0,0,4,0"
+                          Style="{StaticResource VP.ComboBox}"
+                          SelectedItem="{Binding SelectedCategoryFilter, Mode=TwoWay}">
+                    <ComboBox.Items>
+                        <ComboBoxItem Content="{loc:Loc AllCategoriesOption}" Tag="" IsSelected="True" />
+                        <enums:RecommendationCategory>TemporaryFiles</enums:RecommendationCategory>
+                        <enums:RecommendationCategory>BuildCache</enums:RecommendationCategory>
+                        <enums:RecommendationCategory>PackageManagerCache</enums:RecommendationCategory>
+                        <enums:RecommendationCategory>OldDownloads</enums:RecommendationCategory>
+                        <enums:RecommendationCategory>LogFiles</enums:RecommendationCategory>
+                        <enums:RecommendationCategory>DuplicateFiles</enums:RecommendationCategory>
+                        <enums:RecommendationCategory>BrowserCache</enums:RecommendationCategory>
+                        <enums:RecommendationCategory>SystemCache</enums:RecommendationCategory>
+                        <enums:RecommendationCategory>Other</enums:RecommendationCategory>
+                    </ComboBox.Items>
+                </ComboBox>
 
-            <!-- Safety Filter -->
-            <ComboBox Width="140"
-                      Margin="0,0,8,0"
-                      SelectedItem="{Binding SelectedSafetyFilter, Mode=TwoWay}">
-                <ComboBox.Items>
-                    <ComboBoxItem Content="{loc:Loc AllRatingsOption}" Tag="" IsSelected="True" />
-                    <enums:SafetyRating>Safe</enums:SafetyRating>
-                    <enums:SafetyRating>ReviewFirst</enums:SafetyRating>
-                    <enums:SafetyRating>Caution</enums:SafetyRating>
-                </ComboBox.Items>
-            </ComboBox>
+                <ComboBox Width="130"
+                          Margin="0,0,6,0"
+                          Style="{StaticResource VP.ComboBox}"
+                          SelectedItem="{Binding SelectedSafetyFilter, Mode=TwoWay}">
+                    <ComboBox.Items>
+                        <ComboBoxItem Content="{loc:Loc AllRatingsOption}" Tag="" IsSelected="True" />
+                        <enums:SafetyRating>Safe</enums:SafetyRating>
+                        <enums:SafetyRating>ReviewFirst</enums:SafetyRating>
+                        <enums:SafetyRating>Caution</enums:SafetyRating>
+                    </ComboBox.Items>
+                </ComboBox>
 
-            <Button Content="{loc:Loc SelectAllSafeButton}"
-                    Padding="8,4"
-                    Margin="0,0,4,0"
-                    Command="{Binding SelectAllSafeCommand}" />
+                <Button Content="{loc:Loc SelectAllSafeButton}"
+                        Style="{StaticResource VP.Button}"
+                        Padding="8,4"
+                        Margin="0,0,4,0"
+                        Command="{Binding SelectAllSafeCommand}" />
 
-            <Button Content="{loc:Loc DeselectAllCautionButton}"
-                    Padding="8,4"
-                    Margin="0,0,4,0"
-                    Command="{Binding DeselectAllCautionCommand}" />
-        </StackPanel>
+                <Button Content="{loc:Loc DeselectAllCautionButton}"
+                        Style="{StaticResource VP.Button}"
+                        Padding="8,4"
+                        Margin="0,0,4,0"
+                        Command="{Binding DeselectAllCautionCommand}" />
+            </StackPanel>
         </DockPanel>
 
-        <!-- Analyzing overlay (covers rows 1-2) -->
+        <!-- Analyzing overlay -->
         <Border Grid.Row="1" Grid.RowSpan="2"
                 Panel.ZIndex="10"
-                Background="#F5F5F5">
+                Background="{StaticResource VP.BackgroundAltBrush}"
+                CornerRadius="0,0,12,12">
             <Border.Style>
                 <Style TargetType="Border">
                     <Setter Property="Visibility" Value="Collapsed" />
@@ -112,23 +104,25 @@
                 </Style>
             </Border.Style>
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                <ProgressBar IsIndeterminate="True" Width="200" Height="16" Margin="0,0,0,8" />
+                <ProgressBar IsIndeterminate="True" Width="180" Height="3" Margin="0,0,0,12"
+                             Foreground="{StaticResource VP.AccentBrush}"
+                             Background="{StaticResource VP.SurfaceBrush}" />
                 <TextBlock Text="{loc:Loc AnalyzingFilesText}"
                            FontSize="14"
-                           Foreground="#555555"
+                           Foreground="{StaticResource VP.TextPrimaryBrush}"
                            HorizontalAlignment="Center" />
                 <TextBlock Text="{loc:Loc AnalysisMayTakeText}"
                            FontSize="11"
-                           Foreground="#999999"
+                           Foreground="{StaticResource VP.TextSecondaryBrush}"
                            HorizontalAlignment="Center"
-                           Margin="0,4,0,0" />
+                           Margin="0,6,0,0" />
             </StackPanel>
         </Border>
 
-        <!-- Error / empty display (covers rows 1-2) -->
+        <!-- Error / empty display -->
         <Border Grid.Row="1" Grid.RowSpan="2"
                 Panel.ZIndex="5"
-                Background="#FAFAFA"
+                Background="Transparent"
                 Padding="20">
             <Border.Style>
                 <Style TargetType="Border">
@@ -147,7 +141,7 @@
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="520">
                 <TextBlock Text="{Binding AnalysisError}"
                            TextWrapping="Wrap"
-                           Foreground="#D32F2F"
+                           Foreground="{StaticResource VP.DangerBrush}"
                            FontSize="13"
                            HorizontalAlignment="Center"
                            TextAlignment="Center">
@@ -165,7 +159,7 @@
                 <TextBlock Text="{loc:Loc RecommendationsEmptyTitle}"
                            FontSize="15"
                            FontWeight="SemiBold"
-                           Foreground="#555555"
+                           Foreground="{StaticResource VP.TextPrimaryBrush}"
                            HorizontalAlignment="Center"
                            TextAlignment="Center"
                            Margin="0,0,0,6">
@@ -182,7 +176,7 @@
                 </TextBlock>
                 <TextBlock Text="{loc:Loc RecommendationsEmptyDescription}"
                            TextWrapping="Wrap"
-                           Foreground="#777777"
+                           Foreground="{StaticResource VP.TextSecondaryBrush}"
                            FontSize="13"
                            HorizontalAlignment="Center"
                            TextAlignment="Center">
@@ -203,137 +197,139 @@
         <!-- Row 1: Recommendations List -->
         <ListView x:Name="RecommendationsList"
                   Grid.Row="1"
+                  Style="{StaticResource VP.ListView}"
                   ItemsSource="{Binding FilteredRecommendations}"
-                  Margin="8,0,8,8"
-                  BorderThickness="1"
-                  BorderBrush="#CCCCCC"
+                  Margin="4,0,4,4"
                   MouseDoubleClick="RecommendationsList_MouseDoubleClick"
-                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                  AlternationCount="2">
+                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
             <ListView.ItemContainerStyle>
-                <Style TargetType="ListViewItem">
-                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                    <Setter Property="Background" Value="#FFFFFF" />
-                    <EventSetter Event="RequestBringIntoView" Handler="RecommendationItem_RequestBringIntoView" />
-                    <Style.Triggers>
-                        <Trigger Property="ItemsControl.AlternationIndex" Value="1">
-                            <Setter Property="Background" Value="#F7FAFD" />
-                        </Trigger>
-                        <Trigger Property="IsSelected" Value="True">
-                            <Setter Property="Background" Value="#E3F2FD" />
-                        </Trigger>
-                    </Style.Triggers>
-                </Style>
+                <Style TargetType="ListViewItem" BasedOn="{StaticResource VP.ListViewItem}" />
             </ListView.ItemContainerStyle>
             <ListView.ItemTemplate>
                 <DataTemplate>
-                    <Grid Margin="4,6">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
+                    <Border Background="{StaticResource VP.CardBrush}"
+                            BorderBrush="{StaticResource VP.BorderSubtleBrush}"
+                            BorderThickness="0.5"
+                            CornerRadius="6"
+                            Padding="10,6"
+                            Margin="2,2">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
 
-                        <!-- Recommendation Id -->
-                        <TextBlock Grid.Row="0" Grid.Column="0"
-                                   Text="{Binding Id}"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,8,0"
-                                   FontSize="12"
-                                   FontWeight="SemiBold"
-                                   Foreground="#666666" />
+                            <!-- CheckBox -->
+                            <CheckBox Grid.Row="0" Grid.Column="0"
+                                      Style="{StaticResource VP.CheckBox}"
+                                      IsChecked="{Binding IsAccepted, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      Checked="RecommendationSelectionChanged"
+                                      Unchecked="RecommendationSelectionChanged"
+                                      VerticalAlignment="Center"
+                                      Margin="0,0,8,0" />
 
-                        <!-- File Path -->
-                        <Button Grid.Row="0" Grid.Column="1"
-                                Padding="0"
-                                Margin="0,0,8,0"
-                                HorizontalAlignment="Stretch"
-                                HorizontalContentAlignment="Left"
-                                VerticalAlignment="Center"
-                                Background="Transparent"
-                                BorderThickness="0"
-                                Cursor="Hand"
-                                Click="RecommendationPath_Click"
-                                ToolTip="{Binding TargetPath}">
-                            <TextBlock Text="{Binding TargetPath}"
-                                       TextTrimming="CharacterEllipsis" />
-                        </Button>
+                            <!-- File Path -->
+                            <Button Grid.Row="0" Grid.Column="1"
+                                    Padding="0"
+                                    Margin="0,0,8,0"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Cursor="Hand"
+                                    Foreground="{StaticResource VP.TextPrimaryBrush}"
+                                    Click="RecommendationPath_Click"
+                                    ToolTip="{Binding TargetPath}">
+                                <TextBlock Text="{Binding TargetPath}"
+                                           TextTrimming="CharacterEllipsis"
+                                           FontSize="12.5" />
+                            </Button>
 
-                        <!-- Size -->
-                        <TextBlock Grid.Row="0" Grid.Column="2"
-                                   Text="{Binding Size, Converter={StaticResource FileSizeConverter}}"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,8,0"
-                                   FontWeight="SemiBold" />
-
-                        <!-- Safety Rating Badge -->
-                        <Border Grid.Row="0" Grid.Column="3"
-                                Background="{Binding SafetyRating, Converter={StaticResource SafetyRatingToBrushConverter}}"
-                                CornerRadius="4"
-                                Padding="6,2"
-                                VerticalAlignment="Center">
-                            <TextBlock Text="{Binding SafetyRating}"
-                                       Foreground="White"
-                                       FontSize="11"
-                                       FontWeight="SemiBold" />
-                        </Border>
-
-                        <!-- CheckBox -->
-                        <CheckBox Grid.Row="0" Grid.Column="4"
-                                  IsChecked="{Binding IsAccepted, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                  Checked="RecommendationSelectionChanged"
-                                  Unchecked="RecommendationSelectionChanged"
-                                  VerticalAlignment="Center"
-                                  Margin="8,0,0,0" />
-
-                        <!-- Explanation (spans data columns, below the main row) -->
-                        <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3"
-                                    Orientation="Horizontal"
-                                    Margin="0,2,0,0">
-                            <TextBlock Text="{Binding Category}"
-                                       FontSize="11"
-                                       Foreground="#888888"
+                            <!-- Size -->
+                            <TextBlock Grid.Row="0" Grid.Column="2"
+                                       Text="{Binding Size, Converter={StaticResource FileSizeConverter}}"
+                                       VerticalAlignment="Center"
                                        Margin="0,0,8,0"
-                                       VerticalAlignment="Center" />
-                            <TextBlock Text="{Binding Explanation}"
-                                       TextWrapping="Wrap"
-                                       FontSize="11"
-                                       Foreground="#888888" />
-                        </StackPanel>
-                    </Grid>
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource VP.TextPrimaryBrush}" />
+
+                            <!-- Safety Badge -->
+                            <Border Grid.Row="0" Grid.Column="3"
+                                    Background="{Binding SafetyRating, Converter={StaticResource SafetyRatingToBrushConverter}}"
+                                    CornerRadius="4"
+                                    Padding="6,2"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="{Binding SafetyRating}"
+                                           Foreground="White"
+                                           FontSize="10.5"
+                                           FontWeight="SemiBold" />
+                            </Border>
+
+                            <!-- Category + Explanation -->
+                            <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3"
+                                        Orientation="Horizontal"
+                                        Margin="0,3,0,0">
+                                <TextBlock Text="{Binding Category}"
+                                           FontSize="11"
+                                           Foreground="{StaticResource VP.TextTertiaryBrush}"
+                                           Margin="0,0,8,0"
+                                           VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding Explanation}"
+                                           TextWrapping="Wrap"
+                                           FontSize="11"
+                                           Foreground="{StaticResource VP.TextTertiaryBrush}" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
 
         <!-- Row 2: Summary Bar -->
         <Border Grid.Row="2"
-                Background="#F0F0F0"
-                Padding="8,6">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock VerticalAlignment="Center"
-                           Margin="0,0,16,0">
-                    <Run Text="{loc:Loc SelectedLabel}" />
-                    <Run Text="{Binding TotalSelectedCount, Mode=OneWay}" FontWeight="SemiBold" />
-                    <Run Text="{loc:Loc ItemsLabel}" />
-                </TextBlock>
-
-                <TextBlock VerticalAlignment="Center"
-                           Margin="0,0,16,0">
-                    <Run Text="{loc:Loc RecoverableLabel}" />
-                    <Run Text="{Binding TotalRecoverableSpace, Mode=OneWay}" FontWeight="SemiBold" />
-                </TextBlock>
-
-                <Button Content="{loc:Loc CleanUpButton}"
-                        Padding="12,4"
+                Background="{StaticResource VP.SurfaceBrush}"
+                BorderBrush="{StaticResource VP.BorderSubtleBrush}"
+                BorderThickness="0,1,0,0"
+                CornerRadius="0,0,12,12"
+                Padding="10,5">
+            <DockPanel LastChildFill="False">
+                <Button DockPanel.Dock="Right"
+                        Content="{loc:Loc CleanUpButton}"
+                        Style="{StaticResource VP.DangerButton}"
+                        Padding="16,5"
                         Click="CleanUpButton_Click"
                         ToolTip="{loc:Loc CleanUpToolTip}" />
-            </StackPanel>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Foreground="{StaticResource VP.TextSecondaryBrush}"
+                               FontSize="12"
+                               Margin="0,0,16,0"
+                               VerticalAlignment="Center">
+                        <Run Text="{loc:Loc SelectedLabel}" />
+                        <Run Text="{Binding TotalSelectedCount, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource VP.TextPrimaryBrush}" />
+                        <Run Text="{loc:Loc ItemsLabel}" />
+                    </TextBlock>
+
+                    <Rectangle Width="1" Height="12" Margin="0,0,16,0"
+                               Fill="{StaticResource VP.BorderSubtleBrush}"
+                               VerticalAlignment="Center" />
+
+                    <TextBlock Foreground="{StaticResource VP.TextSecondaryBrush}"
+                               FontSize="12"
+                               VerticalAlignment="Center">
+                        <Run Text="{loc:Loc RecoverableLabel}" />
+                        <Run Text="{Binding TotalRecoverableSpace, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource VP.TextPrimaryBrush}" />
+                    </TextBlock>
+                </StackPanel>
+            </DockPanel>
         </Border>
     </Grid>
 </UserControl>

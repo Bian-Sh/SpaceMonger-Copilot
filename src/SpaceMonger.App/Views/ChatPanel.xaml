@@ -8,252 +8,255 @@
              xmlns:loc="clr-namespace:SpaceMonger.App.Localization"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:ChatViewModel, IsDesignTimeCreatable=False}"
-             d:DesignHeight="600" d:DesignWidth="380">
+             d:DesignHeight="600" d:DesignWidth="380"
+             FontFamily="{StaticResource VP.FontFamily}">
 
-    <DockPanel>
+    <Border Style="{StaticResource VP.GlassPanelLarge}" Margin="4,0,0,0" Padding="0">
+        <DockPanel>
 
-        <!-- 1. API Key Warning (top, conditional) -->
-        <Border DockPanel.Dock="Top"
-                Background="#FFF3E0"
-                BorderBrush="#FFB74D"
-                BorderThickness="0,0,0,1"
-                Padding="12,10">
-            <Border.Style>
-                <Style TargetType="Border">
-                    <Setter Property="Visibility" Value="Visible" />
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsApiKeyConfigured}" Value="True">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Border.Style>
-            <StackPanel HorizontalAlignment="Center">
-                <TextBlock Text="{loc:Loc ChatConfigureApiKey}"
-                           TextWrapping="Wrap"
-                           TextAlignment="Center"
-                           Foreground="#E65100"
-                           FontSize="12"
-                           Margin="0,0,0,6" />
-                <Button x:Name="OpenSettingsButton"
-                        Content="{loc:Loc OpenSettingsButton}"
-                        HorizontalAlignment="Center"
-                        Padding="12,4"
-                        FontSize="11"
-                        Click="OpenSettingsButton_Click" />
-            </StackPanel>
-        </Border>
-
-        <!-- 4. Input Area (bottom) -->
-        <Border DockPanel.Dock="Bottom"
-                Background="#FAFAFA"
-                BorderBrush="#E0E0E0"
-                BorderThickness="0,1,0,0"
-                Padding="8">
-            <DockPanel>
-                <Button DockPanel.Dock="Right"
-                        Content="{loc:Loc SendButton}"
-                        Padding="12,6"
-                        Margin="6,0,0,0"
-                        VerticalAlignment="Stretch"
-                        Command="{Binding SendCommand}">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="IsEnabled" Value="True" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsSending}" Value="True">
-                                    <Setter Property="IsEnabled" Value="False" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
-                </Button>
-                <TextBox x:Name="InputTextBox"
-                         Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}"
-                         AcceptsReturn="False"
-                         VerticalContentAlignment="Center"
-                         Padding="6,4"
-                         KeyDown="InputTextBox_KeyDown">
-                    <TextBox.Style>
-                        <Style TargetType="TextBox">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsSending}" Value="True">
-                                    <Setter Property="IsEnabled" Value="False" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBox.Style>
-                </TextBox>
-            </DockPanel>
-        </Border>
-
-        <!-- 3. Context Indicator (above input, conditional) -->
-        <Border DockPanel.Dock="Bottom"
-                Background="#E8F5E9"
-                BorderBrush="#C8E6C9"
-                BorderThickness="0,1,0,0"
-                Padding="8,4">
-            <Border.Style>
-                <Style TargetType="Border">
-                    <Setter Property="Visibility" Value="Visible" />
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding LinkedItemPath, TargetNullValue=''}" Value="">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Border.Style>
-            <DockPanel>
-                <Button DockPanel.Dock="Right"
-                        Content="X"
-                        FontSize="10"
-                        Padding="4,1"
-                        Margin="6,0,0,0"
-                        VerticalAlignment="Center"
-                        Click="ClearContextButton_Click"
-                        ToolTip="{loc:Loc ClearContextToolTip}"
-                        Background="Transparent"
-                        BorderThickness="0"
-                        Cursor="Hand" />
-                <TextBlock VerticalAlignment="Center"
-                           FontSize="11"
-                           Foreground="#2E7D32"
-                           TextTrimming="CharacterEllipsis">
-                    <Run Text="{loc:Loc ChatContextLabel}" FontWeight="SemiBold" />
-                    <Run Text="{Binding LinkedItemPath, Mode=OneWay}" />
-                </TextBlock>
-            </DockPanel>
-        </Border>
-
-        <!-- 2. Message List (scrollable, fills remaining space) -->
-        <Grid>
-            <Border Padding="20"
-                    Background="#FAFAFA">
+            <!-- 1. API Key Warning (top, conditional) -->
+            <Border DockPanel.Dock="Top"
+                    Background="#1AFF9500"
+                    BorderBrush="#33FF9500"
+                    BorderThickness="0,0,0,1"
+                    CornerRadius="16,16,0,0"
+                    Padding="14,10">
                 <Border.Style>
                     <Style TargetType="Border">
-                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Setter Property="Visibility" Value="Visible" />
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding HasMessages}" Value="False">
-                                <Setter Property="Visibility" Value="Visible" />
+                            <DataTrigger Binding="{Binding IsApiKeyConfigured}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed" />
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="260">
-                    <TextBlock Text="&#x1F4AC;"
-                               FontSize="28"
-                               HorizontalAlignment="Center"
-                               Margin="0,0,0,10" />
-                    <TextBlock Text="{loc:Loc ChatEmptyTitle}"
-                               FontSize="16"
-                               FontWeight="SemiBold"
-                               Foreground="#444444"
-                               HorizontalAlignment="Center" />
-                    <TextBlock Text="{loc:Loc ChatEmptyDescription}"
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="{loc:Loc ChatConfigureApiKey}"
                                TextWrapping="Wrap"
                                TextAlignment="Center"
-                               Foreground="#777777"
+                               Foreground="#FF9500"
                                FontSize="12"
-                               Margin="0,8,0,0" />
+                               Margin="0,0,0,8" />
+                    <Button x:Name="OpenSettingsButton"
+                            Content="{loc:Loc OpenSettingsButton}"
+                            Style="{StaticResource VP.Button}"
+                            HorizontalAlignment="Center"
+                            Padding="14,6"
+                            FontSize="11"
+                            Click="OpenSettingsButton_Click" />
                 </StackPanel>
             </Border>
 
-            <ScrollViewer x:Name="MessagesScrollViewer"
-                          VerticalScrollBarVisibility="Auto"
-                          HorizontalScrollBarVisibility="Disabled">
-                <ItemsControl x:Name="MessagesItemsControl"
-                              ItemsSource="{Binding Messages}"
-                              Padding="8">
-                    <ItemsControl.ItemTemplate>
+            <!-- 4. Input Area (bottom) -->
+            <Border DockPanel.Dock="Bottom"
+                    Background="{StaticResource VP.SurfaceBrush}"
+                    BorderBrush="{StaticResource VP.BorderSubtleBrush}"
+                    BorderThickness="0,1,0,0"
+                    CornerRadius="0,0,16,16"
+                    Padding="10">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right"
+                            Content="{loc:Loc SendButton}"
+                            Padding="14,8"
+                            Margin="8,0,0,0"
+                            VerticalAlignment="Stretch"
+                            Command="{Binding SendCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource VP.AccentButton}">
+                                <Setter Property="IsEnabled" Value="True" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSending}" Value="True">
+                                        <Setter Property="IsEnabled" Value="False" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <TextBox x:Name="InputTextBox"
+                             Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}"
+                             AcceptsReturn="False"
+                             VerticalContentAlignment="Center"
+                             KeyDown="InputTextBox_KeyDown">
+                        <TextBox.Style>
+                            <Style TargetType="TextBox" BasedOn="{StaticResource VP.TextBox}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSending}" Value="True">
+                                        <Setter Property="IsEnabled" Value="False" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+                </DockPanel>
+            </Border>
 
-                    <DataTemplate>
-                        <Border Margin="0,4" Padding="10,8" CornerRadius="6" MaxWidth="320">
-                            <Border.Style>
-                                <Style TargetType="Border">
-                                    <!-- Default: Assistant style (left-aligned, gray) -->
-                                    <Setter Property="Background" Value="#F5F5F5" />
-                                    <Setter Property="HorizontalAlignment" Value="Left" />
-                                    <Style.Triggers>
-                                        <!-- User messages: right-aligned, blue-ish -->
-                                        <DataTrigger Binding="{Binding Sender}" Value="{x:Static enums:ChatSender.User}">
-                                            <Setter Property="Background" Value="#E3F2FD" />
-                                            <Setter Property="HorizontalAlignment" Value="Right" />
-                                        </DataTrigger>
-                                        <!-- Error messages keep left alignment but get a light red background -->
-                                        <DataTrigger Binding="{Binding IsError}" Value="True">
-                                            <Setter Property="Background" Value="#FFEBEE" />
+            <!-- 3. Context Indicator (above input, conditional) -->
+            <Border DockPanel.Dock="Bottom"
+                    Background="#1A30D158"
+                    BorderBrush="#3330D158"
+                    BorderThickness="0,1,0,0"
+                    Padding="10,5">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Visible" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding LinkedItemPath, TargetNullValue=''}" Value="">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <DockPanel>
+                    <Button DockPanel.Dock="Right"
+                            Content="&#xE8BB;"
+                            FontFamily="Segoe MDL2 Assets"
+                            FontSize="10"
+                            Padding="4,2"
+                            Margin="8,0,0,0"
+                            VerticalAlignment="Center"
+                            Click="ClearContextButton_Click"
+                            ToolTip="{loc:Loc ClearContextToolTip}"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="{StaticResource VP.TextSecondaryBrush}"
+                            Cursor="Hand" />
+                    <TextBlock VerticalAlignment="Center"
+                               FontSize="11"
+                               Foreground="{StaticResource VP.SuccessBrush}"
+                               TextTrimming="CharacterEllipsis">
+                        <Run Text="{loc:Loc ChatContextLabel}" FontWeight="SemiBold" />
+                        <Run Text="{Binding LinkedItemPath, Mode=OneWay}" />
+                    </TextBlock>
+                </DockPanel>
+            </Border>
+
+            <!-- 2. Message List (scrollable, fills remaining space) -->
+            <Grid>
+                <Border Padding="20"
+                        Background="Transparent">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasMessages}" Value="False">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="260">
+                        <TextBlock Text="&#x1F4AC;"
+                                   FontSize="32"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,12" />
+                        <TextBlock Text="{loc:Loc ChatEmptyTitle}"
+                                   FontSize="17"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource VP.TextPrimaryBrush}"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Text="{loc:Loc ChatEmptyDescription}"
+                                   TextWrapping="Wrap"
+                                   TextAlignment="Center"
+                                   Foreground="{StaticResource VP.TextSecondaryBrush}"
+                                   FontSize="12"
+                                   Margin="0,8,0,0" />
+                    </StackPanel>
+                </Border>
+
+                <ScrollViewer x:Name="MessagesScrollViewer"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl x:Name="MessagesItemsControl"
+                                  ItemsSource="{Binding Messages}"
+                                  Padding="10">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Margin="0,4" Padding="12,9" CornerRadius="18" MaxWidth="320">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <!-- Default: Assistant style (left-aligned, dark surface) -->
+                                            <Setter Property="Background" Value="{StaticResource VP.SurfaceHoverBrush}" />
                                             <Setter Property="HorizontalAlignment" Value="Left" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-
-                            <StackPanel>
-                                <!-- Thinking indicator: shown while streaming with no text yet -->
-                                <TextBlock Text="{loc:Loc ThinkingText}"
-                                           FontStyle="Italic"
-                                           Foreground="#9E9E9E"
-                                           FontSize="13">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Visibility" Value="Collapsed" />
                                             <Style.Triggers>
-                                                <MultiDataTrigger>
-                                                    <MultiDataTrigger.Conditions>
-                                                        <Condition Binding="{Binding IsStreaming}" Value="True" />
-                                                        <Condition Binding="{Binding Text}" Value="" />
-                                                    </MultiDataTrigger.Conditions>
-                                                    <Setter Property="Visibility" Value="Visible" />
-                                                </MultiDataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-
-                                <!-- Streaming cursor: append a blinking block cursor while streaming -->
-                                <TextBlock TextWrapping="Wrap"
-                                           FontSize="13">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Foreground" Value="#212121" />
-                                            <Setter Property="FontFamily" Value="Segoe UI" />
-                                            <Setter Property="Visibility" Value="Visible" />
-                                            <Style.Triggers>
-                                                <!-- Hide when streaming with no text yet (thinking indicator shown instead) -->
-                                                <MultiDataTrigger>
-                                                    <MultiDataTrigger.Conditions>
-                                                        <Condition Binding="{Binding IsStreaming}" Value="True" />
-                                                        <Condition Binding="{Binding Text}" Value="" />
-                                                    </MultiDataTrigger.Conditions>
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                </MultiDataTrigger>
-                                                <!-- Error text in red -->
+                                                <!-- User messages: right-aligned, accent blue -->
+                                                <DataTrigger Binding="{Binding Sender}" Value="{x:Static enums:ChatSender.User}">
+                                                    <Setter Property="Background" Value="#CC0A84FF" />
+                                                    <Setter Property="HorizontalAlignment" Value="Right" />
+                                                </DataTrigger>
+                                                <!-- Error messages -->
                                                 <DataTrigger Binding="{Binding IsError}" Value="True">
-                                                    <Setter Property="Foreground" Value="#D32F2F" />
+                                                    <Setter Property="Background" Value="#33FF453A" />
+                                                    <Setter Property="HorizontalAlignment" Value="Left" />
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
-                                    </TextBlock.Style>
-                                    <Run Text="{Binding Text, Mode=OneWay}" /><Run Text=" &#x2588;">
-                                        <Run.Style>
-                                            <Style TargetType="Run">
-                                                <Setter Property="Foreground" Value="Transparent" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsStreaming}" Value="True">
-                                                        <Setter Property="Foreground" Value="#9E9E9E" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Run.Style>
-                                    </Run>
-                                </TextBlock>
-                            </StackPanel>
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
-        </Grid>
+                                    </Border.Style>
 
-    </DockPanel>
+                                    <StackPanel>
+                                        <!-- Thinking indicator -->
+                                        <TextBlock Text="{loc:Loc ThinkingText}"
+                                                   FontStyle="Italic"
+                                                   Foreground="{StaticResource VP.TextTertiaryBrush}"
+                                                   FontSize="13">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding IsStreaming}" Value="True" />
+                                                                <Condition Binding="{Binding Text}" Value="" />
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </MultiDataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+
+                                        <!-- Message text with streaming cursor -->
+                                        <TextBlock TextWrapping="Wrap"
+                                                   FontSize="13"
+                                                   Foreground="{StaticResource VP.TextPrimaryBrush}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                    <Style.Triggers>
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding IsStreaming}" Value="True" />
+                                                                <Condition Binding="{Binding Text}" Value="" />
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                        </MultiDataTrigger>
+                                                        <DataTrigger Binding="{Binding IsError}" Value="True">
+                                                            <Setter Property="Foreground" Value="{StaticResource VP.DangerBrush}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                            <Run Text="{Binding Text, Mode=OneWay}" /><Run Text=" &#x2588;">
+                                                <Run.Style>
+                                                    <Style TargetType="Run">
+                                                        <Setter Property="Foreground" Value="Transparent" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsStreaming}" Value="True">
+                                                                <Setter Property="Foreground" Value="{StaticResource VP.TextTertiaryBrush}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Run.Style>
+                                            </Run>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+
+        </DockPanel>
+    </Border>
 </UserControl>

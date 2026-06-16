@@ -1,13 +1,16 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Interop;
 using Microsoft.Extensions.DependencyInjection;
 using SpaceMonger.App.Diagnostics;
+using SpaceMonger.App.Helpers;
 using SpaceMonger.App.Localization;
 using SpaceMonger.App.Converters;
 using SpaceMonger.App.ViewModels;
@@ -23,6 +26,7 @@ namespace SpaceMonger.App;
 public partial class MainWindow : Window
 {
     private const double DefaultRecommendationsHeight = 260;
+    private const int WM_GETMINMAXINFO = 0x0024;
 
     private readonly ObservableCollection<ConsoleLogEntry> _consoleEntries = new();
     private readonly StringBuilder _consoleLog = new();
@@ -43,15 +47,103 @@ public partial class MainWindow : Window
         Directory.CreateDirectory(Path.GetDirectoryName(_consoleLogPath)!);
         AppendConsoleLine("Console log file: " + _consoleLogPath, ConsoleLogLevel.Info);
         Loaded += MainWindow_Loaded;
+        StateChanged += MainWindow_StateChanged;
     }
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
+        // Enable DWM backdrop and dark mode
+        var hwnd = new WindowInteropHelper(this).EnsureHandle();
+        AcrylicHelper.EnableDarkMode(hwnd);
+        AcrylicHelper.EnableAcrylic(hwnd);
+
+        // Hook WndProc for WM_GETMINMAXINFO (maximize bounds)
+        var source = HwndSource.FromHwnd(hwnd);
+        source?.AddHook(WndProc);
+
         if (DataContext is MainViewModel mainVm)
         {
             mainVm.PropertyChanged += MainViewModel_PropertyChanged;
             TreemapView.SetScanningState(mainVm.IsScanning, mainVm.ScanProgressText);
         }
+    }
+
+    private void MainWindow_StateChanged(object? sender, EventArgs e)
+    {
+        TitleBar.UpdateMaximizeIcon(WindowState == WindowState.Maximized);
+
+        // Adjust margin when maximized to avoid covering taskbar
+        if (WindowState == WindowState.Maximized)
+        {
+            RootGrid.Margin = new Thickness(6);
+        }
+        else
+        {
+            RootGrid.Margin = new Thickness(0);
+        }
+    }
+
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg == WM_GETMINMAXINFO)
+        {
+            // Constrain maximized size to work area (exclude taskbar)
+            var mmi = Marshal.PtrToStructure<MINMAXINFO>(lParam);
+            var monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+            var monitorInfo = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
+
+            if (GetMonitorInfo(monitor, ref monitorInfo))
+            {
+                var work = monitorInfo.rcWork;
+                mmi.ptMaxPosition.x = work.Left;
+                mmi.ptMaxPosition.y = work.Top;
+                mmi.ptMaxSize.x = work.Right - work.Left;
+                mmi.ptMaxSize.y = work.Bottom - work.Top;
+                Marshal.StructureToPtr(mmi, lParam, true);
+            }
+            handled = true;
+        }
+        return IntPtr.Zero;
+    }
+
+    private const uint MONITOR_DEFAULTTONEAREST = 0x00000002;
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT
+    {
+        public int Left, Top, Right, Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MONITORINFO
+    {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public uint dwFlags;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT
+    {
+        public int x;
+        public int y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MINMAXINFO
+    {
+        public POINT ptReserved;
+        public POINT ptMaxSize;
+        public POINT ptMaxPosition;
+        public POINT ptMaxTrackSize;
+        public POINT ptMinTrackSize;
     }
 
     private void MainViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -69,9 +161,11 @@ public partial class MainWindow : Window
     {
         _recommendationsViewModel = recsVm;
         _settingsViewModel = settingsVm;
+        if (DataContext is MainViewModel mainVm)
+            mainVm.RecommendationsVM = recsVm;
         SettingsPage.DataContext = settingsVm;
         SettingsPage.BackRequested += HideSettingsPage;
-        SettingsPage.Saved += OnSettingsSaved;
+        SettingsPage.SettingsChanged += OnSettingsChanged;
         RecommendationsPanel.SetViewModel(recsVm);
         RecommendationsPanel.AnalyzeRequested += OnAnalyzeRequested;
         RecommendationsPanel.CleanupRequested += OnCleanupRequested;
@@ -128,39 +222,52 @@ public partial class MainWindow : Window
         }
     }
 
+    // ─── Tab switching (replaces TabControl) ────────────────────────
+
     private void ShowRecommendationsPanel()
     {
-        ShowBottomPanel(RecommendationsTab);
-    }
-
-    private void HideRecommendationsPanel()
-    {
-        BottomTabs.SelectedItem = ConsoleTab;
+        RecommendationsTabBtn.IsChecked = true;
+        RecommendationsPanel.Visibility = Visibility.Visible;
+        ConsoleTextBox.Visibility = Visibility.Collapsed;
+        ConsoleFilterButton.Visibility = Visibility.Collapsed;
     }
 
     private void ShowConsolePanel()
     {
-        ShowBottomPanel(ConsoleTab);
+        ConsoleTabBtn.IsChecked = true;
+        RecommendationsPanel.Visibility = Visibility.Collapsed;
+        ConsoleTextBox.Visibility = Visibility.Visible;
+        ConsoleFilterButton.Visibility = Visibility.Visible;
     }
 
-    private void ShowBottomPanel(TabItem selectedTab)
+    private void RecommendationsTab_Checked(object sender, RoutedEventArgs e)
     {
-        BottomTabs.Visibility = Visibility.Visible;
-        BottomTabs.SelectedItem = selectedTab;
-        RecommendationsSplitter.Visibility = Visibility.Visible;
+        if (RecommendationsPanel == null || ConsoleTextBox == null || ConsoleFilterButton == null)
+            return;
+        RecommendationsPanel.Visibility = Visibility.Visible;
+        ConsoleTextBox.Visibility = Visibility.Collapsed;
+        ConsoleFilterButton.Visibility = Visibility.Collapsed;
+    }
 
+    private void ConsoleTab_Checked(object sender, RoutedEventArgs e)
+    {
+        if (RecommendationsPanel == null || ConsoleTextBox == null || ConsoleFilterButton == null)
+            return;
+        RecommendationsPanel.Visibility = Visibility.Collapsed;
+        ConsoleTextBox.Visibility = Visibility.Visible;
+        ConsoleFilterButton.Visibility = Visibility.Visible;
+    }
+
+    private void EnsureBottomPanelVisible()
+    {
         if (RecommendationsPanelRow.ActualHeight <= 0)
         {
             RecommendationsPanelRow.Height = new GridLength(DefaultRecommendationsHeight);
         }
+        RecommendationsSplitter.Visibility = Visibility.Visible;
     }
 
-    private void BottomTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        ConsoleToolbarOverlay.Visibility = BottomTabs.SelectedItem == ConsoleTab
-            ? Visibility.Visible
-            : Visibility.Collapsed;
-    }
+    // ─── Console ────────────────────────────────────────────────────
 
     private void AppendConsoleLine(string message, ConsoleLogLevel level = ConsoleLogLevel.Info)
     {
@@ -207,6 +314,7 @@ public partial class MainWindow : Window
 
     private void StatusConsoleLink_Click(object sender, RoutedEventArgs e)
     {
+        EnsureBottomPanelVisible();
         ShowConsolePanel();
     }
 
@@ -313,6 +421,7 @@ public partial class MainWindow : Window
         }
 
         // Show the panel immediately so the user sees the loading indicator
+        EnsureBottomPanelVisible();
         ShowRecommendationsPanel();
         DebugBreakpoints.Hit("analyze-click");
 
@@ -392,6 +501,11 @@ public partial class MainWindow : Window
         ShowSettingsPage();
     }
 
+    private void AnalyzeButton_Click(object sender, RoutedEventArgs e)
+    {
+        OnAnalyzeRequested();
+    }
+
     private void OpenSettingsDialog() => ShowSettingsPage();
 
     private void ShowSettingsPage()
@@ -408,11 +522,10 @@ public partial class MainWindow : Window
         SettingsPage.Visibility = Visibility.Collapsed;
     }
 
-    private void OnSettingsSaved()
+    private void OnSettingsChanged()
     {
         SpaceMonger.App.Localization.L.SetLanguage(_settingsViewModel?.Language);
         _chatViewModel?.RefreshApiKeyStatus();
-        HideSettingsPage();
     }
 
     private async void OnCleanupRequested()
@@ -500,8 +613,6 @@ public partial class MainWindow : Window
         _recommendationsViewModel.Recommendations = new System.Collections.ObjectModel.ObservableCollection<CleanupRecommendation>(remaining);
         _recommendationsViewModel.RefreshAfterCleanup();
     }
-
-
 }
 
 [Flags]
@@ -518,6 +629,3 @@ public sealed record ConsoleLogEntry(DateTime Timestamp, ConsoleLogLevel Level, 
 {
     public string ToLogLine() => $"[{Timestamp:HH:mm:ss}] [{Level}] {Message}";
 }
-
-
-

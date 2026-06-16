@@ -2,15 +2,15 @@ namespace SpaceMonger.Core.Services.Treemap;
 
 public static class FileTypeColorMap
 {
-    private const string MediaColor = "#2196F3";
-    private const string DocumentsColor = "#4CAF50";
-    private const string ExecutablesColor = "#F44336";
-    private const string ArchivesColor = "#FF9800";
-    private const string TemporaryColor = "#9E9E9E";
-    private const string SystemColor = "#9C27B0";
-    private const string SourceCodeColor = "#00BCD4";
-    private const string OtherColor = "#795548";
-    private const string FolderColor = "#607D8B";
+    private const string MediaColor = "#42A5F5";
+    private const string DocumentsColor = "#66BB6A";
+    private const string ExecutablesColor = "#EF5350";
+    private const string ArchivesColor = "#FFA726";
+    private const string TemporaryColor = "#BDBDBD";
+    private const string SystemColor = "#AB47BC";
+    private const string SourceCodeColor = "#26C6DA";
+    private const string OtherColor = "#8D6E63";
+    private const string FolderColor = "#78909C";
 
     private static readonly Dictionary<string, string> ExtensionColorMap = new()
     {

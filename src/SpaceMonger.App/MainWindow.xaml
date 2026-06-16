@@ -6,236 +6,352 @@
         xmlns:local="clr-namespace:SpaceMonger.App"
         xmlns:vm="clr-namespace:SpaceMonger.App.ViewModels"
         xmlns:views="clr-namespace:SpaceMonger.App.Views"
+        xmlns:controls="clr-namespace:SpaceMonger.App.Controls"
         xmlns:loc="clr-namespace:SpaceMonger.App.Localization"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel, IsDesignTimeCreatable=False}"
         Title="{loc:Loc AppTitle}"
         Height="800" Width="1200"
         WindowStartupLocation="CenterScreen"
-        KeyDown="Window_KeyDown">
+        WindowStyle="None"
+        AllowsTransparency="False"
+        Background="Transparent"
+        ResizeMode="CanResizeWithGrip"
+        KeyDown="Window_KeyDown"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        FontFamily="{StaticResource VP.FontFamily}">
 
-    <Grid>
-    <DockPanel LastChildFill="True">
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0"
+                      ResizeBorderThickness="6"
+                      GlassFrameThickness="-1"
+                      CornerRadius="0"
+                      UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
 
-        <!-- Toolbar (top) -->
-        <Grid DockPanel.Dock="Top" Background="#EAF2FB">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <DockPanel Grid.Column="0" LastChildFill="False" Margin="4,2">
-                <TextBlock DockPanel.Dock="Left"
-                           Text="{loc:Loc ToolbarNavigation}"
-                           FontWeight="SemiBold"
-                           VerticalAlignment="Center"
-                           Margin="0,0,6,0" />
-                <ComboBox x:Name="DriveSelector"
-                          DockPanel.Dock="Left"
-                          Width="350"
-                          VerticalAlignment="Center"
-                          Margin="0,0,4,0"
-                          ItemsSource="{Binding DriveList}"
-                          Text="{Binding SelectedPath, UpdateSourceTrigger=PropertyChanged}"
-                          IsEditable="True"
-                          ToolTip="{loc:Loc PathSelectorToolTip}" />
-                <Button x:Name="BrowseButton"
-                        DockPanel.Dock="Left"
-                        Content="{loc:Loc BrowseButton}"
-                        Padding="8,2"
-                        Margin="4,0"
-                        Command="{Binding BrowseCommand}"
-                        ToolTip="{loc:Loc BrowseButtonToolTip}" />
-                <Separator DockPanel.Dock="Left" Margin="4,0" />
-                <Button x:Name="ScanButton"
-                        DockPanel.Dock="Left"
-                        Content="{loc:Loc ScanButton}"
-                        Width="50"
-                        Height="28"
-                        Padding="0"
-                        Margin="4,0"
-                        FontWeight="SemiBold"
-                        Command="{Binding ScanCommand}"
-                        ToolTip="{loc:Loc ScanButtonToolTip}" />
-            </DockPanel>
-            <Button x:Name="SettingsButton"
-                    Grid.Column="1"
-                    Content="&#x2699;"
-                    FontSize="17"
-                    Width="30"
-                    Height="24"
-                    Padding="0"
-                    Margin="0,4,8,4"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Center"
-                    Background="Transparent"
-                    BorderThickness="0"
-                    Foreground="#333333"
-                    Click="SettingsButton_Click"
-                    ToolTip="{loc:Loc SettingsButtonToolTip}" />
-        </Grid>
+    <Grid x:Name="RootGrid" Background="Transparent">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="36" />  <!-- Title bar -->
+            <RowDefinition Height="*" />   <!-- Content -->
+        </Grid.RowDefinitions>
 
-        <!-- Status bar (bottom) -->
-        <StatusBar DockPanel.Dock="Bottom" Padding="4,2">
-            <StatusBarItem>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{loc:Loc CapacityLabel}" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding DriveCapacity}" MinWidth="80" />
-                </StackPanel>
-            </StatusBarItem>
-            <Separator />
-            <StatusBarItem>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{loc:Loc UsedLabel}" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding UsedSpace}" MinWidth="80" />
-                </StackPanel>
-            </StatusBarItem>
-            <Separator />
-            <StatusBarItem>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{loc:Loc FreeLabel}" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding FreeSpace}" MinWidth="80" />
-                </StackPanel>
-            </StatusBarItem>
-            <Separator />
-            <StatusBarItem>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{loc:Loc FilesLabel}" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding FileCount}" MinWidth="60" />
-                </StackPanel>
-            </StatusBarItem>
-            <Separator />
-            <StatusBarItem>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{loc:Loc FoldersLabel}" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding FolderCount}" MinWidth="60" />
-                </StackPanel>
-            </StatusBarItem>
-            <Separator />
-            <StatusBarItem>
+        <!-- ═══ Custom Title Bar ═══ -->
+        <controls:WindowTitleBar x:Name="TitleBar"
+                                 Grid.Row="0"
+                                 WindowChrome.IsHitTestVisibleInChrome="False" />
+
+        <!-- ═══ Main Content ═══ -->
+        <Grid Grid.Row="1" Margin="8,0,8,8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />   <!-- Toolbar -->
+                <RowDefinition Height="8" />
+                <RowDefinition Height="*" />       <!-- Central content -->
+                <RowDefinition Height="8" />
+                <RowDefinition Height="Auto" />    <!-- Status bar -->
+            </Grid.RowDefinitions>
+
+            <!-- ═══ Toolbar (glass) ═══ -->
+            <Border Grid.Row="0" Style="{StaticResource VP.GlassPanel}" Padding="8,6">
+                <DockPanel LastChildFill="False">
+                    <!-- Left: nav controls -->
+                    <StackPanel DockPanel.Dock="Left"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center">
+
+                        <TextBlock Text="{loc:Loc ToolbarNavigation}"
+                                   Foreground="{StaticResource VP.TextSecondaryBrush}"
+                                   FontSize="12"
+                                   FontWeight="Medium"
+                                   VerticalAlignment="Center"
+                                   Margin="4,0,8,0" />
+
+                        <ComboBox x:Name="DriveSelector"
+                                  Width="320"
+                                  VerticalAlignment="Center"
+                                  Margin="0,0,6,0"
+                                  Style="{StaticResource VP.ComboBox}"
+                                  ItemsSource="{Binding DriveList}"
+                                  Text="{Binding SelectedPath, UpdateSourceTrigger=PropertyChanged}"
+                                  IsEditable="True"
+                                  ToolTip="{loc:Loc PathSelectorToolTip}" />
+
+                        <Button x:Name="BrowseButton"
+                                DockPanel.Dock="Left"
+                                Content="{loc:Loc BrowseButton}"
+                                Style="{StaticResource VP.Button}"
+                                Margin="0,0,4,0"
+                                Command="{Binding BrowseCommand}"
+                                ToolTip="{loc:Loc BrowseButtonToolTip}" />
+
+                        <Rectangle Width="1" Margin="8,4"
+                                   Fill="{StaticResource VP.BorderSubtleBrush}" />
+
+                        <Button x:Name="ScanButton"
+                                Content="{loc:Loc ScanButton}"
+                                Style="{StaticResource VP.AccentButton}"
+                                Padding="16,7"
+                                Margin="4,0"
+                                Command="{Binding ScanCommand}"
+                                ToolTip="{loc:Loc ScanButtonToolTip}" />
+
+                        <Button x:Name="AnalyzeButton"
+                                Content="{loc:Loc AnalyzeButton}"
+                                Margin="4,0"
+                                VerticalAlignment="Center"
+                                ToolTipService.ShowOnDisabled="True"
+                                Click="AnalyzeButton_Click">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource VP.AccentButton}">
+                                    <Setter Property="IsEnabled" Value="True" />
+                                    <Setter Property="ToolTip" Value="{loc:Loc RecommendCleanupToolTip}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding DataContext.RecommendationsVM.IsAnalyzing, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                            <Setter Property="IsEnabled" Value="False" />
+                                            <Setter Property="ToolTip" Value="{loc:Loc AnalysisInProgressToolTip}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </StackPanel>
+
+                    <!-- Right: settings -->
+                    <Button x:Name="SettingsButton"
+                            DockPanel.Dock="Right"
+                            Width="36" Height="32"
+                            Padding="0"
+                            Foreground="White"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Click="SettingsButton_Click"
+                            ToolTip="{loc:Loc SettingsButtonToolTip}">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" Background="Transparent"
+                                        CornerRadius="6" Padding="0">
+                                    <ContentPresenter HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background"
+                                                Value="{StaticResource VP.SurfaceHoverBrush}" />
+                                        <Setter Property="Foreground"
+                                                Value="{StaticResource VP.TextPrimaryBrush}" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <TextBlock Text="&#xE713;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="16"
+                                   VerticalAlignment="Center"
+                                   TextAlignment="Center" />
+                    </Button>
+                </DockPanel>
+            </Border>
+
+            <!-- ═══ Central Content ═══ -->
+            <Grid x:Name="ContentArea" Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" MinWidth="420" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition x:Name="ChatPanelColumn" Width="360" MinWidth="260" />
+                </Grid.ColumnDefinitions>
+
+                <Grid Grid.Column="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" MinHeight="220" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition x:Name="RecommendationsPanelRow" Height="340" MinHeight="120" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Treemap view -->
+                    <views:TreemapView x:Name="TreemapView" Grid.Row="0" />
+
+                    <!-- Subtle splitter -->
+                    <GridSplitter x:Name="RecommendationsSplitter"
+                                  Grid.Row="1"
+                                  Style="{StaticResource VP.GridSplitterH}"
+                                  Margin="8,4"
+                                  Visibility="Visible" />
+
+                    <!-- Bottom tool window: Chrome-style tabs + content -->
+                    <Grid Grid.Row="2">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Tab bar (outside container border, Chrome-style) -->
+                        <DockPanel Grid.Row="0" Margin="0,0,0,-0.5">
+
+                            <!-- Console filter (docked right, only visible when console tab is active) -->
+                            <Button x:Name="ConsoleFilterButton"
+                                    DockPanel.Dock="Right"
+                                    FontFamily="Segoe MDL2 Assets"
+                                    FontSize="12"
+                                    Width="28" Height="28"
+                                    Padding="0"
+                                    Margin="4,0"
+                                    Visibility="Collapsed"
+                                    ToolTip="{loc:Loc ConsoleFilterToolTip}"
+                                    Foreground="{StaticResource VP.TextSecondaryBrush}"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Click="ConsoleFilterButton_Click">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="Bd" Background="Transparent"
+                                                CornerRadius="6" Padding="0">
+                                            <ContentPresenter HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center" />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="Background"
+                                                        Value="{StaticResource VP.SurfaceHoverBrush}" />
+                                                <Setter Property="Foreground"
+                                                        Value="{StaticResource VP.TextPrimaryBrush}" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                                <TextBlock Text="&#xE712;"
+                                           RenderTransformOrigin="0.5,0.5">
+                                    <TextBlock.RenderTransform>
+                                        <RotateTransform Angle="90" />
+                                    </TextBlock.RenderTransform>
+                                </TextBlock>
+                                <Button.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem x:Name="ConsoleLevelVerboseMenuItem" Header="Verbose" IsCheckable="True" StaysOpenOnClick="True" Click="ConsoleLogLevel_Click" />
+                                        <MenuItem x:Name="ConsoleLevelInfoMenuItem" Header="Info" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Click="ConsoleLogLevel_Click" />
+                                        <MenuItem x:Name="ConsoleLevelWarningMenuItem" Header="Warning" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Click="ConsoleLogLevel_Click" />
+                                        <MenuItem x:Name="ConsoleLevelErrorMenuItem" Header="Error" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Click="ConsoleLogLevel_Click" />
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                            </Button>
+
+                            <!-- Tab buttons (flush left, Chrome-style) -->
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton x:Name="RecommendationsTabBtn"
+                                             Content="{loc:Loc RecommendationsTabHeader}"
+                                             Style="{StaticResource VP.TabButton}"
+                                             IsChecked="True"
+                                             Checked="RecommendationsTab_Checked"
+                                             GroupName="BottomTabs" />
+                                <RadioButton x:Name="ConsoleTabBtn"
+                                             Content="{loc:Loc ConsoleTabHeader}"
+                                             Style="{StaticResource VP.TabButton}"
+                                             Checked="ConsoleTab_Checked"
+                                             GroupName="BottomTabs" />
+                            </StackPanel>
+                        </DockPanel>
+
+                        <!-- Content area (border connects to active tab) -->
+                        <Border Grid.Row="1"
+                                Background="Transparent"
+                                BorderBrush="{StaticResource VP.BorderLightBrush}"
+                                BorderThickness="0.5,0.5,0.5,0.5"
+                                CornerRadius="0,0,10,10"
+                                Margin="0,0,0,0">
+                            <Grid MinHeight="120">
+                                <!-- Recommendations panel content -->
+                                <views:RecommendationsPanel x:Name="RecommendationsPanel"
+                                                            Visibility="Visible" />
+
+                                <!-- Console panel content -->
+                                <TextBox x:Name="ConsoleTextBox"
+                                         Margin="4,0,4,4"
+                                         Padding="10"
+                                         Background="Transparent"
+                                         Foreground="{StaticResource VP.TextSecondaryBrush}"
+                                         BorderThickness="0"
+                                         FontFamily="Cascadia Code, Consolas"
+                                         FontSize="12"
+                                         IsReadOnly="True"
+                                         TextWrapping="Wrap"
+                                         VerticalScrollBarVisibility="Auto"
+                                         HorizontalScrollBarVisibility="Auto"
+                                         CaretBrush="{StaticResource VP.TextPrimaryBrush}"
+                                         Visibility="Collapsed" />
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid>
+
+                <!-- Vertical splitter -->
+                <GridSplitter Grid.Column="1"
+                              Style="{StaticResource VP.GridSplitterV}"
+                              Margin="4,0" />
+
+                <!-- Chat panel -->
+                <views:ChatPanel x:Name="ChatPanel"
+                                 Grid.Column="2"
+                                 Visibility="Visible" />
+            </Grid>
+
+            <!-- ═══ Status Bar (flat) ═══ -->
+            <DockPanel Grid.Row="4" LastChildFill="False" Margin="4,0">
+                <DockPanel.Resources>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Foreground" Value="{StaticResource VP.TextSecondaryBrush}" />
+                        <Setter Property="FontSize" Value="11.5" />
+                        <Setter Property="VerticalAlignment" Value="Center" />
+                    </Style>
+                </DockPanel.Resources>
+
+                <TextBlock>
+                    <Run Text="{loc:Loc CapacityLabel}" FontWeight="SemiBold" />
+                    <Run Text="{Binding DriveCapacity, Mode=OneWay}" />
+                </TextBlock>
+                <Rectangle Width="1" Height="12" Margin="10,0"
+                           Fill="{StaticResource VP.BorderSubtleBrush}"
+                           VerticalAlignment="Center" />
+                <TextBlock>
+                    <Run Text="{loc:Loc UsedLabel}" FontWeight="SemiBold" />
+                    <Run Text="{Binding UsedSpace, Mode=OneWay}" />
+                </TextBlock>
+                <Rectangle Width="1" Height="12" Margin="10,0"
+                           Fill="{StaticResource VP.BorderSubtleBrush}"
+                           VerticalAlignment="Center" />
+                <TextBlock>
+                    <Run Text="{loc:Loc FreeLabel}" FontWeight="SemiBold" />
+                    <Run Text="{Binding FreeSpace, Mode=OneWay}" />
+                </TextBlock>
+                <Rectangle Width="1" Height="12" Margin="10,0"
+                           Fill="{StaticResource VP.BorderSubtleBrush}"
+                           VerticalAlignment="Center" />
+                <TextBlock>
+                    <Run Text="{loc:Loc FilesLabel}" FontWeight="SemiBold" />
+                    <Run Text="{Binding FileCount, Mode=OneWay}" />
+                </TextBlock>
+                <Rectangle Width="1" Height="12" Margin="10,0"
+                           Fill="{StaticResource VP.BorderSubtleBrush}"
+                           VerticalAlignment="Center" />
+                <TextBlock>
+                    <Run Text="{loc:Loc FoldersLabel}" FontWeight="SemiBold" />
+                    <Run Text="{Binding FolderCount, Mode=OneWay}" />
+                </TextBlock>
+                <Rectangle Width="1" Height="12" Margin="10,0"
+                           Fill="{StaticResource VP.BorderSubtleBrush}"
+                           VerticalAlignment="Center" />
                 <TextBlock FontStyle="Italic">
                     <Hyperlink Click="StatusConsoleLink_Click"
+                               Foreground="{StaticResource VP.AccentBrush}"
                                ToolTip="{loc:Loc OpenConsoleToolTip}">
                         <Run Text="{Binding ScanProgressText}" />
                     </Hyperlink>
                 </TextBlock>
-            </StatusBarItem>
-        </StatusBar>
-
-        <!-- Central content area (fills remaining space) -->
-        <Grid x:Name="ContentArea" Margin="4">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" MinWidth="420" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition x:Name="ChatPanelColumn" Width="360" MinWidth="260" />
-            </Grid.ColumnDefinitions>
-
-            <Grid Grid.Column="0">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*" MinHeight="220" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition x:Name="RecommendationsPanelRow" Height="260" MinHeight="120" />
-                </Grid.RowDefinitions>
-
-                <!-- Treemap view -->
-                <views:TreemapView x:Name="TreemapView" Grid.Row="0" />
-
-                <!-- Resizer between treemap and recommendations -->
-                <GridSplitter x:Name="RecommendationsSplitter"
-                              Grid.Row="1"
-                              Height="6"
-                              HorizontalAlignment="Stretch"
-                              VerticalAlignment="Center"
-                              Background="#D0D0D0"
-                              ShowsPreview="True"
-                              ResizeDirection="Rows"
-                              ResizeBehavior="PreviousAndNext"
-                              Visibility="Visible"
-                              Cursor="SizeNS" />
-
-                <!-- Bottom tool window: recommendations and console share the same resizable area. -->
-                <Grid Grid.Row="2" MinHeight="120">
-                    <TabControl x:Name="BottomTabs"
-                                Visibility="Visible"
-                                SelectionChanged="BottomTabs_SelectionChanged">
-                        <TabItem x:Name="RecommendationsTab" Header="{loc:Loc RecommendationsTabHeader}">
-                            <views:RecommendationsPanel x:Name="RecommendationsPanel" />
-                        </TabItem>
-                        <TabItem x:Name="ConsoleTab" Header="{loc:Loc ConsoleTabHeader}">
-                            <TextBox x:Name="ConsoleTextBox"
-                                     Margin="0"
-                                     Padding="8"
-                                     Background="#1E1E1E"
-                                     Foreground="#DCDCDC"
-                                     BorderThickness="0"
-                                     FontFamily="Consolas"
-                                     FontSize="12"
-                                     IsReadOnly="True"
-                                     TextWrapping="Wrap"
-                                     VerticalScrollBarVisibility="Auto"
-                                     HorizontalScrollBarVisibility="Auto" />
-                        </TabItem>
-                    </TabControl>
-                    <DockPanel x:Name="ConsoleToolbarOverlay"
-                               Height="24"
-                               Margin="86,0,0,0"
-                               HorizontalAlignment="Stretch"
-                               VerticalAlignment="Top"
-                               LastChildFill="False"
-                               Panel.ZIndex="20"
-                               Background="Transparent">
-                        <Button x:Name="ConsoleFilterButton"
-                                DockPanel.Dock="Right"
-                                Content="⋮"
-                                Width="22"
-                                Height="20"
-                                Padding="0"
-                                Margin="0,2,6,2"
-                                VerticalAlignment="Center"
-                                Background="Transparent"
-                                BorderThickness="0"
-                                Foreground="#444444"
-                                ToolTip="{loc:Loc ConsoleFilterToolTip}"
-                                Click="ConsoleFilterButton_Click">
-                            <Button.ContextMenu>
-                                <ContextMenu>
-                                    <MenuItem x:Name="ConsoleLevelVerboseMenuItem" Header="Verbose" IsCheckable="True" StaysOpenOnClick="True" Click="ConsoleLogLevel_Click" />
-                                    <MenuItem x:Name="ConsoleLevelInfoMenuItem" Header="Info" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Click="ConsoleLogLevel_Click" />
-                                    <MenuItem x:Name="ConsoleLevelWarningMenuItem" Header="Warning" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Click="ConsoleLogLevel_Click" />
-                                    <MenuItem x:Name="ConsoleLevelErrorMenuItem" Header="Error" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Click="ConsoleLogLevel_Click" />
-                                </ContextMenu>
-                            </Button.ContextMenu>
-                        </Button>
-                    </DockPanel>
-                </Grid>
-
-            </Grid>
-
-            <!-- Resizer between main workspace and chat panel -->
-            <GridSplitter Grid.Column="1"
-                          Width="6"
-                          HorizontalAlignment="Stretch"
-                          VerticalAlignment="Stretch"
-                          Background="#D0D0D0"
-                          ShowsPreview="True"
-                          ResizeDirection="Columns"
-                          ResizeBehavior="PreviousAndNext"
-                          Cursor="SizeWE" />
-
-            <!-- Chat panel is always visible and resizable. -->
-            <views:ChatPanel x:Name="ChatPanel"
-                             Grid.Column="2"
-                             Visibility="Visible" />
-
+            </DockPanel>
         </Grid>
 
-    </DockPanel>
-
+        <!-- ═══ Settings Page Overlay ═══ -->
         <views:SettingsPage x:Name="SettingsPage"
+                            Grid.RowSpan="2"
                             Panel.ZIndex="100"
                             Visibility="Collapsed" />
     </Grid>
-
 </Window>
-
-
-

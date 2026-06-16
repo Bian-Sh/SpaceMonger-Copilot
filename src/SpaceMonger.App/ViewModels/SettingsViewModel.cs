@@ -39,6 +39,12 @@ public partial class SettingsViewModel : ObservableObject
     private string _language = "zh-CN";
 
     [ObservableProperty]
+    private string? _saveToastMessage;
+
+    [ObservableProperty]
+    private bool _isSaveToastVisible;
+
+    [ObservableProperty]
     private ValidationState _validationState = ValidationState.None;
 
     [ObservableProperty]
@@ -57,6 +63,13 @@ public partial class SettingsViewModel : ObservableObject
 
         LoadSettings();
     }
+
+    public static IReadOnlyList<LanguageOption> LanguageOptions { get; } =
+    [
+        new("zh-CN", "简体中文"),
+        new("en", "English"),
+        new("auto", "Auto")
+    ];
 
     [RelayCommand]
     private async Task ValidateAsync()
@@ -98,7 +111,7 @@ public partial class SettingsViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void Save()
+    public void Save()
     {
         var settings = _settingsService.LoadSettings();
 
@@ -124,6 +137,20 @@ public partial class SettingsViewModel : ObservableObject
         _settingsService.SaveSettings(settings);
     }
 
+    public void SaveWithToast(string? message = null)
+    {
+        Save();
+        SaveToastMessage = string.IsNullOrWhiteSpace(message)
+            ? L.Text("SettingsSavedToast")
+            : message;
+        IsSaveToastVisible = true;
+    }
+
+    public void HideSaveToast()
+    {
+        IsSaveToastVisible = false;
+    }
+
     public void LoadSettings()
     {
         var settings = _settingsService.LoadSettings();
@@ -144,3 +171,5 @@ public partial class SettingsViewModel : ObservableObject
         ValidationState = IsApiKeyValid ? ValidationState.Valid : ValidationState.None;
     }
 }
+
+public sealed record LanguageOption(string Code, string DisplayName);

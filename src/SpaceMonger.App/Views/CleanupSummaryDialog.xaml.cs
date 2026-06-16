@@ -39,7 +39,7 @@ public partial class CleanupSummaryDialog : Window
         // Skipped items
         if (skippedActions.Count > 0)
         {
-            SkippedGroup.Header = L.Format("SkippedItemsWithCount", skippedActions.Count);
+            SkippedGroupHeader.Text = L.Format("SkippedItemsWithCount", skippedActions.Count);
             SkippedItemsList.ItemsSource = skippedActions.Select(a => new
             {
                 Path = a.Recommendation.TargetPath,

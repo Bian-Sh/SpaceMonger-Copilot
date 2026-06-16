@@ -6,67 +6,104 @@
         xmlns:loc="clr-namespace:SpaceMonger.App.Localization"
         mc:Ignorable="d"
         Title="{loc:Loc CleanupSummaryTitle}"
-        Width="450" Height="350"
+        Width="460" Height="360"
         ResizeMode="NoResize"
-        WindowStartupLocation="CenterOwner">
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        AllowsTransparency="False"
+        Background="Transparent"
+        FontFamily="{StaticResource VP.FontFamily}">
 
-    <Grid Margin="16">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0"
+                      ResizeBorderThickness="0"
+                      GlassFrameThickness="-1"
+                      CornerRadius="0"
+                      UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
 
-        <!-- Row 0: Success summary -->
-        <TextBlock x:Name="SuccessSummary"
-                   Grid.Row="0"
-                   FontSize="16"
-                   FontWeight="SemiBold"
-                   Foreground="Green"
-                   Margin="0,0,0,12" />
+    <Border Style="{StaticResource VP.GlassPanelLarge}"
+            Background="{StaticResource VP.BackgroundAltBrush}"
+            Padding="24"
+            CornerRadius="16">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-        <!-- Row 1: Already removed -->
-        <TextBlock x:Name="AlreadyRemovedText"
-                   Grid.Row="1"
-                   Foreground="#555555"
-                   Margin="0,0,0,8" />
+            <!-- Success summary -->
+            <TextBlock x:Name="SuccessSummary"
+                       Grid.Row="0"
+                       FontSize="17"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource VP.SuccessBrush}"
+                       Margin="0,0,0,12" />
 
-        <!-- Row 2: Skipped items -->
-        <GroupBox x:Name="SkippedGroup"
-                  Grid.Row="2"
-                  Header="{loc:Loc SkippedItemsHeader}"
-                  Margin="0,0,0,8">
-            <ListView x:Name="SkippedItemsList"
-                      BorderThickness="0">
-                <ListView.View>
-                    <GridView>
-                        <GridViewColumn Header="{loc:Loc PathColumn}" Width="240"
-                                        DisplayMemberBinding="{Binding Path}" />
-                        <GridViewColumn Header="{loc:Loc ReasonColumn}" Width="160"
-                                        DisplayMemberBinding="{Binding Reason}" />
-                    </GridView>
-                </ListView.View>
-            </ListView>
-        </GroupBox>
+            <!-- Already removed -->
+            <TextBlock x:Name="AlreadyRemovedText"
+                       Grid.Row="1"
+                       Foreground="{StaticResource VP.TextSecondaryBrush}"
+                       FontSize="13"
+                       Margin="0,0,0,8" />
 
-        <!-- Row 3: Total space recovered -->
-        <TextBlock x:Name="TotalRecovered"
-                   Grid.Row="3"
-                   FontWeight="SemiBold"
-                   Margin="0,4,0,8" />
+            <!-- Skipped items -->
+            <Border x:Name="SkippedGroup"
+                    Grid.Row="2"
+                    Background="{StaticResource VP.SurfaceHoverBrush}"
+                    BorderBrush="{StaticResource VP.BorderSubtleBrush}"
+                    BorderThickness="1"
+                    CornerRadius="10"
+                    Padding="14,10"
+                    Margin="0,0,0,8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock x:Name="SkippedGroupHeader"
+                               Grid.Row="0"
+                               Foreground="{StaticResource VP.TextSecondaryBrush}"
+                               FontSize="12"
+                               FontWeight="Medium"
+                               Margin="0,0,0,6" />
+                    <ListView x:Name="SkippedItemsList"
+                              Grid.Row="1"
+                              Style="{StaticResource VP.ListView}">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="{loc:Loc PathColumn}" Width="240"
+                                                DisplayMemberBinding="{Binding Path}" />
+                                <GridViewColumn Header="{loc:Loc ReasonColumn}" Width="160"
+                                                DisplayMemberBinding="{Binding Reason}" />
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                </Grid>
+            </Border>
 
-        <!-- Row 4: OK Button -->
-        <StackPanel Grid.Row="4"
-                    Orientation="Horizontal"
-                    HorizontalAlignment="Right"
-                    Margin="0,8,0,0">
-            <Button Content="{loc:Loc OkButton}"
-                    Width="80"
-                    Height="28"
-                    IsDefault="True"
-                    Click="OkButton_Click" />
-        </StackPanel>
-    </Grid>
+            <!-- Total space recovered -->
+            <TextBlock x:Name="TotalRecovered"
+                       Grid.Row="3"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource VP.TextPrimaryBrush}"
+                       FontSize="13"
+                       Margin="0,4,0,8" />
+
+            <!-- OK Button -->
+            <StackPanel Grid.Row="4"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Margin="0,8,0,0">
+                <Button Content="{loc:Loc OkButton}"
+                        Style="{StaticResource VP.AccentButton}"
+                        Width="84" Height="32"
+                        IsDefault="True"
+                        Click="OkButton_Click" />
+            </StackPanel>
+        </Grid>
+    </Border>
 </Window>

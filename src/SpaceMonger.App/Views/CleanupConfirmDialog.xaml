@@ -6,73 +6,107 @@
         xmlns:loc="clr-namespace:SpaceMonger.App.Localization"
         mc:Ignorable="d"
         Title="{loc:Loc ConfirmCleanupTitle}"
-        Width="400" Height="300"
+        Width="420" Height="320"
         ResizeMode="NoResize"
-        WindowStartupLocation="CenterOwner">
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        AllowsTransparency="False"
+        Background="Transparent"
+        FontFamily="{StaticResource VP.FontFamily}">
 
-    <Grid Margin="16">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0"
+                      ResizeBorderThickness="0"
+                      GlassFrameThickness="-1"
+                      CornerRadius="0"
+                      UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
 
-        <!-- Row 0: Warning -->
-        <TextBlock Grid.Row="0"
-                   Text="{loc:Loc ConfirmCleanupPrompt}"
-                   FontSize="16"
-                   FontWeight="SemiBold"
-                   Margin="0,0,0,12" />
+    <Border Style="{StaticResource VP.GlassPanelLarge}"
+            Background="{StaticResource VP.BackgroundAltBrush}"
+            Padding="24"
+            CornerRadius="16">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-        <!-- Row 1: Summary info -->
-        <StackPanel Grid.Row="1" Margin="0,0,0,12">
-            <TextBlock x:Name="ItemCount"
-                       Margin="0,0,0,4" />
-            <TextBlock x:Name="SpaceToFree"
-                       Margin="0,0,0,4" />
-        </StackPanel>
+            <!-- Warning -->
+            <TextBlock Grid.Row="0"
+                       Text="{loc:Loc ConfirmCleanupPrompt}"
+                       FontSize="17"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource VP.TextPrimaryBrush}"
+                       Margin="0,0,0,14" />
 
-        <!-- Row 2: Deletion mode selection -->
-        <GroupBox Grid.Row="2" Header="{loc:Loc DeletionModeHeader}" Margin="0,0,0,8">
-            <StackPanel Margin="8">
-                <RadioButton x:Name="RecycleBinRadio"
-                             Content="{loc:Loc MoveToRecycleBinOption}"
-                             IsChecked="True"
-                             Margin="0,0,0,8"
-                             Checked="DeletionModeRadio_Checked" />
-                <RadioButton x:Name="PermanentDeleteRadio"
-                             Content="{loc:Loc PermanentlyDeleteOption}"
-                             Margin="0,0,0,4"
-                             Checked="DeletionModeRadio_Checked" />
-                <TextBlock x:Name="PermanentDeleteWarning"
-                           Text="{loc:Loc PermanentDeleteWarning}"
-                           Foreground="Red"
-                           FontWeight="SemiBold"
-                           Margin="20,0,0,0"
-                           Visibility="Collapsed" />
+            <!-- Summary info -->
+            <StackPanel Grid.Row="1" Margin="0,0,0,14">
+                <TextBlock x:Name="ItemCount"
+                           Foreground="{StaticResource VP.TextSecondaryBrush}"
+                           FontSize="13"
+                           Margin="0,0,0,4" />
+                <TextBlock x:Name="SpaceToFree"
+                           Foreground="{StaticResource VP.TextSecondaryBrush}"
+                           FontSize="13"
+                           Margin="0,0,0,4" />
             </StackPanel>
-        </GroupBox>
 
-        <!-- Row 3: Spacer -->
+            <!-- Deletion mode -->
+            <Border Grid.Row="2"
+                    Background="{StaticResource VP.SurfaceHoverBrush}"
+                    BorderBrush="{StaticResource VP.BorderSubtleBrush}"
+                    BorderThickness="1"
+                    CornerRadius="10"
+                    Padding="14,10"
+                    Margin="0,0,0,10">
+                <StackPanel>
+                    <TextBlock Text="{loc:Loc DeletionModeHeader}"
+                               Foreground="{StaticResource VP.TextSecondaryBrush}"
+                               FontSize="12"
+                               FontWeight="Medium"
+                               Margin="0,0,0,8" />
+                    <RadioButton x:Name="RecycleBinRadio"
+                                 Style="{StaticResource VP.CheckBox}"
+                                 Content="{loc:Loc MoveToRecycleBinOption}"
+                                 IsChecked="True"
+                                 Margin="0,0,0,8"
+                                 Checked="DeletionModeRadio_Checked" />
+                    <RadioButton x:Name="PermanentDeleteRadio"
+                                 Style="{StaticResource VP.CheckBox}"
+                                 Content="{loc:Loc PermanentlyDeleteOption}"
+                                 Margin="0,0,0,4"
+                                 Checked="DeletionModeRadio_Checked" />
+                    <TextBlock x:Name="PermanentDeleteWarning"
+                               Text="{loc:Loc PermanentDeleteWarning}"
+                               Foreground="{StaticResource VP.DangerBrush}"
+                               FontWeight="SemiBold"
+                               FontSize="12"
+                               Margin="20,4,0,0"
+                               Visibility="Collapsed" />
+                </StackPanel>
+            </Border>
 
-        <!-- Row 4: Buttons -->
-        <StackPanel Grid.Row="4"
-                    Orientation="Horizontal"
-                    HorizontalAlignment="Right"
-                    Margin="0,8,0,0">
-            <Button Content="{loc:Loc ConfirmButton}"
-                    Width="80"
-                    Height="28"
-                    Margin="0,0,8,0"
-                    IsDefault="True"
-                    Click="ConfirmButton_Click" />
-            <Button Content="{loc:Loc CancelButton}"
-                    Width="80"
-                    Height="28"
-                    IsCancel="True"
-                    Click="CancelButton_Click" />
-        </StackPanel>
-    </Grid>
+            <!-- Buttons -->
+            <StackPanel Grid.Row="4"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Margin="0,8,0,0">
+                <Button Content="{loc:Loc CancelButton}"
+                        Style="{StaticResource VP.Button}"
+                        Width="84" Height="32"
+                        Margin="0,0,8,0"
+                        IsCancel="True"
+                        Click="CancelButton_Click" />
+                <Button Content="{loc:Loc ConfirmButton}"
+                        Style="{StaticResource VP.DangerButton}"
+                        Width="84" Height="32"
+                        IsDefault="True"
+                        Click="ConfirmButton_Click" />
+            </StackPanel>
+        </Grid>
+    </Border>
 </Window>
