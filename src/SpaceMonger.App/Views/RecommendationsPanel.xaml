@@ -89,7 +89,7 @@
         </DockPanel>
 
         <!-- Analyzing overlay -->
-        <Border Grid.Row="1" Grid.RowSpan="2"
+        <Border Grid.Row="1"
                 Panel.ZIndex="10"
                 Background="{StaticResource VP.BackgroundAltBrush}"
                 CornerRadius="0,0,12,12">
@@ -120,7 +120,7 @@
         </Border>
 
         <!-- Error / empty display -->
-        <Border Grid.Row="1" Grid.RowSpan="2"
+        <Border Grid.Row="1"
                 Panel.ZIndex="5"
                 Background="Transparent"
                 Padding="20">
@@ -200,7 +200,7 @@
                   Style="{StaticResource VP.ListView}"
                   ItemsSource="{Binding FilteredRecommendations}"
                   Margin="4,0,4,4"
-                  Padding="0,0,0,36"
+                  Padding="0"
                   MouseDoubleClick="RecommendationsList_MouseDoubleClick"
                   ScrollViewer.HorizontalScrollBarVisibility="Disabled">
             <ListView.ItemContainerStyle>
