@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System.IO;
 using SpaceMonger.App.Localization;
 using SpaceMonger.Core.Enums;
 using SpaceMonger.Core.Models;
@@ -68,9 +69,12 @@ public partial class TreemapViewModel : ObservableObject
 
     public void DrillDown(FileEntry folder)
     {
+        if (folder == CurrentRoot)
+            return;
+
         if (CurrentRoot is not null)
         {
-            _navigationStack.Push(CurrentRoot);
+            PushBack(CurrentRoot);
         }
 
         _forwardStack.Clear();
@@ -90,7 +94,7 @@ public partial class TreemapViewModel : ObservableObject
 
         if (CurrentRoot is not null)
         {
-            _navigationStack.Push(CurrentRoot);
+            PushBack(CurrentRoot);
         }
 
         _forwardStack.Clear();
@@ -132,7 +136,7 @@ public partial class TreemapViewModel : ObservableObject
             return;
 
         if (CurrentRoot is not null)
-            _navigationStack.Push(CurrentRoot);
+            PushBack(CurrentRoot);
 
         CurrentRoot = _forwardStack.Pop();
         UpdateBreadcrumb();
@@ -141,35 +145,96 @@ public partial class TreemapViewModel : ObservableObject
 
     public void NavigateToParent()
     {
-        if (CurrentRoot?.Parent is null)
-            return;
-        if (!IsInCurrentScan(CurrentRoot.Parent))
+        if (CurrentRoot is null)
             return;
 
-        _navigationStack.Push(CurrentRoot);
+        var parent = CurrentRoot.Parent ?? CreateExternalParent(CurrentRoot.Path);
+        if (parent is null)
+            return;
+
+        PushBack(CurrentRoot);
         _forwardStack.Clear();
-        CurrentRoot = CurrentRoot.Parent;
+        CurrentRoot = parent;
         UpdateBreadcrumb();
         RecomputeLayout();
     }
 
-    public void NavigateToPath(string path)
+    public bool NavigateToPath(string path)
     {
         if (string.IsNullOrWhiteSpace(path) || _scanRoot is null)
-            return;
+            return false;
 
         // Search the tree for an entry matching this path
         var entry = FindEntryByPath(_scanRoot, path.Trim());
         if (entry is null)
-            return;
+            return false;
+
+        if (entry == CurrentRoot)
+            return true;
 
         if (CurrentRoot is not null)
-            _navigationStack.Push(CurrentRoot);
+        {
+            PushBack(CurrentRoot);
+        }
 
         _forwardStack.Clear();
         CurrentRoot = entry;
         UpdateBreadcrumb();
         RecomputeLayout();
+        return true;
+    }
+
+    public void NavigateToExternalPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return;
+
+        if (CurrentRoot?.Path is not null && string.Equals(CurrentRoot.Path, path, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        if (CurrentRoot is not null)
+            PushBack(CurrentRoot);
+
+        _forwardStack.Clear();
+        CurrentRoot = CreateExternalEntry(path.Trim());
+        UpdateBreadcrumb();
+        RecomputeLayoutForCurrentRoot();
+    }
+
+    private void PushBack(FileEntry entry)
+    {
+        if (_navigationStack.Count == 0 || _navigationStack.Peek() != entry)
+            _navigationStack.Push(entry);
+    }
+
+    private static FileEntry CreateExternalEntry(string path)
+    {
+        var normalized = Path.GetFullPath(path.Trim());
+        var trimmed = normalized.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var name = Path.GetFileName(trimmed);
+        if (string.IsNullOrEmpty(name))
+            name = Path.GetPathRoot(normalized)?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) ?? normalized;
+
+        return new FileEntry
+        {
+            Name = name,
+            Path = normalized,
+            IsDirectory = true,
+        };
+    }
+
+    private static FileEntry? CreateExternalParent(string path)
+    {
+        try
+        {
+            var normalized = Path.GetFullPath(path);
+            var parentPath = Directory.GetParent(normalized)?.FullName;
+            return parentPath is null ? null : CreateExternalEntry(parentPath);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static FileEntry? FindEntryByPath(FileEntry root, string targetPath)
@@ -251,6 +316,17 @@ public partial class TreemapViewModel : ObservableObject
     };
 
     private void RecomputeLayout()
+    {
+        if (CurrentRoot is not null && !IsInCurrentScan(CurrentRoot))
+        {
+            Nodes = null;
+            return;
+        }
+
+        RecomputeLayoutForCurrentRoot();
+    }
+
+    private void RecomputeLayoutForCurrentRoot()
     {
         if (CurrentRoot is null || ViewWidth <= 0 || ViewHeight <= 0)
         {
@@ -345,7 +421,28 @@ public partial class TreemapViewModel : ObservableObject
         CanNavigateUp = _navigationStack.Count > 0;
         CanGoBack = _navigationStack.Count > 0;
         CanGoForward = _forwardStack.Count > 0;
-        CanGoUp = CurrentRoot?.Parent is not null && CurrentRoot != _scanRoot;
+        CanGoUp = CanNavigateToParentPath(CurrentRoot?.Path);
         NavigateUpCommand.NotifyCanExecuteChanged();
+    }
+
+    private static bool CanNavigateToParentPath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return false;
+
+        try
+        {
+            var normalized = Path.GetFullPath(path);
+            var root = Path.GetPathRoot(normalized);
+            return !string.IsNullOrEmpty(root)
+                   && !string.Equals(
+                       normalized.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                       root.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                       StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

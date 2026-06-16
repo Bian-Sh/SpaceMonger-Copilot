@@ -18,6 +18,7 @@
         Background="Transparent"
         ResizeMode="CanResizeWithGrip"
         KeyDown="Window_KeyDown"
+        PreviewMouseLeftButtonDown="Window_PreviewMouseLeftButtonDown"
         TextOptions.TextFormattingMode="Display"
         TextOptions.TextRenderingMode="ClearType"
         FontFamily="{StaticResource VP.FontFamily}">
@@ -75,12 +76,22 @@
                         </Button>
                         <Button x:Name="ForwardButton"
                                 Width="32" Height="32"
-                                Margin="0,0,6,0"
                                 Style="{StaticResource VP.ButtonIcon}"
                                 Click="ForwardButton_Click"
                                 IsEnabled="False"
                                 ToolTip="{loc:Loc NavigateForwardToolTip}">
                             <TextBlock Text="&#xE72A;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="14" />
+                        </Button>
+                        <Button x:Name="UpButton"
+                                Width="32" Height="32"
+                                Margin="2,0,6,0"
+                                Style="{StaticResource VP.ButtonIcon}"
+                                Click="UpButton_Click"
+                                IsEnabled="False"
+                                ToolTip="{loc:Loc NavigateUpToolTip}">
+                            <TextBlock Text="&#xE74A;"
                                        FontFamily="Segoe MDL2 Assets"
                                        FontSize="14" />
                         </Button>
@@ -123,7 +134,8 @@
                             ToolTip="{loc:Loc ScanButtonToolTip}" />
 
                     <!-- Address bar: LAST child → fills remaining space between nav and action buttons -->
-                    <Border DockPanel.Dock="Left"
+                    <Border x:Name="AddressBarBorder"
+                            DockPanel.Dock="Left"
                             Background="{StaticResource VP.SurfaceBrush}"
                             BorderBrush="{StaticResource VP.BorderLightBrush}"
                             BorderThickness="0.5"
@@ -131,6 +143,7 @@
                             Padding="0"
                             Margin="0,0,4,0"
                             MinWidth="120"
+                            Height="30"
                             MouseLeftButtonUp="AddressBar_MouseLeftButtonUp">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -166,9 +179,17 @@
                                     Grid.Column="1"
                                     Width="32" Height="Auto"
                                     Padding="4,5"
-                                    Style="{StaticResource VP.ButtonIcon}"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Foreground="{StaticResource VP.TextSecondaryBrush}"
                                     Command="{Binding BrowseCommand}"
                                     ToolTip="{loc:Loc BrowseButtonToolTip}">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <ContentPresenter HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center" />
+                                    </ControlTemplate>
+                                </Button.Template>
                                 <TextBlock Text="&#xE838;"
                                            FontFamily="Segoe MDL2 Assets"
                                            FontSize="14" />

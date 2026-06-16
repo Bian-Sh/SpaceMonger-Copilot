@@ -33,12 +33,14 @@
                                Foreground="{StaticResource VP.TextTertiaryBrush}"
                                HorizontalAlignment="Center"
                                Margin="0,0,0,14" />
-                    <TextBlock Text="{loc:Loc TreemapEmptyTitle}"
+                    <TextBlock x:Name="EmptyStateTitle"
+                               Text="{loc:Loc TreemapEmptyTitle}"
                                FontSize="16"
                                FontWeight="SemiBold"
                                Foreground="{StaticResource VP.TextSecondaryBrush}"
                                HorizontalAlignment="Center" />
-                    <TextBlock Text="{loc:Loc TreemapEmptyHint}"
+                    <TextBlock x:Name="EmptyStateHint"
+                               Text="{loc:Loc TreemapEmptyHint}"
                                FontSize="13"
                                Foreground="{StaticResource VP.TextTertiaryBrush}"
                                HorizontalAlignment="Center"

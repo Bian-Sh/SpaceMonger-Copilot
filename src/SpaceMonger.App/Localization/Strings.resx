@@ -433,6 +433,18 @@
   <data name="TreemapEmptyHint" xml:space="preserve">
     <value>Treemap visualization will appear here after scanning</value>
   </data>
+  <data name="TreemapAnalysisRequiredTitle" xml:space="preserve">
+    <value>Scan required</value>
+  </data>
+  <data name="TreemapAnalysisRequiredHint" xml:space="preserve">
+    <value>This location is outside the scanned tree. Please analyze the folder again.</value>
+  </data>
+  <data name="TreemapNoChildDataTitle" xml:space="preserve">
+    <value>No child items to display</value>
+  </data>
+  <data name="TreemapNoChildDataHint" xml:space="preserve">
+    <value>This scanned folder has no visible child items in the treemap.</value>
+  </data>
   <data name="ChatEmptyTitle" xml:space="preserve">
     <value>Chat assistant ready</value>
   </data>

@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -63,13 +64,47 @@ public partial class TreemapView : UserControl
         bool showEmpty = !_isScanning && !hasData;
 
         EmptyStatePanel.Visibility = showEmpty ? Visibility.Visible : Visibility.Collapsed;
+        if (showEmpty)
+        {
+            var path = _viewModel?.CurrentRoot?.Path;
+            bool hasScan = _viewModel?.ScanRoot is not null;
+            bool outsideScan = hasScan && !string.IsNullOrWhiteSpace(path) && !IsUnderPath(path, _viewModel!.ScanRoot!.Path);
+            bool insideScan = hasScan && !outsideScan;
+
+            EmptyStateTitle.Text = outsideScan
+                ? L.Text("TreemapAnalysisRequiredTitle")
+                : insideScan
+                    ? L.Text("TreemapNoChildDataTitle")
+                    : L.Text("TreemapEmptyTitle");
+            EmptyStateHint.Text = outsideScan
+                ? L.Text("TreemapAnalysisRequiredHint")
+                : insideScan
+                    ? L.Text("TreemapNoChildDataHint")
+                    : L.Text("TreemapEmptyHint");
+        }
+
         // Hide opaque SkiaSharp canvas when empty (Opacity=0 keeps element in visual tree)
         Treemap.Opacity = hasData ? 1.0 : 0.0;
     }
 
-    public void NavigateToPath(string path)
+    private static bool IsUnderPath(string path, string rootPath)
     {
-        _viewModel?.NavigateToPath(path);
+        try
+        {
+            var fullPath = Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var fullRoot = Path.GetFullPath(rootPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            return string.Equals(fullPath, fullRoot, StringComparison.OrdinalIgnoreCase)
+                   || fullPath.StartsWith(fullRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public bool NavigateToPath(string path)
+    {
+        return _viewModel?.NavigateToPath(path) == true;
     }
 
     private void Treemap_NodeClicked(object? sender, TreemapNode node)

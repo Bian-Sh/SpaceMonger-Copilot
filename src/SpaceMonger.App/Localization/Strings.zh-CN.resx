@@ -433,6 +433,18 @@
   <data name="TreemapEmptyHint" xml:space="preserve">
     <value>扫描完成后此处将显示 Treemap 可视化</value>
   </data>
+  <data name="TreemapAnalysisRequiredTitle" xml:space="preserve">
+    <value>需要重新分析</value>
+  </data>
+  <data name="TreemapAnalysisRequiredHint" xml:space="preserve">
+    <value>当前位置不在已扫描的树中，请重新分析该文件夹。</value>
+  </data>
+  <data name="TreemapNoChildDataTitle" xml:space="preserve">
+    <value>没有可显示的子项</value>
+  </data>
+  <data name="TreemapNoChildDataHint" xml:space="preserve">
+    <value>该文件夹已在扫描结果中，但没有可绘制到 Treemap 的子项。</value>
+  </data>
   <data name="ChatEmptyTitle" xml:space="preserve">
     <value>聊天助手待命</value>
   </data>

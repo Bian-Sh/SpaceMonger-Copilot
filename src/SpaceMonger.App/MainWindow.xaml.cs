@@ -66,6 +66,20 @@ public partial class MainWindow : Window
         {
             mainVm.PropertyChanged += MainViewModel_PropertyChanged;
             TreemapView.SetScanningState(mainVm.IsScanning, mainVm.ScanProgressText);
+
+            // Set default path to first available drive
+            if (string.IsNullOrEmpty(mainVm.SelectedPath))
+            {
+                var firstDrive = DriveInfo.GetDrives()
+                    .Where(d => d.IsReady)
+                    .Select(d => d.RootDirectory.FullName)
+                    .FirstOrDefault();
+                if (firstDrive is not null)
+                    mainVm.SelectedPath = firstDrive;
+            }
+
+            // Always rebuild breadcrumb on startup — belt-and-suspenders with PropertyChanged
+            RebuildBreadcrumbBar();
         }
     }
 
@@ -158,8 +172,8 @@ public partial class MainWindow : Window
         }
         else if (e.PropertyName is nameof(MainViewModel.SelectedPath))
         {
-            // Update breadcrumb when user picks a folder via Browse (before scan)
-            if (_treemapViewModel?.CurrentRoot is null && !string.IsNullOrEmpty(mainVm.SelectedPath))
+            // Update breadcrumb whenever SelectedPath changes
+            if (!string.IsNullOrEmpty(mainVm.SelectedPath))
                 RebuildBreadcrumbBar();
         }
     }
@@ -199,6 +213,9 @@ public partial class MainWindow : Window
                 break;
             case nameof(TreemapViewModel.CanGoForward):
                 ForwardButton.IsEnabled = _treemapViewModel.CanGoForward;
+                break;
+            case nameof(TreemapViewModel.CanGoUp):
+                UpButton.IsEnabled = _treemapViewModel.CanGoUp;
                 break;
             case nameof(TreemapViewModel.CurrentRoot):
                 if (_treemapViewModel.CurrentRoot is not null)
@@ -541,6 +558,11 @@ public partial class MainWindow : Window
         _treemapViewModel?.NavigateForward();
     }
 
+    private void UpButton_Click(object sender, RoutedEventArgs e)
+    {
+        _treemapViewModel?.NavigateToParent();
+    }
+
     private void PathEditTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
         if (e.Key == System.Windows.Input.Key.Enter)
@@ -548,7 +570,7 @@ public partial class MainWindow : Window
             var path = PathEditTextBox.Text?.Trim();
             if (!string.IsNullOrWhiteSpace(path))
             {
-                TreemapView.NavigateToPath(path);
+                NavigateToPathOrSelect(path);
             }
             SwitchToBreadcrumbMode();
             e.Handled = true;
@@ -565,8 +587,31 @@ public partial class MainWindow : Window
         SwitchToBreadcrumbMode();
     }
 
+    private void Window_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        // Fix 4: Defocus PathEditTextBox when clicking anywhere outside the address bar
+        if (!PathEditTextBox.IsFocused)
+            return;
+
+        // Check if the click is inside the AddressBarBorder — if so, don't defocus
+        var depObj = e.OriginalSource as DependencyObject;
+        while (depObj is not null)
+        {
+            if (depObj == AddressBarBorder)
+                return; // Inside address bar — keep focus
+            depObj = System.Windows.Media.VisualTreeHelper.GetParent(depObj);
+        }
+
+        SwitchToBreadcrumbMode();
+        Keyboard.ClearFocus();
+    }
+
     private void AddressBar_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
+        // Don't switch to edit mode if already in edit mode (LostFocus just exited)
+        if (PathEditTextBox.Visibility == Visibility.Visible)
+            return;
+
         // Only switch to edit mode if the click was on the container itself, not on breadcrumb buttons
         var source = e.OriginalSource as DependencyObject;
         while (source is not null)
@@ -632,16 +677,24 @@ public partial class MainWindow : Window
             {
                 if (i > 0)
                 {
-                    // Separator "›" between segments (Windows 11 Explorer style)
+                    var ownerPath = segments[i - 1].path;
                     var sepBtn = new Button
                     {
-                        Content = new TextBlock { Text = "›", FontSize = 14, Opacity = 0.6 },
+                        Content = new TextBlock
+                        {
+                            Text = "›",
+                            FontSize = 14,
+                            Opacity = 0.6,
+                            VerticalAlignment = VerticalAlignment.Center,
+                            TextAlignment = TextAlignment.Center,
+                        },
                         Background = Brushes.Transparent,
                         BorderThickness = new Thickness(0),
                         Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xAE, 0xAE, 0xB2)),
-                        Padding = new Thickness(2),
+                        Padding = new Thickness(4, 0, 4, 0),
                         Cursor = Cursors.Hand,
-                        Tag = segments[i].path,
+                        Tag = ownerPath,
+                        VerticalContentAlignment = VerticalAlignment.Center,
                     };
                     var sepMenu = new ContextMenu();
                     sepMenu.Opened += BreadcrumbDropdown_Opened;
@@ -690,13 +743,21 @@ public partial class MainWindow : Window
             {
                 var trailBtn = new Button
                 {
-                    Content = new TextBlock { Text = "›", FontSize = 14, Opacity = 0.6 },
+                    Content = new TextBlock
+                    {
+                        Text = "›",
+                        FontSize = 14,
+                        Opacity = 0.6,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        TextAlignment = TextAlignment.Center,
+                    },
                     Background = Brushes.Transparent,
                     BorderThickness = new Thickness(0),
                     Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xAE, 0xAE, 0xB2)),
-                    Padding = new Thickness(2),
+                    Padding = new Thickness(4, 0, 4, 0),
                     Cursor = Cursors.Hand,
                     Tag = segments[^1].path,
+                    VerticalContentAlignment = VerticalAlignment.Center,
                 };
                 var trailMenu = new ContextMenu();
                 trailMenu.Opened += BreadcrumbDropdown_Opened;
@@ -746,9 +807,23 @@ public partial class MainWindow : Window
 
     private void BreadcrumbSegment_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is Button btn && btn.Tag is string path && path != ThisPC)
+        if (sender is Button btn && btn.Tag is string path)
         {
-            TreemapView.NavigateToPath(path);
+            // Skip "此电脑" — it's a virtual root, not a real path
+            if (path == ThisPC)
+            {
+                e.Handled = true;
+                return;
+            }
+
+            // Fix 6: skip if already at this path
+            if (_treemapViewModel?.CurrentRoot?.Path == path)
+            {
+                e.Handled = true;
+                return;
+            }
+
+            NavigateToPathOrSelect(path);
         }
         e.Handled = true;
     }
@@ -781,14 +856,10 @@ public partial class MainWindow : Window
         // Special case: "此电脑" → show all drives
         if (dirPath == ThisPC)
         {
-            var drives = (DataContext as MainViewModel)?.DriveList ?? new List<string>();
-            if (drives.Count == 0)
-            {
-                drives = DriveInfo.GetDrives()
-                    .Where(d => d.IsReady)
-                    .Select(d => d.Name)
-                    .ToList();
-            }
+            var drives = DriveInfo.GetDrives()
+                .Where(d => d.IsReady)
+                .Select(d => d.Name)
+                .ToList();
 
             foreach (var drive in drives)
             {
@@ -796,42 +867,94 @@ public partial class MainWindow : Window
                 item.Click += (s, args) =>
                 {
                     if (s is MenuItem mi && mi.Tag is string drivePath)
-                    {
-                        if (DataContext is MainViewModel mainVm)
-                            mainVm.SelectedPath = drivePath;
-                    }
+                        NavigateToPathOrSelect(drivePath);
                 };
                 menu.Items.Add(item);
             }
             return;
         }
 
-        // Get children from the scanned tree
+        // Try to get children from the scanned tree first
         var dirEntry = FindEntryByPathInTree(_treemapViewModel?.ScanRoot, dirPath);
-        if (dirEntry is null)
-            return;
-
-        var children = dirEntry.Children
-            .Where(c => c.IsDirectory)
-            .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        if (children.Count == 0)
+        if (dirEntry is not null)
         {
-            var emptyItem = new MenuItem { Header = L.Text("NoSubfoldersText"), IsEnabled = false };
-            menu.Items.Add(emptyItem);
-            return;
+            var children = dirEntry.Children
+                .Where(c => c.IsDirectory)
+                .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (children.Count == 0)
+            {
+                // Even with scan data, the folder might have no scanned subfolders
+                // Fall through to filesystem listing
+            }
+            else
+            {
+                foreach (var child in children)
+                {
+                    var item = new MenuItem { Header = child.Name, Tag = child.Path };
+                    item.Click += (s, args) =>
+                    {
+                        if (s is MenuItem mi && mi.Tag is string childPath)
+                            NavigateToPathOrSelect(childPath);
+                    };
+                    menu.Items.Add(item);
+                }
+                return;
+            }
         }
 
-        foreach (var child in children)
+        // No scan data or empty scan results — list subfolders from filesystem directly
+        try
         {
-            var item = new MenuItem { Header = child.Name, Tag = child.Path };
-            item.Click += (s, args) =>
+            var subDirs = System.IO.Directory.GetDirectories(dirPath)
+                .Select(d => new { Path = d, Name = System.IO.Path.GetFileName(d) })
+                .OrderBy(d => d.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (subDirs.Count == 0)
             {
-                if (s is MenuItem mi && mi.Tag is string childPath)
-                    TreemapView.NavigateToPath(childPath);
-            };
-            menu.Items.Add(item);
+                var emptyItem = new MenuItem { Header = L.Text("NoSubfoldersText"), IsEnabled = false };
+                menu.Items.Add(emptyItem);
+                return;
+            }
+
+            foreach (var subDir in subDirs)
+            {
+                var item = new MenuItem { Header = subDir.Name, Tag = subDir.Path };
+                item.Click += (s, args) =>
+                {
+                    if (s is MenuItem mi && mi.Tag is string childPath)
+                        NavigateToPathOrSelect(childPath);
+                };
+                menu.Items.Add(item);
+            }
+        }
+        catch (Exception)
+        {
+            var errorItem = new MenuItem { Header = L.Text("NoSubfoldersText"), IsEnabled = false };
+            menu.Items.Add(errorItem);
+        }
+    }
+
+    /// <summary>
+    /// Navigate to a path: use treemap navigation if scan data exists,
+    /// otherwise update SelectedPath for breadcrumb display.
+    /// </summary>
+    private void NavigateToPathOrSelect(string path)
+    {
+        if (_treemapViewModel is not null)
+        {
+            if (TreemapView.NavigateToPath(path))
+                return;
+
+            _treemapViewModel.NavigateToExternalPath(path);
+        }
+
+        if (DataContext is MainViewModel mainVm)
+        {
+            mainVm.SelectedPath = path;
+            RebuildBreadcrumbBar();
         }
     }
 
