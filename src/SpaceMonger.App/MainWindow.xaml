@@ -30,7 +30,7 @@
                       UseAeroCaptionButtons="False" />
     </WindowChrome.WindowChrome>
 
-    <Grid x:Name="RootGrid" Background="Transparent">
+    <Grid x:Name="RootGrid" Background="{StaticResource VP.BackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="36" />  <!-- Title bar -->
             <RowDefinition Height="*" />   <!-- Content -->
@@ -50,161 +50,136 @@
                 <RowDefinition Height="8" />
                 <RowDefinition Height="Auto" />    <!-- Status bar -->
             </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MinWidth="420" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition x:Name="ChatPanelColumn" Width="360" MinWidth="260" />
+            </Grid.ColumnDefinitions>
 
-            <!-- ═══ Toolbar (glass) ═══ -->
-            <Border Grid.Row="0" Style="{StaticResource VP.GlassPanel}" Padding="8,6">
+            <!-- ═══ Toolbar (aligned with treemap, not chat panel) ═══ -->
+            <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource VP.GlassPanel}" Padding="8,6">
                 <DockPanel LastChildFill="True">
-                    <!-- Right: settings -->
-                    <Button x:Name="SettingsButton"
-                            DockPanel.Dock="Right"
-                            Width="36" Height="32"
-                            Padding="0"
-                            Foreground="White"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Click="SettingsButton_Click"
-                            ToolTip="{loc:Loc SettingsButtonToolTip}">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border x:Name="Bd" Background="Transparent"
-                                        CornerRadius="6" Padding="0">
-                                    <ContentPresenter HorizontalAlignment="Center"
-                                                      VerticalAlignment="Center" />
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Bd" Property="Background"
-                                                Value="{StaticResource VP.SurfaceHoverBrush}" />
-                                        <Setter Property="Foreground"
-                                                Value="{StaticResource VP.TextPrimaryBrush}" />
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Button.Template>
-                        <TextBlock Text="&#xE713;"
-                                   FontFamily="Segoe MDL2 Assets"
-                                   FontSize="16"
-                                   VerticalAlignment="Center"
-                                   TextAlignment="Center" />
-                    </Button>
 
-                    <!-- Left: navigation buttons -->
+                    <!-- Left: navigation buttons (transparent, hover glow) -->
                     <StackPanel DockPanel.Dock="Left"
                                 Orientation="Horizontal"
                                 VerticalAlignment="Center">
                         <Button x:Name="BackButton"
                                 Width="32" Height="32"
-                                Padding="0"
-                                Style="{StaticResource VP.Button}"
+                                Style="{StaticResource VP.ButtonIcon}"
                                 Click="BackButton_Click"
                                 ToolTip="{loc:Loc NavigateBackToolTip}">
                             <TextBlock Text="&#xE72B;"
                                        FontFamily="Segoe MDL2 Assets"
-                                       FontSize="14"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center" />
+                                       FontSize="14" />
                         </Button>
                         <Button x:Name="ForwardButton"
                                 Width="32" Height="32"
-                                Padding="0"
-                                Style="{StaticResource VP.Button}"
+                                Margin="0,0,6,0"
+                                Style="{StaticResource VP.ButtonIcon}"
                                 Click="ForwardButton_Click"
                                 IsEnabled="False"
                                 ToolTip="{loc:Loc NavigateForwardToolTip}">
                             <TextBlock Text="&#xE72A;"
                                        FontFamily="Segoe MDL2 Assets"
-                                       FontSize="14"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center" />
-                        </Button>
-                        <Button x:Name="UpButton"
-                                Width="32" Height="32"
-                                Padding="0"
-                                Margin="2,0,6,0"
-                                Style="{StaticResource VP.Button}"
-                                Click="UpButton_Click"
-                                IsEnabled="False"
-                                ToolTip="{loc:Loc NavigateUpToolTip}">
-                            <TextBlock Text="&#xE74A;"
-                                       FontFamily="Segoe MDL2 Assets"
-                                       FontSize="14"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center" />
+                                       FontSize="14" />
                         </Button>
                     </StackPanel>
 
-                    <!-- Center: address bar + action buttons (fills remaining space) -->
-                    <Grid VerticalAlignment="Center">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
+                    <Rectangle DockPanel.Dock="Left" Width="1" Margin="6,4"
+                               Fill="{StaticResource VP.BorderSubtleBrush}" />
 
-                        <!-- Editable path / address bar -->
-                        <TextBox x:Name="PathTextBox"
-                                 Grid.Column="0"
-                                 Style="{StaticResource VP.TextBox}"
-                                 Text="{Binding SelectedPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                 KeyDown="PathTextBox_KeyDown"
-                                 Margin="0,0,6,0"
-                                 ToolTip="{loc:Loc PathSelectorToolTip}" />
+                    <!-- Right: action buttons (docked before address bar so they keep their natural size) -->
+                    <Button x:Name="AnalyzeButton"
+                            DockPanel.Dock="Right"
+                            Content="{loc:Loc AnalyzeButton}"
+                            Margin="0"
+                            Padding="8,5"
+                            FontSize="12"
+                            ToolTipService.ShowOnDisabled="True"
+                            Click="AnalyzeButton_Click">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource VP.AccentButton}">
+                                <Setter Property="IsEnabled" Value="True" />
+                                <Setter Property="ToolTip" Value="{loc:Loc RecommendCleanupToolTip}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding DataContext.RecommendationsVM.IsAnalyzing, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                        <Setter Property="IsEnabled" Value="False" />
+                                        <Setter Property="ToolTip" Value="{loc:Loc AnalysisInProgressToolTip}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
 
-                        <Button x:Name="BrowseButton"
-                                Grid.Column="1"
-                                Content="{loc:Loc BrowseButton}"
-                                Style="{StaticResource VP.Button}"
-                                Margin="0,0,4,0"
-                                Command="{Binding BrowseCommand}"
-                                ToolTip="{loc:Loc BrowseButtonToolTip}" />
+                    <Button x:Name="ScanButton"
+                            DockPanel.Dock="Right"
+                            Content="{loc:Loc ScanButton}"
+                            Style="{StaticResource VP.AccentButton}"
+                            Padding="8,5"
+                            FontSize="12"
+                            Margin="0,0,4,0"
+                            Command="{Binding ScanCommand}"
+                            ToolTip="{loc:Loc ScanButtonToolTip}" />
 
-                        <Rectangle Grid.Column="2" Width="1" Margin="6,4"
-                                   Fill="{StaticResource VP.BorderSubtleBrush}" />
+                    <!-- Address bar: LAST child → fills remaining space between nav and action buttons -->
+                    <Border DockPanel.Dock="Left"
+                            Background="{StaticResource VP.SurfaceBrush}"
+                            BorderBrush="{StaticResource VP.BorderLightBrush}"
+                            BorderThickness="0.5"
+                            CornerRadius="6"
+                            Padding="0"
+                            Margin="0,0,4,0"
+                            MinWidth="120"
+                            MouseLeftButtonUp="AddressBar_MouseLeftButtonUp">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
 
-                        <Button x:Name="ScanButton"
-                                Grid.Column="3"
-                                Content="{loc:Loc ScanButton}"
-                                Style="{StaticResource VP.AccentButton}"
-                                Padding="16,7"
-                                Margin="0,0,4,0"
-                                Command="{Binding ScanCommand}"
-                                ToolTip="{loc:Loc ScanButtonToolTip}" />
+                            <!-- Breadcrumb display (visible by default) -->
+                            <StackPanel x:Name="BreadcrumbBar"
+                                        Grid.Column="0"
+                                        Orientation="Horizontal"
+                                        VerticalAlignment="Center"
+                                        Margin="8,5,4,5"
+                                        Visibility="Visible" />
 
-                        <Button x:Name="AnalyzeButton"
-                                Grid.Column="4"
-                                Content="{loc:Loc AnalyzeButton}"
-                                Margin="0"
-                                VerticalAlignment="Center"
-                                ToolTipService.ShowOnDisabled="True"
-                                Click="AnalyzeButton_Click">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource VP.AccentButton}">
-                                    <Setter Property="IsEnabled" Value="True" />
-                                    <Setter Property="ToolTip" Value="{loc:Loc RecommendCleanupToolTip}" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding DataContext.RecommendationsVM.IsAnalyzing, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
-                                            <Setter Property="IsEnabled" Value="False" />
-                                            <Setter Property="ToolTip" Value="{loc:Loc AnalysisInProgressToolTip}" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                    </Grid>
+                            <!-- Text edit mode (hidden by default) -->
+                            <TextBox x:Name="PathEditTextBox"
+                                     Grid.Column="0"
+                                     Background="Transparent"
+                                     Foreground="{StaticResource VP.TextPrimaryBrush}"
+                                     CaretBrush="{StaticResource VP.TextPrimaryBrush}"
+                                     BorderThickness="0"
+                                     Padding="8,5"
+                                     FontSize="13"
+                                     FontFamily="{StaticResource VP.FontFamily}"
+                                     KeyDown="PathEditTextBox_KeyDown"
+                                     LostFocus="PathEditTextBox_LostFocus"
+                                     Visibility="Collapsed"
+                                     ToolTip="{loc:Loc PathSelectorToolTip}" />
+
+                            <!-- Folder picker icon inside address bar, right-aligned -->
+                            <Button x:Name="BrowseButton"
+                                    Grid.Column="1"
+                                    Width="32" Height="Auto"
+                                    Padding="4,5"
+                                    Style="{StaticResource VP.ButtonIcon}"
+                                    Command="{Binding BrowseCommand}"
+                                    ToolTip="{loc:Loc BrowseButtonToolTip}">
+                                <TextBlock Text="&#xE838;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14" />
+                            </Button>
+                        </Grid>
+                    </Border>
                 </DockPanel>
             </Border>
 
-            <!-- ═══ Central Content ═══ -->
-            <Grid x:Name="ContentArea" Grid.Row="2">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" MinWidth="420" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition x:Name="ChatPanelColumn" Width="360" MinWidth="260" />
-                </Grid.ColumnDefinitions>
-
-                <Grid Grid.Column="0">
+            <!-- ═══ Left content (treemap + bottom panel) ═══ -->
+            <Grid Grid.Row="2" Grid.Column="0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*" MinHeight="220" />
                         <RowDefinition Height="Auto" />
@@ -339,18 +314,18 @@
                 </Grid>
 
                 <!-- Vertical splitter -->
-                <GridSplitter Grid.Column="1"
+                <GridSplitter x:Name="ChatSplitter"
+                              Grid.Row="2" Grid.Column="1"
                               Style="{StaticResource VP.GridSplitterV}"
                               Margin="4,0" />
 
-                <!-- Chat panel -->
+                <!-- Chat panel (spans toolbar + content rows, stops above status bar) -->
                 <views:ChatPanel x:Name="ChatPanel"
-                                 Grid.Column="2"
+                                 Grid.RowSpan="3" Grid.Column="2"
                                  Visibility="Visible" />
-            </Grid>
 
             <!-- ═══ Status Bar (flat) ═══ -->
-            <DockPanel Grid.Row="4" LastChildFill="False" Margin="4,0">
+            <DockPanel Grid.Row="4" Grid.ColumnSpan="2" LastChildFill="False" Margin="4,0">
                 <DockPanel.Resources>
                     <Style TargetType="TextBlock">
                         <Setter Property="Foreground" Value="{StaticResource VP.TextSecondaryBrush}" />

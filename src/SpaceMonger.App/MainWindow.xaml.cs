@@ -8,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
 using Microsoft.Extensions.DependencyInjection;
 using SpaceMonger.App.Diagnostics;
 using SpaceMonger.App.Helpers;
@@ -55,7 +56,7 @@ public partial class MainWindow : Window
         // Enable DWM backdrop and dark mode
         var hwnd = new WindowInteropHelper(this).EnsureHandle();
         AcrylicHelper.EnableDarkMode(hwnd);
-        AcrylicHelper.EnableAcrylic(hwnd);
+        AcrylicHelper.EnableMica(hwnd);
 
         // Hook WndProc for WM_GETMINMAXINFO (maximize bounds)
         var source = HwndSource.FromHwnd(hwnd);
@@ -155,6 +156,12 @@ public partial class MainWindow : Window
         {
             TreemapView.SetScanningState(mainVm.IsScanning, mainVm.ScanProgressText);
         }
+        else if (e.PropertyName is nameof(MainViewModel.SelectedPath))
+        {
+            // Update breadcrumb when user picks a folder via Browse (before scan)
+            if (_treemapViewModel?.CurrentRoot is null && !string.IsNullOrEmpty(mainVm.SelectedPath))
+                RebuildBreadcrumbBar();
+        }
     }
 
     public void SetViewModels(RecommendationsViewModel recsVm, SettingsViewModel settingsVm)
@@ -166,6 +173,8 @@ public partial class MainWindow : Window
         SettingsPage.DataContext = settingsVm;
         SettingsPage.BackRequested += HideSettingsPage;
         SettingsPage.SettingsChanged += OnSettingsChanged;
+        TitleBar.SettingsRequested += (_, _) => ShowSettingsPage();
+        TitleBar.CollapseChatRequested += (_, _) => ToggleChatPanel();
         RecommendationsPanel.SetViewModel(recsVm);
         RecommendationsPanel.AnalyzeRequested += OnAnalyzeRequested;
         RecommendationsPanel.CleanupRequested += OnCleanupRequested;
@@ -191,13 +200,9 @@ public partial class MainWindow : Window
             case nameof(TreemapViewModel.CanGoForward):
                 ForwardButton.IsEnabled = _treemapViewModel.CanGoForward;
                 break;
-            case nameof(TreemapViewModel.CanNavigateUp):
-                UpButton.IsEnabled = _treemapViewModel.CanNavigateUp;
-                break;
             case nameof(TreemapViewModel.CurrentRoot):
-                // Update path bar when navigating within the treemap
                 if (_treemapViewModel.CurrentRoot is not null)
-                    PathTextBox.Text = _treemapViewModel.CurrentRoot.Path;
+                    RebuildBreadcrumbBar();
                 break;
         }
     }
@@ -521,11 +526,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private void SettingsButton_Click(object sender, RoutedEventArgs e)
-    {
-        ShowSettingsPage();
-    }
-
     private void AnalyzeButton_Click(object sender, RoutedEventArgs e)
     {
         OnAnalyzeRequested();
@@ -541,25 +541,344 @@ public partial class MainWindow : Window
         _treemapViewModel?.NavigateForward();
     }
 
-    private void UpButton_Click(object sender, RoutedEventArgs e)
-    {
-        _treemapViewModel?.NavigateUp();
-    }
-
-    private void PathTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    private void PathEditTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
         if (e.Key == System.Windows.Input.Key.Enter)
         {
-            var path = PathTextBox.Text?.Trim();
+            var path = PathEditTextBox.Text?.Trim();
             if (!string.IsNullOrWhiteSpace(path))
             {
                 TreemapView.NavigateToPath(path);
             }
+            SwitchToBreadcrumbMode();
+            e.Handled = true;
+        }
+        else if (e.Key == System.Windows.Input.Key.Escape)
+        {
+            SwitchToBreadcrumbMode();
             e.Handled = true;
         }
     }
 
+    private void PathEditTextBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        SwitchToBreadcrumbMode();
+    }
+
+    private void AddressBar_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        // Only switch to edit mode if the click was on the container itself, not on breadcrumb buttons
+        var source = e.OriginalSource as DependencyObject;
+        while (source is not null)
+        {
+            if (source is Button)
+                return; // Click was on a breadcrumb segment button
+            if (source == sender)
+                break;
+            source = System.Windows.Media.VisualTreeHelper.GetParent(source);
+        }
+
+        if (BreadcrumbBar.Visibility == Visibility.Visible)
+        {
+            SwitchToEditMode();
+        }
+    }
+
+    private void SwitchToEditMode()
+    {
+        var path = _treemapViewModel?.CurrentRoot?.Path
+                   ?? (DataContext as MainViewModel)?.SelectedPath;
+        if (path is not null)
+        {
+            PathEditTextBox.Text = path;
+        }
+        BreadcrumbBar.Visibility = Visibility.Collapsed;
+        PathEditTextBox.Visibility = Visibility.Visible;
+        PathEditTextBox.Focus();
+        PathEditTextBox.SelectAll();
+    }
+
+    private void SwitchToBreadcrumbMode()
+    {
+        PathEditTextBox.Visibility = Visibility.Collapsed;
+        BreadcrumbBar.Visibility = Visibility.Visible;
+        RebuildBreadcrumbBar();
+    }
+
+    private bool _rebuildingBreadcrumbs;
+
+    private void RebuildBreadcrumbBar()
+    {
+        if (_rebuildingBreadcrumbs)
+            return;
+
+        _rebuildingBreadcrumbs = true;
+        try
+        {
+            BreadcrumbBar.Children.Clear();
+
+            // Determine current path: prefer treemap view, fall back to SelectedPath
+            var currentPath = _treemapViewModel?.CurrentRoot?.Path;
+            if (string.IsNullOrEmpty(currentPath))
+            {
+                currentPath = (DataContext as MainViewModel)?.SelectedPath;
+            }
+            if (string.IsNullOrEmpty(currentPath))
+                return;
+
+            var segments = ParsePathSegments(currentPath);
+
+            for (int i = 0; i < segments.Count; i++)
+            {
+                if (i > 0)
+                {
+                    // Separator "›" between segments (Windows 11 Explorer style)
+                    var sepBtn = new Button
+                    {
+                        Content = new TextBlock { Text = "›", FontSize = 14, Opacity = 0.6 },
+                        Background = Brushes.Transparent,
+                        BorderThickness = new Thickness(0),
+                        Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xAE, 0xAE, 0xB2)),
+                        Padding = new Thickness(2),
+                        Cursor = Cursors.Hand,
+                        Tag = segments[i].path,
+                    };
+                    var sepMenu = new ContextMenu();
+                    sepMenu.Opened += BreadcrumbDropdown_Opened;
+                    sepBtn.ContextMenu = sepMenu;
+                    sepBtn.Click += BreadcrumbChevron_Click;
+                    sepBtn.MouseEnter += (s, _) => ((Button)s).Foreground = (SolidColorBrush)FindResource("VP.TextPrimaryBrush");
+                    sepBtn.MouseLeave += (s, _) => ((Button)s).Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xAE, 0xAE, 0xB2));
+                    BreadcrumbBar.Children.Add(sepBtn);
+                }
+
+                string segPath = segments[i].path;
+                string segName = segments[i].name;
+
+                // ── Name button: click to navigate ──
+                var nameButton = new Button
+                {
+                    Content = new TextBlock
+                    {
+                        Text = segName,
+                        FontSize = 13,
+                        VerticalAlignment = VerticalAlignment.Center,
+                    },
+                    Background = Brushes.Transparent,
+                    BorderThickness = new Thickness(0),
+                    Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xE0, 0xE0, 0xE0)),
+                    Padding = new Thickness(4, 2, 2, 2),
+                    Cursor = Cursors.Hand,
+                    Tag = segPath,
+                };
+                nameButton.Click += BreadcrumbSegment_Click;
+                nameButton.MouseEnter += (s, _) =>
+                {
+                    ((Button)s).Background = (SolidColorBrush)FindResource("VP.SurfaceHoverBrush");
+                    ((Button)s).Foreground = (SolidColorBrush)FindResource("VP.TextPrimaryBrush");
+                };
+                nameButton.MouseLeave += (s, _) =>
+                {
+                    ((Button)s).Background = Brushes.Transparent;
+                    ((Button)s).Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xE0, 0xE0, 0xE0));
+                };
+                BreadcrumbBar.Children.Add(nameButton);
+            }
+
+            // Trailing › chevron (shows children of current folder)
+            if (segments.Count > 0)
+            {
+                var trailBtn = new Button
+                {
+                    Content = new TextBlock { Text = "›", FontSize = 14, Opacity = 0.6 },
+                    Background = Brushes.Transparent,
+                    BorderThickness = new Thickness(0),
+                    Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xAE, 0xAE, 0xB2)),
+                    Padding = new Thickness(2),
+                    Cursor = Cursors.Hand,
+                    Tag = segments[^1].path,
+                };
+                var trailMenu = new ContextMenu();
+                trailMenu.Opened += BreadcrumbDropdown_Opened;
+                trailBtn.ContextMenu = trailMenu;
+                trailBtn.Click += BreadcrumbChevron_Click;
+                trailBtn.MouseEnter += (s, _) => ((Button)s).Foreground = (SolidColorBrush)FindResource("VP.TextPrimaryBrush");
+                trailBtn.MouseLeave += (s, _) => ((Button)s).Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xAE, 0xAE, 0xB2));
+                BreadcrumbBar.Children.Add(trailBtn);
+            }
+        }
+        finally
+        {
+            _rebuildingBreadcrumbs = false;
+        }
+    }
+
+    private const string ThisPC = "此电脑";
+
+    private List<(string path, string name)> ParsePathSegments(string fullPath)
+    {
+        var result = new List<(string path, string name)>();
+        if (string.IsNullOrEmpty(fullPath))
+            return result;
+
+        // Always start with "此电脑" (This PC) — Windows 11 Explorer style
+        result.Add((ThisPC, ThisPC));
+
+        var parts = fullPath.Split(System.IO.Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0)
+            return result;
+
+        // Drive root (e.g., "C:")
+        string rootPart = parts[0];
+        result.Add(($"{rootPart}{System.IO.Path.DirectorySeparatorChar}", rootPart));
+
+        var accumulated = $"{rootPart}{System.IO.Path.DirectorySeparatorChar}";
+        for (int i = 1; i < parts.Length; i++)
+        {
+            accumulated += parts[i];
+            if (i < parts.Length - 1)
+                accumulated += System.IO.Path.DirectorySeparatorChar;
+            result.Add((accumulated, parts[i]));
+        }
+
+        return result;
+    }
+
+    private void BreadcrumbSegment_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string path && path != ThisPC)
+        {
+            TreemapView.NavigateToPath(path);
+        }
+        e.Handled = true;
+    }
+
+    private void BreadcrumbChevron_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.ContextMenu is ContextMenu cm)
+        {
+            cm.PlacementTarget = btn;
+            cm.IsOpen = true;
+        }
+        e.Handled = true;
+    }
+
+    private void BreadcrumbDropdown_Opened(object sender, RoutedEventArgs e)
+    {
+        if (sender is not ContextMenu menu)
+            return;
+
+        menu.Items.Clear();
+
+        // Find the directory path from the placement target's Tag
+        string? dirPath = null;
+        if (menu.PlacementTarget is FrameworkElement fe && fe.Tag is string tagPath)
+            dirPath = tagPath;
+
+        if (string.IsNullOrEmpty(dirPath))
+            return;
+
+        // Special case: "此电脑" → show all drives
+        if (dirPath == ThisPC)
+        {
+            var drives = (DataContext as MainViewModel)?.DriveList ?? new List<string>();
+            if (drives.Count == 0)
+            {
+                drives = DriveInfo.GetDrives()
+                    .Where(d => d.IsReady)
+                    .Select(d => d.Name)
+                    .ToList();
+            }
+
+            foreach (var drive in drives)
+            {
+                var item = new MenuItem { Header = drive, Tag = drive };
+                item.Click += (s, args) =>
+                {
+                    if (s is MenuItem mi && mi.Tag is string drivePath)
+                    {
+                        if (DataContext is MainViewModel mainVm)
+                            mainVm.SelectedPath = drivePath;
+                    }
+                };
+                menu.Items.Add(item);
+            }
+            return;
+        }
+
+        // Get children from the scanned tree
+        var dirEntry = FindEntryByPathInTree(_treemapViewModel?.ScanRoot, dirPath);
+        if (dirEntry is null)
+            return;
+
+        var children = dirEntry.Children
+            .Where(c => c.IsDirectory)
+            .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (children.Count == 0)
+        {
+            var emptyItem = new MenuItem { Header = L.Text("NoSubfoldersText"), IsEnabled = false };
+            menu.Items.Add(emptyItem);
+            return;
+        }
+
+        foreach (var child in children)
+        {
+            var item = new MenuItem { Header = child.Name, Tag = child.Path };
+            item.Click += (s, args) =>
+            {
+                if (s is MenuItem mi && mi.Tag is string childPath)
+                    TreemapView.NavigateToPath(childPath);
+            };
+            menu.Items.Add(item);
+        }
+    }
+
+    private static SpaceMonger.Core.Models.FileEntry? FindEntryByPathInTree(
+        SpaceMonger.Core.Models.FileEntry? root, string targetPath)
+    {
+        if (root is null)
+            return null;
+        if (string.Equals(root.Path, targetPath, StringComparison.OrdinalIgnoreCase))
+            return root;
+        foreach (var child in root.Children)
+        {
+            if (child.IsDirectory)
+            {
+                var found = FindEntryByPathInTree(child, targetPath);
+                if (found is not null)
+                    return found;
+            }
+        }
+        return null;
+    }
+
     private void OpenSettingsDialog() => ShowSettingsPage();
+
+    private bool _isChatCollapsed;
+
+    private void ToggleChatPanel()
+    {
+        _isChatCollapsed = !_isChatCollapsed;
+
+        if (_isChatCollapsed)
+        {
+            ChatPanelColumn.Width = new GridLength(0);
+            ChatPanelColumn.MinWidth = 0;
+            ChatPanel.Visibility = Visibility.Collapsed;
+            ChatSplitter.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            ChatPanelColumn.Width = new GridLength(360);
+            ChatPanelColumn.MinWidth = 260;
+            ChatPanel.Visibility = Visibility.Visible;
+            ChatSplitter.Visibility = Visibility.Visible;
+        }
+
+        TitleBar.UpdateCollapseIcon(!_isChatCollapsed);
+    }
 
     private void ShowSettingsPage()
     {
