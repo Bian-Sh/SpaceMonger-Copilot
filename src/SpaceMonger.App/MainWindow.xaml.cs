@@ -92,6 +92,7 @@ public partial class MainWindow : Window
 
             // Always rebuild breadcrumb on startup — belt-and-suspenders with PropertyChanged
             RebuildBreadcrumbBar();
+        _justExitedEditMode = true;
         }
 
         _acceptanceAutomationServer ??= AcceptanceAutomationServer.StartIfEnabled(this);
@@ -192,6 +193,7 @@ public partial class MainWindow : Window
             if (_suppressSelectedPathNavigation)
             {
                 RebuildBreadcrumbBar();
+        _justExitedEditMode = true;
                 return;
             }
 
@@ -243,6 +245,7 @@ public partial class MainWindow : Window
                 {
                     _displayPathOverride = null;
                     RebuildBreadcrumbBar();
+        _justExitedEditMode = true;
                 }
                 break;
         }
@@ -608,7 +611,6 @@ public partial class MainWindow : Window
 
     private void PathEditTextBox_LostFocus(object sender, RoutedEventArgs e)
     {
-        _justExitedEditMode = true;
         SwitchToBreadcrumbMode();
     }
 
@@ -626,7 +628,6 @@ public partial class MainWindow : Window
             {
                 SwitchToBreadcrumbMode();
                 Keyboard.ClearFocus();
-                _justExitedEditMode = true;
                 e.Handled = true;
             }
             return;
@@ -641,7 +642,6 @@ public partial class MainWindow : Window
 
         SwitchToBreadcrumbMode();
         Keyboard.ClearFocus();
-        _justExitedEditMode = true;
     }
 
     private void AddressBar_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -704,6 +704,7 @@ public partial class MainWindow : Window
         PathEditTextBox.Visibility = Visibility.Collapsed;
         BreadcrumbBar.Visibility = Visibility.Visible;
         RebuildBreadcrumbBar();
+        _justExitedEditMode = true;
     }
 
     private bool _rebuildingBreadcrumbs;
@@ -1047,6 +1048,7 @@ public partial class MainWindow : Window
 
         UpdateSelectedPathFromNavigation(path, updateSelectedPath);
         RebuildBreadcrumbBar();
+        _justExitedEditMode = true;
     }
 
     private void UpdateSelectedPathFromNavigation(string path, bool updateSelectedPath)
