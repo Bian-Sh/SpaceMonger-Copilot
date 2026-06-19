@@ -49,9 +49,6 @@ public partial class MainWindow : Window
     private ChatViewModel? _chatViewModel;
     private AcceptanceAutomationServer? _acceptanceAutomationServer;
     private string? _displayPathOverride;
-    private bool _justExitedEditMode;
-    private bool _suppressNextEditMode;
-    private int _lastBreadcrumbSwitchTick;
     private bool _suppressSelectedPathNavigation;
 
     public MainWindow()
@@ -94,8 +91,6 @@ public partial class MainWindow : Window
 
             // Always rebuild breadcrumb on startup — belt-and-suspenders with PropertyChanged
             RebuildBreadcrumbBar();
-        _suppressNextEditMode = true;
-        _justExitedEditMode = true;
         }
 
         _acceptanceAutomationServer ??= AcceptanceAutomationServer.StartIfEnabled(this);
@@ -196,7 +191,6 @@ public partial class MainWindow : Window
             if (_suppressSelectedPathNavigation)
             {
                 RebuildBreadcrumbBar();
-        _justExitedEditMode = true;
                 return;
             }
 
@@ -248,7 +242,6 @@ public partial class MainWindow : Window
                 {
                     _displayPathOverride = null;
                     RebuildBreadcrumbBar();
-        _justExitedEditMode = true;
                 }
                 break;
         }
@@ -614,58 +607,28 @@ public partial class MainWindow : Window
 
     private void PathEditTextBox_LostFocus(object sender, RoutedEventArgs e)
     {
-        SwitchToBreadcrumbMode();
+        ExitPathEditMode();
     }
 
     private void Window_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        _suppressNextEditMode = false;
-        // Each new click starts a fresh interaction cycle.
-        _justExitedEditMode = false;
+        if (PathEditTextBox.Visibility != Visibility.Visible)
+            return;
 
-        if (PathEditTextBox.Visibility == Visibility.Visible)
+        if (IsOriginalSourceWithin(e.OriginalSource, PathEditTextBox)
+            || IsOriginalSourceWithin(e.OriginalSource, BrowseButton))
         {
-            // In edit mode: clicking anywhere outside the TextBox and BrowseButton
-            // exits edit mode, regardless of keyboard focus state.
-            if (!IsOriginalSourceWithin(e.OriginalSource, PathEditTextBox)
-                && !IsOriginalSourceWithin(e.OriginalSource, BrowseButton))
-            {
-                SwitchToBreadcrumbMode();
-                Keyboard.ClearFocus();
-                e.Handled = true;
-            }
             return;
         }
 
-        // Fix 4: Defocus PathEditTextBox when clicking anywhere outside the address bar
-        if (!PathEditTextBox.IsFocused)
-            return;
-
-        if (IsOriginalSourceWithin(e.OriginalSource, AddressBarBorder))
-            return; // Inside address bar — keep focus
-
-        SwitchToBreadcrumbMode();
+        ExitPathEditMode();
         Keyboard.ClearFocus();
     }
-
 
     private void AddressBar_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         if (PathEditTextBox.Visibility == Visibility.Visible)
             return;
-
-        if (_suppressNextEditMode)
-        {
-            _suppressNextEditMode = false;
-            return;
-        }
-
-
-        if (_justExitedEditMode)
-        {
-            _justExitedEditMode = false;
-            return;
-        }
 
         // Only switch to edit mode if the click was on the container itself, not on breadcrumb buttons
         var source = e.OriginalSource as DependencyObject;
@@ -684,7 +647,6 @@ public partial class MainWindow : Window
         }
     }
 
-
     private static bool IsOriginalSourceWithin(object originalSource, DependencyObject target)
     {
         var source = originalSource as DependencyObject;
@@ -696,7 +658,6 @@ public partial class MainWindow : Window
         }
         return false;
     }
-
     private void SwitchToEditMode()
     {
         var path = _treemapViewModel?.CurrentRoot?.Path
@@ -713,10 +674,17 @@ public partial class MainWindow : Window
 
     private void SwitchToBreadcrumbMode()
     {
+        ExitPathEditMode();
+    }
+
+    private void ExitPathEditMode()
+    {
+        if (PathEditTextBox.Visibility != Visibility.Visible)
+            return;
+
         PathEditTextBox.Visibility = Visibility.Collapsed;
         BreadcrumbBar.Visibility = Visibility.Visible;
         RebuildBreadcrumbBar();
-        _justExitedEditMode = true;
     }
 
     private bool _rebuildingBreadcrumbs;
@@ -1060,7 +1028,6 @@ public partial class MainWindow : Window
 
         UpdateSelectedPathFromNavigation(path, updateSelectedPath);
         RebuildBreadcrumbBar();
-        _justExitedEditMode = true;
     }
 
     private void UpdateSelectedPathFromNavigation(string path, bool updateSelectedPath)
@@ -1320,3 +1287,4 @@ public sealed record ConsoleLogEntry(DateTime Timestamp, ConsoleLogLevel Level, 
     public string ToLogLine() => $"[{Timestamp:HH:mm:ss}] [{Level}] {Message}";
 
 }
+
