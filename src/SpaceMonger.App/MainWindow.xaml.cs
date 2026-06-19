@@ -617,17 +617,18 @@ public partial class MainWindow : Window
         // Each new click starts a fresh interaction cycle.
         _justExitedEditMode = false;
 
-        // When in edit mode, clicking on the address bar border area
-        // (not on TextBox or BrowseButton) should exit edit mode.
-        if (PathEditTextBox.Visibility == Visibility.Visible
-            && IsOriginalSourceWithin(e.OriginalSource, AddressBarBorder)
-            && !IsOriginalSourceWithin(e.OriginalSource, PathEditTextBox)
-            && !IsOriginalSourceWithin(e.OriginalSource, BrowseButton))
+        if (PathEditTextBox.Visibility == Visibility.Visible)
         {
-            SwitchToBreadcrumbMode();
-            Keyboard.ClearFocus();
-            _justExitedEditMode = true;
-            e.Handled = true;
+            // In edit mode: clicking anywhere outside the TextBox and BrowseButton
+            // exits edit mode, regardless of keyboard focus state.
+            if (!IsOriginalSourceWithin(e.OriginalSource, PathEditTextBox)
+                && !IsOriginalSourceWithin(e.OriginalSource, BrowseButton))
+            {
+                SwitchToBreadcrumbMode();
+                Keyboard.ClearFocus();
+                _justExitedEditMode = true;
+                e.Handled = true;
+            }
             return;
         }
 
@@ -635,7 +636,6 @@ public partial class MainWindow : Window
         if (!PathEditTextBox.IsFocused)
             return;
 
-        // Check if the click is inside the AddressBarBorder — if so, don’t defocus
         if (IsOriginalSourceWithin(e.OriginalSource, AddressBarBorder))
             return; // Inside address bar — keep focus
 

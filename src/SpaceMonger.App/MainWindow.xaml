@@ -1,4 +1,4 @@
-<Window x:Class="SpaceMonger.App.MainWindow"
+﻿<Window x:Class="SpaceMonger.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -37,12 +37,12 @@
             <RowDefinition Height="*" />   <!-- Content -->
         </Grid.RowDefinitions>
 
-        <!-- ═══ Custom Title Bar ═══ -->
+        <!-- 鈺愨晲鈺?Custom Title Bar 鈺愨晲鈺?-->
         <controls:WindowTitleBar x:Name="TitleBar"
                                  Grid.Row="0"
-                                 WindowChrome.IsHitTestVisibleInChrome="False" />
+                                 WindowChrome.IsHitTestVisibleInChrome="True" />
 
-        <!-- ═══ Main Content ═══ -->
+        <!-- 鈺愨晲鈺?Main Content 鈺愨晲鈺?-->
         <Grid Grid.Row="1" Margin="8,0,8,8">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />   <!-- Toolbar -->
@@ -57,7 +57,7 @@
                 <ColumnDefinition x:Name="ChatPanelColumn" Width="360" MinWidth="260" />
             </Grid.ColumnDefinitions>
 
-            <!-- ═══ Toolbar (aligned with treemap, not chat panel) ═══ -->
+            <!-- 鈺愨晲鈺?Toolbar (aligned with treemap, not chat panel) 鈺愨晲鈺?-->
             <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource VP.GlassPanel}" Padding="8,6">
                 <DockPanel LastChildFill="True">
 
@@ -133,7 +133,7 @@
                             Command="{Binding ScanCommand}"
                             ToolTip="{loc:Loc ScanButtonToolTip}" />
 
-                    <!-- Address bar: LAST child → fills remaining space between nav and action buttons -->
+                    <!-- Address bar: LAST child 鈫?fills remaining space between nav and action buttons -->
                     <Border x:Name="AddressBarBorder"
                             DockPanel.Dock="Left"
                             Background="{StaticResource VP.SurfaceBrush}"
@@ -199,7 +199,7 @@
                 </DockPanel>
             </Border>
 
-            <!-- ═══ Left content (treemap + bottom panel) ═══ -->
+            <!-- 鈺愨晲鈺?Left content (treemap + bottom panel) 鈺愨晲鈺?-->
             <Grid Grid.Row="2" Grid.Column="0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*" MinHeight="220" />
@@ -345,7 +345,7 @@
                                  Grid.RowSpan="3" Grid.Column="2"
                                  Visibility="Visible" />
 
-            <!-- ═══ Status Bar (flat) ═══ -->
+            <!-- 鈺愨晲鈺?Status Bar (flat) 鈺愨晲鈺?-->
             <DockPanel Grid.Row="4" Grid.ColumnSpan="2" LastChildFill="False" Margin="4,0">
                 <DockPanel.Resources>
                     <Style TargetType="TextBlock">
@@ -400,7 +400,7 @@
             </DockPanel>
         </Grid>
 
-        <!-- ═══ Settings Page Overlay ═══ -->
+        <!-- 鈺愨晲鈺?Settings Page Overlay 鈺愨晲鈺?-->
         <views:SettingsPage x:Name="SettingsPage"
                             Grid.RowSpan="2"
                             Panel.ZIndex="100"
