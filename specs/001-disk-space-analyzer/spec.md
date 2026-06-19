@@ -218,6 +218,8 @@ The application includes a small chat panel where the user can ask the AI questi
 
 ## Success Criteria *(mandatory)*
 
+> **2026-06-19 documentation addendum**: Later implementation work introduced additional requirements around WPF navigation, breadcrumb dropdown behavior, localized settings, diagnostics console, acceptance automation, release packaging, and PC Use validation. The reconstructed Chinese PRD lives at `docs/product-requirements-reconstructed-2026-06-19.md` and should be treated as the current gap-filling requirements index until those items are fully merged into this canonical SDD spec.
+
 ### Measurable Outcomes
 
 - **SC-001**: Users can scan a 500,000-file drive and see the complete treemap visualization within 60 seconds.
