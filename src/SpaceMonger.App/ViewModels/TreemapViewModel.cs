@@ -239,7 +239,7 @@ public partial class TreemapViewModel : ObservableObject
 
     private static FileEntry? FindEntryByPath(FileEntry root, string targetPath)
     {
-        if (string.Equals(root.Path, targetPath, StringComparison.OrdinalIgnoreCase))
+        if (PathsEqual(root.Path, targetPath))
             return root;
 
         foreach (var child in root.Children)
@@ -253,6 +253,28 @@ public partial class TreemapViewModel : ObservableObject
         }
 
         return null;
+    }
+
+    private static bool PathsEqual(string left, string right)
+    {
+        return string.Equals(NormalizeComparablePath(left), NormalizeComparablePath(right), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizeComparablePath(string path)
+    {
+        try
+        {
+            var normalized = Path.GetFullPath(path.Trim());
+            var root = Path.GetPathRoot(normalized);
+            if (!string.IsNullOrEmpty(root) && string.Equals(normalized, root, StringComparison.OrdinalIgnoreCase))
+                return root;
+
+            return normalized.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+        catch
+        {
+            return path.Trim().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
     }
 
     public void NavigateTo(int breadcrumbIndex)
