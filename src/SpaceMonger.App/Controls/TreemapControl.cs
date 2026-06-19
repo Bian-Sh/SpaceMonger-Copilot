@@ -12,6 +12,19 @@ namespace SpaceMonger.App.Controls;
 
 public class TreemapControl : SKElement
 {
+    private const string TreemapGlyphProbe = "中文";
+
+    private static readonly string[] TreemapFontFamilies =
+    [
+        "Microsoft YaHei UI",
+        "Microsoft YaHei",
+        "SimSun",
+        "NSimSun",
+        "Segoe UI",
+    ];
+
+    private static readonly Lazy<SKTypeface> TreemapTypeface = new(CreateTreemapTypeface);
+
     private List<TreemapNode>? _nodes;
     private readonly ToolTip _toolTip;
     private TreemapNode? _lastHoveredNode;
@@ -122,7 +135,7 @@ public class TreemapControl : SKElement
             float headerHeight = GetHeaderHeight(node.Depth, node.Height);
             const float fontSize = 11f;
 
-            using var headerFont = new SKFont(SKTypeface.Default, fontSize);
+            using var headerFont = CreateTreemapFont(fontSize);
             var label = TruncateLabel(node.Label, headerFont, node.Width - 6f);
             if (label is not null)
             {
@@ -167,7 +180,7 @@ public class TreemapControl : SKElement
             const float fontSize = 11f;
             if (rect.Width > 20 && rect.Height > fontSize + 2)
             {
-                using var font = new SKFont(SKTypeface.Default, fontSize);
+                using var font = CreateTreemapFont(fontSize);
                 var label = TruncateLabel(node.Label, font, rect.Width - 6f);
                 if (label is not null)
                 {
@@ -192,6 +205,36 @@ public class TreemapControl : SKElement
         h = Math.Max(h, 14f);
         h = Math.Min(h, availableHeight * 0.4f);
         return h;
+    }
+
+    internal static SKFont CreateTreemapFont(float fontSize) => new(TreemapTypeface.Value, fontSize);
+
+    private static SKTypeface CreateTreemapTypeface()
+    {
+        foreach (var family in TreemapFontFamilies)
+        {
+            var typeface = SKTypeface.FromFamilyName(family);
+            if (typeface is not null && SupportsTreemapGlyphs(typeface))
+            {
+                return typeface;
+            }
+
+            typeface?.Dispose();
+        }
+
+        var matchedTypeface = SKFontManager.Default.MatchCharacter('中');
+        if (matchedTypeface is not null && SupportsTreemapGlyphs(matchedTypeface))
+        {
+            return matchedTypeface;
+        }
+
+        return SKTypeface.Default;
+    }
+
+    private static bool SupportsTreemapGlyphs(SKTypeface typeface)
+    {
+        using var font = new SKFont(typeface, 11f);
+        return font.ContainsGlyphs(TreemapGlyphProbe);
     }
 
     public TreemapNode? HitTest(double x, double y)
