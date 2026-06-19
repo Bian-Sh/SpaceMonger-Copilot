@@ -48,8 +48,8 @@ public partial class MainWindow : Window
     private SettingsViewModel? _settingsViewModel;
     private ChatViewModel? _chatViewModel;
     private AcceptanceAutomationServer? _acceptanceAutomationServer;
-    private DateTime _lastBreadcrumbSwitchUtc = DateTime.MinValue;
     private string? _displayPathOverride;
+    private bool _suppressNextEditMode;
     private bool _suppressSelectedPathNavigation;
 
     public MainWindow()
@@ -613,18 +613,27 @@ public partial class MainWindow : Window
 
     private void Window_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        // When in edit mode, clicking on the address bar border area
+        // (not on TextBox or BrowseButton) should exit edit mode.
+        if (PathEditTextBox.Visibility == Visibility.Visible
+            && IsOriginalSourceWithin(e.OriginalSource, AddressBarBorder)
+            && !IsOriginalSourceWithin(e.OriginalSource, PathEditTextBox)
+            && !IsOriginalSourceWithin(e.OriginalSource, BrowseButton))
+        {
+            SwitchToBreadcrumbMode();
+            Keyboard.ClearFocus();
+            _suppressNextEditMode = true;
+            e.Handled = true;
+            return;
+        }
+
         // Fix 4: Defocus PathEditTextBox when clicking anywhere outside the address bar
         if (!PathEditTextBox.IsFocused)
             return;
 
         // Check if the click is inside the AddressBarBorder — if so, don't defocus
-        var depObj = e.OriginalSource as DependencyObject;
-        while (depObj is not null)
-        {
-            if (depObj == AddressBarBorder)
-                return; // Inside address bar — keep focus
-            depObj = System.Windows.Media.VisualTreeHelper.GetParent(depObj);
-        }
+        if (IsOriginalSourceWithin(e.OriginalSource, AddressBarBorder))
+            return; // Inside address bar — keep focus
 
         SwitchToBreadcrumbMode();
         Keyboard.ClearFocus();
@@ -635,8 +644,11 @@ public partial class MainWindow : Window
         if (PathEditTextBox.Visibility == Visibility.Visible)
             return;
 
-        if ((DateTime.UtcNow - _lastBreadcrumbSwitchUtc).TotalMilliseconds < 250)
+        if (_suppressNextEditMode)
+        {
+            _suppressNextEditMode = false;
             return;
+        }
 
         // Only switch to edit mode if the click was on the container itself, not on breadcrumb buttons
         var source = e.OriginalSource as DependencyObject;
@@ -655,6 +667,18 @@ public partial class MainWindow : Window
         }
     }
 
+
+    private static bool IsOriginalSourceWithin(object originalSource, DependencyObject target)
+    {
+        var source = originalSource as DependencyObject;
+        while (source is not null)
+        {
+            if (source == target)
+                return true;
+            source = System.Windows.Media.VisualTreeHelper.GetParent(source);
+        }
+        return false;
+    }
 
     private void SwitchToEditMode()
     {
@@ -675,7 +699,6 @@ public partial class MainWindow : Window
         PathEditTextBox.Visibility = Visibility.Collapsed;
         BreadcrumbBar.Visibility = Visibility.Visible;
         RebuildBreadcrumbBar();
-        _lastBreadcrumbSwitchUtc = DateTime.UtcNow;
     }
 
     private bool _rebuildingBreadcrumbs;
