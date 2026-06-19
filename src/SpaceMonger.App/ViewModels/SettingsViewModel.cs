@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SpaceMonger.App.Localization;
 using SpaceMonger.Core.Enums;
@@ -56,12 +56,32 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private string? _validationMessage;
 
+    [ObservableProperty]
+    private string _validationStatusText = string.Empty;
+
     public SettingsViewModel(ISettingsService settingsService, ILlmClient llmClient)
     {
         _settingsService = settingsService;
         _llmClient = llmClient;
+        L.LanguageChanged += RefreshValidationStatusText;
 
         LoadSettings();
+    }
+
+    partial void OnValidationStateChanged(ValidationState value)
+    {
+        RefreshValidationStatusText();
+    }
+
+    private void RefreshValidationStatusText()
+    {
+        ValidationStatusText = ValidationState switch
+        {
+            ValidationState.Validating => L.Text("SettingsValidationValidating"),
+            ValidationState.Valid => L.Text("SettingsValidationValid"),
+            ValidationState.Invalid => L.Text("SettingsValidationInvalid"),
+            _ => string.Empty
+        };
     }
 
     public static IReadOnlyList<LanguageOption> LanguageOptions { get; } =
