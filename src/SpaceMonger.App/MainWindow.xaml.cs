@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -9,6 +9,7 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Data;
 using Microsoft.Extensions.DependencyInjection;
 using SpaceMonger.App.Diagnostics;
 using SpaceMonger.App.Helpers;
@@ -24,6 +25,11 @@ namespace SpaceMonger.App;
 /// <summary>
 /// Interaction logic for MainWindow.xaml
 /// </summary>
+/// <summary>
+/// Lightweight data object for breadcrumb dropdown items（面包屑下拉数据项）
+/// </summary>
+internal record BreadcrumbItem(string Name, string Path);
+
 public partial class MainWindow : Window
 {
     private const double DefaultRecommendationsHeight = 260;
@@ -41,6 +47,9 @@ public partial class MainWindow : Window
     private TreemapViewModel? _treemapViewModel;
     private SettingsViewModel? _settingsViewModel;
     private ChatViewModel? _chatViewModel;
+    private AcceptanceAutomationServer? _acceptanceAutomationServer;
+    private string? _displayPathOverride;
+    private bool _suppressSelectedPathNavigation;
 
     public MainWindow()
     {
@@ -49,6 +58,7 @@ public partial class MainWindow : Window
         AppendConsoleLine("Console log file: " + _consoleLogPath, ConsoleLogLevel.Info);
         Loaded += MainWindow_Loaded;
         StateChanged += MainWindow_StateChanged;
+        Closed += (_, _) => _acceptanceAutomationServer?.Dispose();
     }
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -65,6 +75,7 @@ public partial class MainWindow : Window
         if (DataContext is MainViewModel mainVm)
         {
             mainVm.PropertyChanged += MainViewModel_PropertyChanged;
+            mainVm.GetCurrentViewPath = GetScanTargetPath;
             TreemapView.SetScanningState(mainVm.IsScanning, mainVm.ScanProgressText);
 
             // Set default path to first available drive
@@ -81,6 +92,8 @@ public partial class MainWindow : Window
             // Always rebuild breadcrumb on startup — belt-and-suspenders with PropertyChanged
             RebuildBreadcrumbBar();
         }
+
+        _acceptanceAutomationServer ??= AcceptanceAutomationServer.StartIfEnabled(this);
     }
 
     private void MainWindow_StateChanged(object? sender, EventArgs e)
@@ -172,9 +185,16 @@ public partial class MainWindow : Window
         }
         else if (e.PropertyName is nameof(MainViewModel.SelectedPath))
         {
-            // Update breadcrumb whenever SelectedPath changes
-            if (!string.IsNullOrEmpty(mainVm.SelectedPath))
+            if (string.IsNullOrWhiteSpace(mainVm.SelectedPath))
+                return;
+
+            if (_suppressSelectedPathNavigation)
+            {
                 RebuildBreadcrumbBar();
+                return;
+            }
+
+            NavigateToPathOrSelect(mainVm.SelectedPath, updateSelectedPath: false);
         }
     }
 
@@ -219,7 +239,10 @@ public partial class MainWindow : Window
                 break;
             case nameof(TreemapViewModel.CurrentRoot):
                 if (_treemapViewModel.CurrentRoot is not null)
+                {
+                    _displayPathOverride = null;
                     RebuildBreadcrumbBar();
+                }
                 break;
         }
     }
@@ -662,8 +685,7 @@ public partial class MainWindow : Window
         {
             BreadcrumbBar.Children.Clear();
 
-            // Determine current path: prefer treemap view, fall back to SelectedPath
-            var currentPath = _treemapViewModel?.CurrentRoot?.Path;
+            var currentPath = _displayPathOverride ?? _treemapViewModel?.CurrentRoot?.Path;
             if (string.IsNullOrEmpty(currentPath))
             {
                 currentPath = (DataContext as MainViewModel)?.SelectedPath;
@@ -838,14 +860,32 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    /// <summary>
+    /// Populates a breadcrumb chevron ContextMenu on open.
+    /// Uses ItemsSource + VirtualizingStackPanel for smooth scrolling and O(visible) perf
+    /// even with hundreds of subfolders — matches Windows 11 Explorer flyout behavior.
+    /// </summary>
     private void BreadcrumbDropdown_Opened(object sender, RoutedEventArgs e)
     {
         if (sender is not ContextMenu menu)
             return;
 
-        menu.Items.Clear();
+        // Detach previous ItemsSource so we can repopulate
+        menu.ItemsSource = null;
 
-        // Find the directory path from the placement target's Tag
+        // Cap dropdown height: ~12 items or 70% of screen, whichever is smaller
+        double itemHeight = 32;
+        double maxItems = 12;
+        double screenMax = System.Windows.SystemParameters.WorkArea.Height * 0.7;
+        menu.MaxHeight = Math.Min(itemHeight * maxItems, screenMax);
+
+        // Ensure virtualizing panel for perf with long lists
+        menu.ItemsPanel = s_breadcrumbItemsPanel;
+
+        // One-time template + style setup (lazy, cached on first call)
+        EnsureBreadcrumbMenuTemplate(menu);
+
+        // Discover target directory
         string? dirPath = null;
         if (menu.PlacementTarget is FrameworkElement fe && fe.Tag is string tagPath)
             dirPath = tagPath;
@@ -853,109 +893,167 @@ public partial class MainWindow : Window
         if (string.IsNullOrEmpty(dirPath))
             return;
 
-        // Special case: "此电脑" → show all drives
+        List<BreadcrumbItem> items;
+
+        // ── "此电脑" → list drives ──
         if (dirPath == ThisPC)
         {
-            var drives = DriveInfo.GetDrives()
+            items = DriveInfo.GetDrives()
                 .Where(d => d.IsReady)
-                .Select(d => d.Name)
+                .Select(d => new BreadcrumbItem(d.Name, d.Name))
                 .ToList();
-
-            foreach (var drive in drives)
-            {
-                var item = new MenuItem { Header = drive, Tag = drive };
-                item.Click += (s, args) =>
-                {
-                    if (s is MenuItem mi && mi.Tag is string drivePath)
-                        NavigateToPathOrSelect(drivePath);
-                };
-                menu.Items.Add(item);
-            }
-            return;
         }
-
-        // Try to get children from the scanned tree first
-        var dirEntry = FindEntryByPathInTree(_treemapViewModel?.ScanRoot, dirPath);
-        if (dirEntry is not null)
+        else
         {
-            var children = dirEntry.Children
-                .Where(c => c.IsDirectory)
-                .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
-                .ToList();
+            // ── Try scanned tree first ──
+            var dirEntry = FindEntryByPathInTree(_treemapViewModel?.ScanRoot, dirPath);
+            if (dirEntry is not null)
+            {
+                var children = dirEntry.Children
+                    .Where(c => c.IsDirectory)
+                    .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
 
-            if (children.Count == 0)
-            {
-                // Even with scan data, the folder might have no scanned subfolders
-                // Fall through to filesystem listing
-            }
-            else
-            {
-                foreach (var child in children)
+                if (children.Count > 0)
                 {
-                    var item = new MenuItem { Header = child.Name, Tag = child.Path };
-                    item.Click += (s, args) =>
-                    {
-                        if (s is MenuItem mi && mi.Tag is string childPath)
-                            NavigateToPathOrSelect(childPath);
-                    };
-                    menu.Items.Add(item);
+                    items = children.Select(c => new BreadcrumbItem(c.Name, c.Path)).ToList();
+                    menu.ItemsSource = items;
+                    return;
                 }
-                return;
+                // Empty scan results → fall through to filesystem
             }
-        }
 
-        // No scan data or empty scan results — list subfolders from filesystem directly
-        try
-        {
-            var subDirs = System.IO.Directory.GetDirectories(dirPath)
-                .Select(d => new { Path = d, Name = System.IO.Path.GetFileName(d) })
-                .OrderBy(d => d.Name, StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
-            if (subDirs.Count == 0)
+            // ── Filesystem fallback ──
+            try
             {
-                var emptyItem = new MenuItem { Header = L.Text("NoSubfoldersText"), IsEnabled = false };
-                menu.Items.Add(emptyItem);
-                return;
+                items = System.IO.Directory.GetDirectories(dirPath)
+                    .Select(d => new BreadcrumbItem(System.IO.Path.GetFileName(d), d))
+                    .OrderBy(d => d.Name, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
             }
-
-            foreach (var subDir in subDirs)
+            catch (Exception)
             {
-                var item = new MenuItem { Header = subDir.Name, Tag = subDir.Path };
-                item.Click += (s, args) =>
-                {
-                    if (s is MenuItem mi && mi.Tag is string childPath)
-                        NavigateToPathOrSelect(childPath);
-                };
-                menu.Items.Add(item);
+                items = new List<BreadcrumbItem>();
             }
         }
-        catch (Exception)
+
+        // Empty state
+        if (items.Count == 0)
         {
-            var errorItem = new MenuItem { Header = L.Text("NoSubfoldersText"), IsEnabled = false };
-            menu.Items.Add(errorItem);
+            items.Add(new BreadcrumbItem(L.Text("NoSubfoldersText"), ""));
         }
+
+        menu.ItemsSource = items;
+    }
+
+    /// <summary>Shared VirtualizingStackPanel template — avoids allocating per-dropdown.</summary>
+    private static readonly ItemsPanelTemplate s_breadcrumbItemsPanel =
+        new ItemsPanelTemplate(new FrameworkElementFactory(typeof(VirtualizingStackPanel)));
+
+    /// <summary>Lazy-init ItemTemplate + ItemContainerStyle for breadcrumb ContextMenus.</summary>
+    private void EnsureBreadcrumbMenuTemplate(ContextMenu menu)
+    {
+        if (menu.ItemTemplate is not null)
+            return; // already set
+
+        // ItemTemplate: simple TextBlock bound to BreadcrumbItem.Name
+        var textFactory = new FrameworkElementFactory(typeof(TextBlock));
+        textFactory.SetBinding(TextBlock.TextProperty, new Binding("Name"));
+        textFactory.SetValue(TextBlock.PaddingProperty, new Thickness(8, 6, 8, 6));
+        textFactory.SetValue(TextBlock.FontSizeProperty, 13.0);
+        textFactory.SetValue(TextBlock.FontFamilyProperty, (System.Windows.Media.FontFamily)FindResource("VP.FontFamily"));
+        menu.ItemTemplate = new DataTemplate(typeof(BreadcrumbItem)) { VisualTree = textFactory };
+
+        // ItemContainerStyle: hover highlight + click handler
+        var style = new Style(typeof(MenuItem));
+
+        // Hover background
+        var hoverTrigger = new Trigger { Property = MenuItem.IsHighlightedProperty, Value = true };
+        hoverTrigger.Setters.Add(new Setter(MenuItem.BackgroundProperty, FindResource("VP.SurfaceHoverBrush")));
+        style.Triggers.Add(hoverTrigger);
+
+        // Disabled items (empty state with Path = "")
+        var disabledTrigger = new DataTrigger
+        {
+            Binding = new Binding("Path"),
+            Value = ""
+        };
+        disabledTrigger.Setters.Add(new Setter(MenuItem.IsEnabledProperty, false));
+        style.Triggers.Add(disabledTrigger);
+
+        // Click → navigate
+        var clickSetter = new EventSetter(MenuItem.ClickEvent, new RoutedEventHandler((s, args) =>
+        {
+            if (s is MenuItem mi && mi.DataContext is BreadcrumbItem bi && !string.IsNullOrEmpty(bi.Path))
+                NavigateToPathOrSelect(bi.Path);
+        }));
+        style.Setters.Add(clickSetter);
+
+        menu.ItemContainerStyle = style;
     }
 
     /// <summary>
     /// Navigate to a path: use treemap navigation if scan data exists,
     /// otherwise update SelectedPath for breadcrumb display.
     /// </summary>
-    private void NavigateToPathOrSelect(string path)
+    private void NavigateToPathOrSelect(string path, bool updateSelectedPath = true)
     {
+        _displayPathOverride = null;
+
         if (_treemapViewModel is not null)
         {
             if (TreemapView.NavigateToPath(path))
+            {
+                UpdateSelectedPathFromNavigation(path, updateSelectedPath);
                 return;
+            }
 
             _treemapViewModel.NavigateToExternalPath(path);
+            _displayPathOverride = path;
         }
 
-        if (DataContext is MainViewModel mainVm)
+        UpdateSelectedPathFromNavigation(path, updateSelectedPath);
+        RebuildBreadcrumbBar();
+    }
+
+    private void UpdateSelectedPathFromNavigation(string path, bool updateSelectedPath)
+    {
+        if (!updateSelectedPath || DataContext is not MainViewModel mainVm)
+            return;
+
+        if (string.Equals(mainVm.SelectedPath, path, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        _suppressSelectedPathNavigation = true;
+        try
         {
             mainVm.SelectedPath = path;
-            RebuildBreadcrumbBar();
         }
+        finally
+        {
+            _suppressSelectedPathNavigation = false;
+        }
+    }
+
+    private string? GetScanTargetPath()
+    {
+        if (!string.IsNullOrWhiteSpace(_displayPathOverride))
+            return _displayPathOverride;
+
+        if (DataContext is MainViewModel mainVm
+            && !string.IsNullOrWhiteSpace(mainVm.SelectedPath)
+            && !string.Equals(mainVm.SelectedPath, _treemapViewModel?.CurrentRoot?.Path, StringComparison.OrdinalIgnoreCase))
+        {
+            return mainVm.SelectedPath;
+        }
+
+        if (_treemapViewModel?.CurrentRoot is not null
+            && _treemapViewModel.CurrentRoot != _treemapViewModel.ScanRoot)
+        {
+            return _treemapViewModel.CurrentRoot.Path;
+        }
+
+        return null;
     }
 
     private static SpaceMonger.Core.Models.FileEntry? FindEntryByPathInTree(
@@ -1108,6 +1206,56 @@ public partial class MainWindow : Window
         _recommendationsViewModel.Recommendations = new System.Collections.ObjectModel.ObservableCollection<CleanupRecommendation>(remaining);
         _recommendationsViewModel.RefreshAfterCleanup();
     }
+    internal object GetAcceptanceState()
+    {
+        var mainVm = DataContext as MainViewModel;
+        var currentRoot = _treemapViewModel?.CurrentRoot;
+        return new
+        {
+            SelectedPath = mainVm?.SelectedPath,
+            CurrentRootPath = currentRoot?.Path,
+            IsExternalRoot = currentRoot is not null && _treemapViewModel?.ScanRoot is not null && !ReferenceEquals(currentRoot, _treemapViewModel.ScanRoot) && FindEntryByPathInTree(_treemapViewModel.ScanRoot, currentRoot.Path) is null,
+            BreadcrumbMode = BreadcrumbBar.Visibility == Visibility.Visible ? "breadcrumb" : "edit",
+            PathEditText = PathEditTextBox.Text,
+            CanGoBack = _treemapViewModel?.CanGoBack ?? false,
+            CanGoForward = _treemapViewModel?.CanGoForward ?? false,
+            CanGoUp = _treemapViewModel?.CanGoUp ?? false,
+            BreadcrumbText = string.Join("", BreadcrumbBar.Children.OfType<ContentControl>().Select(c => c.Content?.ToString()).Where(s => !string.IsNullOrEmpty(s))),
+            RecommendationsVisible = RecommendationsPanel.Visibility == Visibility.Visible,
+            ConsoleVisible = ConsoleTextBox.Visibility == Visibility.Visible,
+        };
+    }
+
+    internal void AcceptanceNavigateToPath(string path)
+    {
+        NavigateToPathOrSelect(path);
+    }
+
+    internal void AcceptanceNavigateBack()
+    {
+        _treemapViewModel?.NavigateBack();
+    }
+
+    internal void AcceptanceNavigateForward()
+    {
+        _treemapViewModel?.NavigateForward();
+    }
+
+    internal void AcceptanceNavigateUp()
+    {
+        _treemapViewModel?.NavigateToParent();
+    }
+
+    internal void AcceptanceSwitchToEditMode()
+    {
+        SwitchToEditMode();
+    }
+
+    internal void AcceptanceBlurAddressBar()
+    {
+        SwitchToBreadcrumbMode();
+        Keyboard.ClearFocus();
+    }
 }
 
 [Flags]
@@ -1123,4 +1271,5 @@ public enum ConsoleLogLevel
 public sealed record ConsoleLogEntry(DateTime Timestamp, ConsoleLogLevel Level, string Message)
 {
     public string ToLogLine() => $"[{Timestamp:HH:mm:ss}] [{Level}] {Message}";
+
 }
