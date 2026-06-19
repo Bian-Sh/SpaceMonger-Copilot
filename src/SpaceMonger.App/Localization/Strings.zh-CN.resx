@@ -144,6 +144,9 @@
   <data name="ValidationFailedMessage" xml:space="preserve">
     <value>验证失败：{0}</value>
   </data>
+  <data name="SettingsSavedToast" xml:space="preserve">
+    <value>设置已保存</value>
+  </data>
   <data name="UpButton" xml:space="preserve">
     <value>← 上一级</value>
   </data>

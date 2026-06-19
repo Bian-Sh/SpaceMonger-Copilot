@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
 
@@ -9,10 +9,15 @@ public partial class SettingsPage : UserControl
     public event Action? BackRequested;
     public event Action? SettingsChanged;
     private readonly DispatcherTimer _toastTimer;
+    private bool _isLoaded;
 
     public SettingsPage()
     {
         InitializeComponent();
+        Loaded += (_, _) =>
+        {
+            Dispatcher.BeginInvoke(new Action(() => _isLoaded = true), DispatcherPriority.Loaded);
+        };
         _toastTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.8) };
         _toastTimer.Tick += (_, _) =>
         {
@@ -43,11 +48,13 @@ public partial class SettingsPage : UserControl
 
     private void AutoSaveOnLostFocus(object sender, RoutedEventArgs e)
     {
-        SavePendingChanges();
+        if (_isLoaded)
+            SavePendingChanges();
     }
 
     private void AutoSaveOnChanged(object sender, RoutedEventArgs e)
     {
-        SavePendingChanges();
+        if (_isLoaded)
+            SavePendingChanges();
     }
 }
