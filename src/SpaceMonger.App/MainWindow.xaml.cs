@@ -51,6 +51,7 @@ public partial class MainWindow : Window
     private string? _displayPathOverride;
     private bool _justExitedEditMode;
     private bool _suppressNextEditMode;
+    private int _lastBreadcrumbSwitchTick;
     private bool _suppressSelectedPathNavigation;
 
     public MainWindow()
