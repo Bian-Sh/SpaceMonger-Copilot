@@ -49,7 +49,7 @@ public partial class MainWindow : Window
     private ChatViewModel? _chatViewModel;
     private AcceptanceAutomationServer? _acceptanceAutomationServer;
     private string? _displayPathOverride;
-    private bool _suppressNextEditMode;
+    private bool _justExitedEditMode;
     private bool _suppressSelectedPathNavigation;
 
     public MainWindow()
@@ -608,11 +608,15 @@ public partial class MainWindow : Window
 
     private void PathEditTextBox_LostFocus(object sender, RoutedEventArgs e)
     {
+        _justExitedEditMode = true;
         SwitchToBreadcrumbMode();
     }
 
     private void Window_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        // Each new click starts a fresh interaction cycle.
+        _justExitedEditMode = false;
+
         // When in edit mode, clicking on the address bar border area
         // (not on TextBox or BrowseButton) should exit edit mode.
         if (PathEditTextBox.Visibility == Visibility.Visible
@@ -622,7 +626,7 @@ public partial class MainWindow : Window
         {
             SwitchToBreadcrumbMode();
             Keyboard.ClearFocus();
-            _suppressNextEditMode = true;
+            _justExitedEditMode = true;
             e.Handled = true;
             return;
         }
@@ -631,12 +635,13 @@ public partial class MainWindow : Window
         if (!PathEditTextBox.IsFocused)
             return;
 
-        // Check if the click is inside the AddressBarBorder — if so, don't defocus
+        // Check if the click is inside the AddressBarBorder — if so, don’t defocus
         if (IsOriginalSourceWithin(e.OriginalSource, AddressBarBorder))
             return; // Inside address bar — keep focus
 
         SwitchToBreadcrumbMode();
         Keyboard.ClearFocus();
+        _justExitedEditMode = true;
     }
 
     private void AddressBar_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -644,9 +649,9 @@ public partial class MainWindow : Window
         if (PathEditTextBox.Visibility == Visibility.Visible)
             return;
 
-        if (_suppressNextEditMode)
+        if (_justExitedEditMode)
         {
-            _suppressNextEditMode = false;
+            _justExitedEditMode = false;
             return;
         }
 
