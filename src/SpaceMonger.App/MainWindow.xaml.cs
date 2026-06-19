@@ -75,7 +75,6 @@ public partial class MainWindow : Window
         if (DataContext is MainViewModel mainVm)
         {
             mainVm.PropertyChanged += MainViewModel_PropertyChanged;
-            mainVm.GetCurrentViewPath = GetScanTargetPath;
             TreemapView.SetScanningState(mainVm.IsScanning, mainVm.ScanProgressText);
 
             // Set default path to first available drive
@@ -241,6 +240,7 @@ public partial class MainWindow : Window
                 if (_treemapViewModel.CurrentRoot is not null)
                 {
                     _displayPathOverride = null;
+                    UpdateSelectedPathFromNavigation(_treemapViewModel.CurrentRoot.Path, updateSelectedPath: true);
                     RebuildBreadcrumbBar();
                 }
                 break;
@@ -555,6 +555,7 @@ public partial class MainWindow : Window
         }
         else if (e.Key == Key.F5)
         {
+            CommitPathEditText();
             if (DataContext is MainViewModel vm && vm.ScanCommand.CanExecute(null))
                 vm.ScanCommand.Execute(null);
             e.Handled = true;
@@ -590,12 +591,7 @@ public partial class MainWindow : Window
     {
         if (e.Key == System.Windows.Input.Key.Enter)
         {
-            var path = PathEditTextBox.Text?.Trim();
-            if (!string.IsNullOrWhiteSpace(path))
-            {
-                NavigateToPathOrSelect(path);
-            }
-            SwitchToBreadcrumbMode();
+            CommitPathEditText();
             e.Handled = true;
         }
         else if (e.Key == System.Windows.Input.Key.Escape)
@@ -603,6 +599,29 @@ public partial class MainWindow : Window
             SwitchToBreadcrumbMode();
             e.Handled = true;
         }
+    }
+
+    private void ScanButton_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        CommitPathEditText();
+    }
+
+    private void ScanButton_Click(object sender, RoutedEventArgs e)
+    {
+        CommitPathEditText();
+    }
+
+    private void CommitPathEditText()
+    {
+        if (PathEditTextBox.Visibility != Visibility.Visible)
+            return;
+
+        var path = PathEditTextBox.Text?.Trim();
+        if (!string.IsNullOrWhiteSpace(path))
+        {
+            NavigateToPathOrSelect(path);
+        }
+        SwitchToBreadcrumbMode();
     }
 
     private void PathEditTextBox_LostFocus(object sender, RoutedEventArgs e)
@@ -618,6 +637,15 @@ public partial class MainWindow : Window
         if (IsOriginalSourceWithin(e.OriginalSource, PathEditTextBox)
             || IsOriginalSourceWithin(e.OriginalSource, BrowseButton))
         {
+            return;
+        }
+
+        if (IsOriginalSourceWithin(e.OriginalSource, ScanButton))
+        {
+            CommitPathEditText();
+            if (DataContext is MainViewModel vm && vm.ScanCommand.CanExecute(null))
+                vm.ScanCommand.Execute(null);
+            e.Handled = true;
             return;
         }
 
@@ -1049,27 +1077,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private string? GetScanTargetPath()
-    {
-        if (!string.IsNullOrWhiteSpace(_displayPathOverride))
-            return _displayPathOverride;
-
-        if (DataContext is MainViewModel mainVm
-            && !string.IsNullOrWhiteSpace(mainVm.SelectedPath)
-            && !string.Equals(mainVm.SelectedPath, _treemapViewModel?.CurrentRoot?.Path, StringComparison.OrdinalIgnoreCase))
-        {
-            return mainVm.SelectedPath;
-        }
-
-        if (_treemapViewModel?.CurrentRoot is not null
-            && _treemapViewModel.CurrentRoot != _treemapViewModel.ScanRoot)
-        {
-            return _treemapViewModel.CurrentRoot.Path;
-        }
-
-        return null;
-    }
-
     private static SpaceMonger.Core.Models.FileEntry? FindEntryByPathInTree(
         SpaceMonger.Core.Models.FileEntry? root, string targetPath)
     {
@@ -1228,6 +1235,8 @@ public partial class MainWindow : Window
         {
             SelectedPath = mainVm?.SelectedPath,
             CurrentRootPath = currentRoot?.Path,
+            IsScanning = mainVm?.IsScanning ?? false,
+            CurrentSessionTargetPath = mainVm?.CurrentSession?.TargetPath,
             IsExternalRoot = currentRoot is not null && _treemapViewModel?.ScanRoot is not null && !ReferenceEquals(currentRoot, _treemapViewModel.ScanRoot) && FindEntryByPathInTree(_treemapViewModel.ScanRoot, currentRoot.Path) is null,
             BreadcrumbMode = BreadcrumbBar.Visibility == Visibility.Visible ? "breadcrumb" : "edit",
             PathEditText = PathEditTextBox.Text,

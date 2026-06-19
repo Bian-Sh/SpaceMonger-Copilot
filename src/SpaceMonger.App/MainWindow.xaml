@@ -131,6 +131,8 @@
                             FontSize="12"
                             Margin="0,0,4,0"
                             Command="{Binding ScanCommand}"
+                            PreviewMouseLeftButtonDown="ScanButton_PreviewMouseLeftButtonDown"
+                            Click="ScanButton_Click"
                             ToolTip="{loc:Loc ScanButtonToolTip}" />
 
                     <!-- Address bar: LAST child 鈫?fills remaining space between nav and action buttons -->
