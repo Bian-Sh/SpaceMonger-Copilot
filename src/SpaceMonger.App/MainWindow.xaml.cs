@@ -48,6 +48,7 @@ public partial class MainWindow : Window
     private SettingsViewModel? _settingsViewModel;
     private ChatViewModel? _chatViewModel;
     private AcceptanceAutomationServer? _acceptanceAutomationServer;
+    private DateTime _lastBreadcrumbSwitchUtc = DateTime.MinValue;
     private string? _displayPathOverride;
     private bool _suppressSelectedPathNavigation;
 
@@ -631,8 +632,10 @@ public partial class MainWindow : Window
 
     private void AddressBar_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
-        // Don't switch to edit mode if already in edit mode (LostFocus just exited)
         if (PathEditTextBox.Visibility == Visibility.Visible)
+            return;
+
+        if ((DateTime.UtcNow - _lastBreadcrumbSwitchUtc).TotalMilliseconds < 250)
             return;
 
         // Only switch to edit mode if the click was on the container itself, not on breadcrumb buttons
@@ -651,6 +654,7 @@ public partial class MainWindow : Window
             SwitchToEditMode();
         }
     }
+
 
     private void SwitchToEditMode()
     {
@@ -671,6 +675,7 @@ public partial class MainWindow : Window
         PathEditTextBox.Visibility = Visibility.Collapsed;
         BreadcrumbBar.Visibility = Visibility.Visible;
         RebuildBreadcrumbBar();
+        _lastBreadcrumbSwitchUtc = DateTime.UtcNow;
     }
 
     private bool _rebuildingBreadcrumbs;
