@@ -59,6 +59,7 @@ public partial class MainWindow : Window
         Loaded += MainWindow_Loaded;
         StateChanged += MainWindow_StateChanged;
         Closed += (_, _) => _acceptanceAutomationServer?.Dispose();
+        SpaceMonger.App.Localization.L.LanguageChanged += OnAppLanguageChanged;
     }
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -567,11 +568,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private void AnalyzeButton_Click(object sender, RoutedEventArgs e)
-    {
-        OnAnalyzeRequested();
-    }
-
     private void BackButton_Click(object sender, RoutedEventArgs e)
     {
         _treemapViewModel?.NavigateBack();
@@ -717,6 +713,12 @@ public partial class MainWindow : Window
 
     private bool _rebuildingBreadcrumbs;
 
+
+    private void OnAppLanguageChanged()
+    {
+        Dispatcher.InvokeAsync(() => RebuildBreadcrumbBar());
+    }
+
     private void RebuildBreadcrumbBar()
     {
         if (_rebuildingBreadcrumbs)
@@ -838,7 +840,9 @@ public partial class MainWindow : Window
         }
     }
 
-    private const string ThisPC = "此电脑";
+    private const string ThisPCSentinel = "::thispc::";
+
+    private static string ThisPC => L.Text("ThisPCLabel");
 
     private List<(string path, string name)> ParsePathSegments(string fullPath)
     {
@@ -847,7 +851,7 @@ public partial class MainWindow : Window
             return result;
 
         // Always start with "此电脑" (This PC) — Windows 11 Explorer style
-        result.Add((ThisPC, ThisPC));
+        result.Add((ThisPCSentinel, ThisPC));
 
         var parts = fullPath.Split(System.IO.Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length == 0)
@@ -874,7 +878,7 @@ public partial class MainWindow : Window
         if (sender is Button btn && btn.Tag is string path)
         {
             // Skip "此电脑" — it's a virtual root, not a real path
-            if (path == ThisPC)
+            if (path == ThisPCSentinel)
             {
                 e.Handled = true;
                 return;
@@ -938,7 +942,7 @@ public partial class MainWindow : Window
         List<BreadcrumbItem> items;
 
         // ── "此电脑" → list drives ──
-        if (dirPath == ThisPC)
+        if (dirPath == ThisPCSentinel)
         {
             items = DriveInfo.GetDrives()
                 .Where(d => d.IsReady)

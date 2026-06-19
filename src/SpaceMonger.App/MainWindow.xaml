@@ -97,37 +97,12 @@
                         </Button>
                     </StackPanel>
 
-                    <Rectangle DockPanel.Dock="Left" Width="1" Margin="6,4"
-                               Fill="{StaticResource VP.BorderSubtleBrush}" />
-
-                    <!-- Right: action buttons (docked before address bar so they keep their natural size) -->
-                    <Button x:Name="AnalyzeButton"
-                            DockPanel.Dock="Right"
-                            Content="{loc:Loc AnalyzeButton}"
-                            Margin="0"
-                            Padding="8,5"
-                            FontSize="12"
-                            ToolTipService.ShowOnDisabled="True"
-                            Click="AnalyzeButton_Click">
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource VP.AccentButton}">
-                                <Setter Property="IsEnabled" Value="True" />
-                                <Setter Property="ToolTip" Value="{loc:Loc RecommendCleanupToolTip}" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding DataContext.RecommendationsVM.IsAnalyzing, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
-                                        <Setter Property="IsEnabled" Value="False" />
-                                        <Setter Property="ToolTip" Value="{loc:Loc AnalysisInProgressToolTip}" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
 
                     <Button x:Name="ScanButton"
                             DockPanel.Dock="Right"
                             Content="{loc:Loc ScanButton}"
                             Style="{StaticResource VP.AccentButton}"
-                            Padding="8,5"
+                            Padding="16,5"
                             FontSize="12"
                             Margin="0,0,4,0"
                             Command="{Binding ScanCommand}"

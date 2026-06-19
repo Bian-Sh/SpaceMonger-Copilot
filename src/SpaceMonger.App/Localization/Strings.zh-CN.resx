@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+﻿<?xml version='1.0' encoding='utf-8'?>
 <root>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
@@ -15,6 +15,10 @@
   <data name="AppTitle" xml:space="preserve">
     <value>SpaceMonger Next</value>
   </data>
+  <data name="ThisPCLabel" xml:space="preserve">
+    <value>此电脑</value>
+  </data>
+
   <data name="ToolbarNavigation" xml:space="preserve">
     <value>导航</value>
   </data>
@@ -255,6 +259,10 @@
   <data name="NoItemsSelectedTitle" xml:space="preserve">
     <value>未选择项目</value>
   </data>
+  <data name="NoItemsSelectedForCleanupToolTip" xml:space="preserve">
+    <value>未选中待清理项</value>
+  </data>
+
   <data name="CleanupFailedMessage" xml:space="preserve">
     <value>清理失败：{0}</value>
   </data>
