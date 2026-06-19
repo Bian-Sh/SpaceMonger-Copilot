@@ -50,6 +50,7 @@ public partial class MainWindow : Window
     private AcceptanceAutomationServer? _acceptanceAutomationServer;
     private string? _displayPathOverride;
     private bool _justExitedEditMode;
+    private bool _suppressNextEditMode;
     private bool _suppressSelectedPathNavigation;
 
     public MainWindow()
@@ -92,6 +93,7 @@ public partial class MainWindow : Window
 
             // Always rebuild breadcrumb on startup — belt-and-suspenders with PropertyChanged
             RebuildBreadcrumbBar();
+        _suppressNextEditMode = true;
         _justExitedEditMode = true;
         }
 
@@ -616,6 +618,7 @@ public partial class MainWindow : Window
 
     private void Window_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        _suppressNextEditMode = false;
         // Each new click starts a fresh interaction cycle.
         _justExitedEditMode = false;
 
@@ -644,10 +647,18 @@ public partial class MainWindow : Window
         Keyboard.ClearFocus();
     }
 
+
     private void AddressBar_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         if (PathEditTextBox.Visibility == Visibility.Visible)
             return;
+
+        if (_suppressNextEditMode)
+        {
+            _suppressNextEditMode = false;
+            return;
+        }
+
 
         if (_justExitedEditMode)
         {
