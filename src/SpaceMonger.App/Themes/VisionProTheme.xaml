@@ -22,6 +22,7 @@
     <Color x:Key="VP.Accent">#0A84FF</Color>
     <Color x:Key="VP.AccentHover">#409CFF</Color>
     <Color x:Key="VP.Danger">#FF453A</Color>
+    <Color x:Key="VP.DangerPressed">#CC1A1A</Color>
     <Color x:Key="VP.Success">#30D158</Color>
     <Color x:Key="VP.Warning">#FFD60A</Color>
 
@@ -41,6 +42,7 @@
     <SolidColorBrush x:Key="VP.AccentBrush" Color="{StaticResource VP.Accent}" />
     <SolidColorBrush x:Key="VP.AccentHoverBrush" Color="{StaticResource VP.AccentHover}" />
     <SolidColorBrush x:Key="VP.DangerBrush" Color="{StaticResource VP.Danger}" />
+    <SolidColorBrush x:Key="VP.DangerPressedBrush" Color="{StaticResource VP.DangerPressed}" />
     <SolidColorBrush x:Key="VP.SuccessBrush" Color="{StaticResource VP.Success}" />
     <SolidColorBrush x:Key="VP.WarningBrush" Color="{StaticResource VP.Warning}" />
     <SolidColorBrush x:Key="VP.OverlayBrush" Color="#80404050" />

@@ -1,4 +1,4 @@
-<UserControl x:Class="SpaceMonger.App.Views.SettingsPage"
+﻿<UserControl x:Class="SpaceMonger.App.Views.SettingsPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -19,6 +19,54 @@
             <Setter Property="ToolTipService.InitialShowDelay" Value="120" />
             <Setter Property="ToolTipService.ShowDuration" Value="12000" />
         </Style>
+
+        <!-- Back button style: normal → red hover → dark red pressed -->
+        <Style x:Key="SettingsBackButtonStyle" TargetType="Button">
+            <Setter Property="FontFamily" Value="{StaticResource VP.FontFamily}" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource VP.TextSecondaryBrush}" />
+            <Setter Property="Background" Value="{StaticResource VP.SurfaceHoverBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource VP.BorderLightBrush}" />
+            <Setter Property="BorderThickness" Value="0.5" />
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="16"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background"
+                                        Value="{StaticResource VP.DangerBrush}" />
+                                <Setter Property="Foreground"
+                                        Value="White" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background"
+                                        Value="{StaticResource VP.DangerPressedBrush}" />
+                                <Setter Property="Foreground"
+                                        Value="White" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <Grid Background="{StaticResource VP.OverlayBrush}">
@@ -38,24 +86,29 @@
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-                <!-- Header -->
-                <DockPanel Grid.Row="0" Margin="24,20,24,12">
-                    <Button DockPanel.Dock="Left"
-                            Style="{StaticResource VP.Button}"
-                            Padding="12,7"
-                            HorizontalAlignment="Left"
-                            Click="BackButton_Click">
-                        <TextBlock Text="{loc:Loc SettingsBackToAppButton}"
-                                   VerticalAlignment="Center" />
-                    </Button>
-                    <TextBlock DockPanel.Dock="Right"
-                               Text="{loc:Loc SettingsTitle}"
+                <!-- Header: title centered -->
+                <Border Grid.Row="0" Margin="24,20,24,12">
+                    <TextBlock Text="{loc:Loc SettingsTitle}"
                                FontSize="20"
                                FontWeight="SemiBold"
                                Foreground="{StaticResource VP.TextPrimaryBrush}"
                                VerticalAlignment="Center"
-                               HorizontalAlignment="Right" />
-                </DockPanel>
+                               HorizontalAlignment="Center" />
+                </Border>
+
+                <!-- Back button: upper-right corner, concentric with panel rounded corners -->
+                <Button Grid.Row="0"
+                        Style="{StaticResource SettingsBackButtonStyle}"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Margin="0,12,12,0"
+                        ToolTip="{loc:Loc SettingsBackToAppButton}"
+                        Click="BackButton_Click">
+                    <TextBlock Text="&#x2715;"
+                               FontSize="14"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Center" />
+                </Button>
 
                 <!-- Scrollable content -->
                 <ScrollViewer Grid.Row="1"
