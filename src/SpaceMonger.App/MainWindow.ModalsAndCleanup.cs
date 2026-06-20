@@ -65,7 +65,7 @@ public partial class MainWindow
         if (_settingsViewModel is null)
             return;
 
-        _settingsViewModel.LoadSettings();
+        SettingsPage.ReloadSettingsForOpen();
         SettingsPage.Visibility = Visibility.Visible;
     }
 

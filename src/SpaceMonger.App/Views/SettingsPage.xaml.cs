@@ -10,6 +10,7 @@ public partial class SettingsPage : UserControl
     public event Action? SettingsChanged;
     private readonly DispatcherTimer _toastTimer;
     private bool _isLoaded;
+    private bool _suppressAutoSave;
 
     public SettingsPage()
     {
@@ -40,6 +41,22 @@ public partial class SettingsPage : UserControl
         }
     }
 
+    public void ReloadSettingsForOpen()
+    {
+        if (DataContext is not ViewModels.SettingsViewModel vm)
+            return;
+
+        _toastTimer.Stop();
+        vm.HideSaveToast();
+
+        _suppressAutoSave = true;
+        vm.LoadSettings();
+
+        Dispatcher.BeginInvoke(
+            new Action(() => _suppressAutoSave = false),
+            DispatcherPriority.Loaded);
+    }
+
     private void BackButton_Click(object sender, RoutedEventArgs e)
     {
         SavePendingChanges();
@@ -48,13 +65,13 @@ public partial class SettingsPage : UserControl
 
     private void AutoSaveOnLostFocus(object sender, RoutedEventArgs e)
     {
-        if (_isLoaded)
+        if (_isLoaded && !_suppressAutoSave)
             SavePendingChanges();
     }
 
     private void AutoSaveOnChanged(object sender, RoutedEventArgs e)
     {
-        if (_isLoaded)
+        if (_isLoaded && !_suppressAutoSave)
             SavePendingChanges();
     }
 }
