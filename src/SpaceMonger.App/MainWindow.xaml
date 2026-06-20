@@ -176,26 +176,51 @@
                 </DockPanel>
             </Border>
 
-            <!-- 鈺愨晲鈺?Left content (treemap + bottom panel) 鈺愨晲鈺?-->
+            <!-- 鈺愨晲鈺?Left content (treemap/treeview + bottom panel) 鈺愨晲鈺?-->
             <Grid Grid.Row="2" Grid.Column="0">
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" MinHeight="220" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition x:Name="RecommendationsPanelRow" Height="340" MinHeight="120" />
                     </Grid.RowDefinitions>
 
+                    <!-- View mode tab bar (Treemap / TreeView) -->
+                    <Border Grid.Row="0"
+                            Background="{StaticResource VP.SurfaceBrush}"
+                            CornerRadius="10,10,0,0"
+                            Margin="0,0,0,-0.5"
+                            Padding="4,2">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="TreemapTabBtn"
+                                         Content="{loc:Loc TreemapTabHeader}"
+                                         Style="{StaticResource VP.TabButton}"
+                                         IsChecked="True"
+                                         Checked="TreemapTab_Checked"
+                                         GroupName="ViewModeTabs" />
+                            <RadioButton x:Name="TreeViewTabBtn"
+                                         Content="{loc:Loc TreeViewTabHeader}"
+                                         Style="{StaticResource VP.TabButton}"
+                                         Checked="TreeViewTab_Checked"
+                                         GroupName="ViewModeTabs" />
+                        </StackPanel>
+                    </Border>
+
                     <!-- Treemap view -->
-                    <views:TreemapView x:Name="TreemapView" Grid.Row="0" />
+                    <views:TreemapView x:Name="TreemapView" Grid.Row="1" />
+
+                    <!-- TreeView (hidden by default) -->
+                    <views:TreeViewControl x:Name="TreeViewControl" Grid.Row="1" Visibility="Collapsed" />
 
                     <!-- Subtle splitter -->
                     <GridSplitter x:Name="RecommendationsSplitter"
-                                  Grid.Row="1"
+                                  Grid.Row="2"
                                   Style="{StaticResource VP.GridSplitterH}"
                                   Margin="8,4"
                                   Visibility="Visible" />
 
                     <!-- Bottom tool window: Chrome-style tabs + content -->
-                    <Grid Grid.Row="2">
+                    <Grid Grid.Row="3">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />

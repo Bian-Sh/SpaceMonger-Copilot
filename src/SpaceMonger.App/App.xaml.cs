@@ -56,6 +56,9 @@ public partial class App : Application
         services.AddSingleton<IChatService, ChatService>();
         services.AddTransient<ChatViewModel>();
 
+        // TreeView services
+        services.AddTransient<TreeViewModel>();
+
         Services = services.BuildServiceProvider();
 
         var settingsService = Services.GetRequiredService<ISettingsService>();
@@ -66,6 +69,7 @@ public partial class App : Application
         var recommendationsViewModel = Services.GetRequiredService<RecommendationsViewModel>();
         var settingsViewModel = Services.GetRequiredService<SettingsViewModel>();
         var chatViewModel = Services.GetRequiredService<ChatViewModel>();
+        var treeViewModel = Services.GetRequiredService<TreeViewModel>();
 
         var mainWindow = new MainWindow
         {
@@ -76,11 +80,13 @@ public partial class App : Application
         mainWindow.SetTreemapViewModel(treemapViewModel);
         mainWindow.SetViewModels(recommendationsViewModel, settingsViewModel);
         mainWindow.SetChatViewModel(chatViewModel);
+        mainWindow.SetTreeViewModel(treeViewModel);
 
         mainViewModel.ScanCompleted += session =>
         {
             treemapViewModel.SetRoot(session.RootEntry!, session);
             chatViewModel.SetContext(session, session.RootEntry!);
+            treeViewModel.SetRoot(session.RootEntry!, session);
         };
 
         mainWindow.Show();

@@ -1,0 +1,218 @@
+<UserControl x:Class="SpaceMonger.App.Views.TreeViewControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:SpaceMonger.App.ViewModels"
+             xmlns:loc="clr-namespace:SpaceMonger.App.Localization"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:TreeViewModel, IsDesignTimeCreatable=False}"
+             d:DesignHeight="600" d:DesignWidth="800">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header with sort options -->
+        <Border Grid.Row="0"
+                Background="{StaticResource VP.SurfaceBrush}"
+                BorderBrush="{StaticResource VP.BorderSubtleBrush}"
+                BorderThickness="0.5,0.5,0.5,0"
+                CornerRadius="10,10,0,0"
+                Padding="8,4">
+            <DockPanel>
+                <!-- Column headers (WizTree style) -->
+                <Grid DockPanel.Dock="Left">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="280" />
+                        <ColumnDefinition Width="100" />
+                        <ColumnDefinition Width="80" />
+                        <ColumnDefinition Width="140" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Name header -->
+                    <Button Grid.Column="0"
+                            Content="{loc:Loc TreeViewNameHeader}"
+                            Style="{StaticResource VP.ButtonIcon}"
+                            HorizontalAlignment="Left"
+                            Command="{Binding SortByNameCommand}"
+                            ToolTip="{loc:Loc SortByNameToolTip}">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <TextBlock Text="{TemplateBinding Content}"
+                                           Foreground="{StaticResource VP.TextSecondaryBrush}"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Cursor="Hand" />
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <!-- Size header -->
+                    <Button Grid.Column="1"
+                            Content="{loc:Loc TreeViewSizeHeader}"
+                            Style="{StaticResource VP.ButtonIcon}"
+                            HorizontalAlignment="Right"
+                            Command="{Binding SortBySizeCommand}"
+                            ToolTip="{loc:Loc SortBySizeToolTip}">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <TextBlock Text="{TemplateBinding Content}"
+                                           Foreground="{StaticResource VP.TextSecondaryBrush}"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Cursor="Hand" />
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <!-- Type header -->
+                    <Button Grid.Column="2"
+                            Content="{loc:Loc TreeViewTypeHeader}"
+                            Style="{StaticResource VP.ButtonIcon}"
+                            HorizontalAlignment="Left"
+                            Command="{Binding SortByTypeCommand}"
+                            ToolTip="{loc:Loc SortByTypeToolTip}">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <TextBlock Text="{TemplateBinding Content}"
+                                           Foreground="{StaticResource VP.TextSecondaryBrush}"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Cursor="Hand" />
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <!-- Modified header -->
+                    <Button Grid.Column="3"
+                            Content="{loc:Loc TreeViewModifiedHeader}"
+                            Style="{StaticResource VP.ButtonIcon}"
+                            HorizontalAlignment="Left"
+                            Command="{Binding SortByModifiedCommand}"
+                            ToolTip="{loc:Loc SortByModifiedToolTip}">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <TextBlock Text="{TemplateBinding Content}"
+                                           Foreground="{StaticResource VP.TextSecondaryBrush}"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Cursor="Hand" />
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </Grid>
+            </DockPanel>
+        </Border>
+
+        <!-- TreeView content -->
+        <Border Grid.Row="1"
+                Background="{StaticResource VP.BackgroundBrush}"
+                BorderBrush="{StaticResource VP.BorderSubtleBrush}"
+                BorderThickness="0.5,0,0.5,0.5"
+                CornerRadius="0,0,10,10">
+            <TreeView x:Name="FileTreeView"
+                      ItemsSource="{Binding RootItems}"
+                      Background="Transparent"
+                      BorderThickness="0"
+                      Padding="4"
+                      VirtualizingStackPanel.IsVirtualizing="True"
+                      VirtualizingStackPanel.VirtualizationMode="Recycling"
+                      TreeViewItem.Selected="TreeViewItem_Selected">
+                <TreeView.ItemContainerStyle>
+                    <Style TargetType="TreeViewItem">
+                        <Setter Property="Foreground" Value="{StaticResource VP.TextPrimaryBrush}" />
+                        <Setter Property="FontSize" Value="13" />
+                        <Setter Property="Padding" Value="2,1" />
+                        <Setter Property="Margin" Value="0" />
+                        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                        <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="TreeViewItem">
+                                    <StackPanel>
+                                        <Border x:Name="Bd"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Padding="{TemplateBinding Padding}"
+                                                CornerRadius="4">
+                                            <ContentPresenter x:Name="PART_Header"
+                                                              ContentSource="Header"
+                                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                                        </Border>
+                                        <ItemsPresenter x:Name="ItemsHost"
+                                                        Margin="16,0,0,0"
+                                                        Visibility="Collapsed" />
+                                    </StackPanel>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsExpanded" Value="True">
+                                            <Setter TargetName="ItemsHost" Property="Visibility" Value="Visible" />
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource VP.AccentBrush}" />
+                                            <Setter TargetName="Bd" Property="TextElement.Foreground" Value="White" />
+                                        </Trigger>
+                                        <MultiTrigger>
+                                            <MultiTrigger.Conditions>
+                                                <Condition Property="IsMouseOver" Value="True" />
+                                                <Condition Property="IsSelected" Value="False" />
+                                            </MultiTrigger.Conditions>
+                                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource VP.SurfaceHoverBrush}" />
+                                        </MultiTrigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </TreeView.ItemContainerStyle>
+                <TreeView.ItemTemplate>
+                    <HierarchicalDataTemplate DataType="{x:Type vm:TreeViewItemViewModel}" ItemsSource="{Binding Children}">
+                        <Grid Height="24">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="280" />
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="140" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Icon + Name -->
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding IconGlyph}"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="{StaticResource VP.TextSecondaryBrush}"
+                                           Margin="0,0,8,0"
+                                           VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding Name}"
+                                           TextTrimming="CharacterEllipsis"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+
+                            <!-- Size -->
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding SizeText}"
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource VP.TextSecondaryBrush}" />
+
+                            <!-- Type -->
+                            <TextBlock Grid.Column="2"
+                                       Text="{Binding TypeText}"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource VP.TextSecondaryBrush}" />
+
+                            <!-- Modified -->
+                            <TextBlock Grid.Column="3"
+                                       Text="{Binding ModifiedText}"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource VP.TextSecondaryBrush}" />
+                        </Grid>
+                    </HierarchicalDataTemplate>
+                </TreeView.ItemTemplate>
+            </TreeView>
+        </Border>
+    </Grid>
+</UserControl>

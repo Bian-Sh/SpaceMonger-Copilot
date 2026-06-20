@@ -115,6 +115,11 @@ public partial class MainWindow
         }
     }
 
+    public void SetTreeViewModel(TreeViewModel treeVm)
+    {
+        TreeViewControl.DataContext = treeVm;
+    }
+
     private void TreemapViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (_chatViewModel is null || _treemapViewModel is null)
@@ -189,6 +194,49 @@ public partial class MainWindow
             RecommendationsPanelRow.Height = new GridLength(DefaultRecommendationsHeight);
         }
         RecommendationsSplitter.Visibility = Visibility.Visible;
+    }
+
+    // ─── View Mode Tabs (Treemap / TreeView) ────────────────────────
+
+    private void TreemapTab_Checked(object sender, RoutedEventArgs e)
+    {
+        if (TreemapView == null || TreeViewControl == null)
+            return;
+        TreemapView.Visibility = Visibility.Visible;
+        TreeViewControl.Visibility = Visibility.Collapsed;
+    }
+
+    private void TreeViewTab_Checked(object sender, RoutedEventArgs e)
+    {
+        if (TreemapView == null || TreeViewControl == null)
+            return;
+        TreemapView.Visibility = Visibility.Collapsed;
+        TreeViewControl.Visibility = Visibility.Visible;
+
+        // Sync TreeView with current Treemap data
+        SyncTreeViewWithTreemap();
+    }
+
+    private void SyncTreeViewWithTreemap()
+    {
+        if (_treemapViewModel?.ScanRoot is null)
+            return;
+
+        var treeViewModel = (TreeViewModel)TreeViewControl.DataContext;
+        var session = _treemapViewModel.ScanRoot is not null
+            ? GetScanSession()
+            : null;
+        treeViewModel.SetRoot(_treemapViewModel.ScanRoot, session);
+    }
+
+    private ScanSession? GetScanSession()
+    {
+        // Try to get the session from MainViewModel
+        if (DataContext is MainViewModel mainVm)
+        {
+            return mainVm.CurrentSession;
+        }
+        return null;
     }
 
     // ─── Console ────────────────────────────────────────────────────

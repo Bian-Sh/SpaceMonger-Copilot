@@ -219,9 +219,6 @@
   <data name="ChatContextLabel" xml:space="preserve">
     <value>Context: </value>
   </data>
-  <data name="ThinkingText" xml:space="preserve">
-    <value>Thinking...</value>
-  </data>
   <data name="RecommendationsTitle" xml:space="preserve">
     <value>Cleanup Recommendations</value>
   </data>
@@ -561,5 +558,35 @@
   </data>
   <data name="CloseAppMessage" xml:space="preserve">
     <value>Current scan and analysis state will be closed. Are you sure you want to exit?</value>
+  </data>
+  <data name="TreemapTabHeader" xml:space="preserve">
+    <value>Treemap</value>
+  </data>
+  <data name="TreeViewTabHeader" xml:space="preserve">
+    <value>Tree View</value>
+  </data>
+  <data name="TreeViewNameHeader" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="TreeViewSizeHeader" xml:space="preserve">
+    <value>Size</value>
+  </data>
+  <data name="TreeViewTypeHeader" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="TreeViewModifiedHeader" xml:space="preserve">
+    <value>Date Modified</value>
+  </data>
+  <data name="SortByNameToolTip" xml:space="preserve">
+    <value>Sort by name</value>
+  </data>
+  <data name="SortBySizeToolTip" xml:space="preserve">
+    <value>Sort by size</value>
+  </data>
+  <data name="SortByTypeToolTip" xml:space="preserve">
+    <value>Sort by type</value>
+  </data>
+  <data name="SortByModifiedToolTip" xml:space="preserve">
+    <value>Sort by date modified</value>
   </data>
 </root>
