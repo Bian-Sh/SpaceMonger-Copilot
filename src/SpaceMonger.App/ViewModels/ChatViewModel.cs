@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -111,6 +111,13 @@ public partial class ChatViewModel : ObservableObject
             return;
         }
 
+        if (IsClearConversationRequest(InputText))
+        {
+            ClearConversation();
+            InputText = null;
+            return;
+        }
+
         if (_currentSession is null || _currentViewRoot is null)
         {
             Messages.Add(new ChatMessage
@@ -196,10 +203,34 @@ public partial class ChatViewModel : ObservableObject
         }
     }
 
+
+    private bool IsClearConversationRequest(string text)
+    {
+        var normalized = text.Trim().ToLowerInvariant();
+        return normalized is "clear" or "clear chat" or "clear conversation" or "reset chat"
+            || normalized.Contains("清空对话", StringComparison.Ordinal)
+            || normalized.Contains("清除对话", StringComparison.Ordinal)
+            || normalized.Contains("重新开始对话", StringComparison.Ordinal)
+            || normalized.Contains("开启新话题", StringComparison.Ordinal)
+            || normalized.Contains("新话题", StringComparison.Ordinal);
+    }
+
+    private void ClearConversation()
+    {
+        _chatService.ClearHistory();
+        Messages.Clear();
+        LinkedEntry = null;
+        LinkedRecommendation = null;
+        LinkedItemPath = null;
+        ErrorMessage = null;
+    }
     [RelayCommand]
     private void ToggleThinking(ChatMessage message)
     {
         message.IsThinkingExpanded = !message.IsThinkingExpanded;
     }
 }
+
+
+
 

@@ -1,4 +1,4 @@
-using System.Collections.Specialized;
+﻿using System.Collections.Specialized;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -37,6 +37,13 @@ public partial class ChatPanel : UserControl
         vm.Messages.CollectionChanged += Messages_CollectionChanged;
     }
 
+
+    public void FocusInput()
+    {
+        InputTextBox.Focus();
+        Keyboard.Focus(InputTextBox);
+        InputTextBox.CaretIndex = InputTextBox.Text?.Length ?? 0;
+    }
     private void OnLanguageChanged()
     {
         Dispatcher.InvokeAsync(() =>
@@ -294,3 +301,4 @@ public partial class ChatPanel : UserControl
         return null;
     }
 }
+

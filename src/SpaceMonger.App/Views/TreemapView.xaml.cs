@@ -1,8 +1,8 @@
 ﻿using System;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
 using System.Windows;
+using SpaceMonger.App.Services;
 using System.Windows.Controls;
 using System.Windows.Input;
 using SpaceMonger.App.Localization;
@@ -23,6 +23,8 @@ public partial class TreemapView : UserControl
     public Func<FrameworkElement, double, double, Task<bool?>>? ShowContentAsync { get; set; }
 
     public Action<object?>? CloseContentModal { get; set; }
+
+    public event Action<FileEntry>? AskAiRequested;
 
     public TreemapView()
     {
@@ -128,24 +130,28 @@ public partial class TreemapView : UserControl
     private void Treemap_NodeRightClicked(object? sender, TreemapNode node)
     {
         var entry = node.Entry;
+        var contextMenu = BuildContextMenu(entry);
+        contextMenu.PlacementTarget = Treemap;
+        contextMenu.IsOpen = true;
+    }
+
+    private ContextMenu BuildContextMenu(FileEntry entry)
+    {
         var contextMenu = new ContextMenu();
 
-        // "Open in Explorer" menu item
+        var askAiItem = new MenuItem { Header = "询问 AI" };
+        askAiItem.Click += (_, _) => AskAiRequested?.Invoke(entry);
+        contextMenu.Items.Add(askAiItem);
+        contextMenu.Items.Add(new Separator());
+
+        var openItem = new MenuItem { Header = entry.IsDirectory ? "打开文件夹" : "打开" };
+        openItem.Click += async (_, _) => await RunShellActionAsync(() => FileEntryShellService.Open(entry));
+        contextMenu.Items.Add(openItem);
+
         var openInExplorerItem = new MenuItem { Header = L.Text("OpenInExplorerMenu") };
-        openInExplorerItem.Click += async (_, _) =>
-        {
-            try
-            {
-                Process.Start("explorer.exe", $"/select,\"{entry.Path}\"");
-            }
-            catch (Exception ex)
-            {
-                await ShowErrorAsync(L.Format("OpenExplorerFailedMessage", ex.Message));
-            }
-        };
+        openInExplorerItem.Click += async (_, _) => await RunShellActionAsync(() => FileEntryShellService.ShowInExplorer(entry));
         contextMenu.Items.Add(openInExplorerItem);
 
-        // "Copy Path" menu item
         var copyPathItem = new MenuItem { Header = L.Text("CopyPathMenu") };
         copyPathItem.Click += async (_, _) =>
         {
@@ -159,153 +165,46 @@ public partial class TreemapView : UserControl
             }
         };
         contextMenu.Items.Add(copyPathItem);
-
-        // Separator
         contextMenu.Items.Add(new Separator());
 
-        // "Properties" menu item
         var propertiesItem = new MenuItem { Header = L.Text("PropertiesMenu") };
-        propertiesItem.Click += async (_, _) => await ShowPropertiesDialogAsync(entry);
+        propertiesItem.Click += async (_, _) => await RunShellActionAsync(() => FileEntryShellService.ShowProperties(entry));
         contextMenu.Items.Add(propertiesItem);
 
-        // Show the context menu at the mouse position
-        contextMenu.PlacementTarget = Treemap;
-        contextMenu.IsOpen = true;
+        return contextMenu;
     }
 
-    private async Task ShowPropertiesDialogAsync(FileEntry entry)
+    private async Task RunShellActionAsync(Action action)
     {
-        string type;
-        DateTime createdDate = DateTime.MinValue;
-        DateTime lastModifiedDate = entry.LastModified;
-
         try
         {
-            if (entry.IsDirectory)
-            {
-                type = L.Text("FolderType");
-                var dirInfo = new DirectoryInfo(entry.Path);
-                if (dirInfo.Exists)
-                {
-                    createdDate = dirInfo.CreationTime;
-                    lastModifiedDate = dirInfo.LastWriteTime;
-                }
-            }
-            else
-            {
-                type = string.IsNullOrEmpty(entry.Extension)
-                    ? L.Text("FileType")
-                    : L.Format("FileTypeFormat", entry.Extension.TrimStart('.').ToUpperInvariant());
-                var fileInfo = new FileInfo(entry.Path);
-                if (fileInfo.Exists)
-                {
-                    createdDate = fileInfo.CreationTime;
-                    lastModifiedDate = fileInfo.LastWriteTime;
-                }
-            }
+            action();
         }
-        catch
+        catch (Exception ex)
         {
-            type = entry.IsDirectory ? L.Text("FolderType") : L.Text("FileType");
-        }
-
-        var titleBlock = new TextBlock
-        {
-            Text = L.Text("PropertiesTitle"),
-            FontSize = 17,
-            FontWeight = FontWeights.SemiBold,
-            Foreground = (System.Windows.Media.Brush)FindResource("VP.TextPrimaryBrush"),
-            Margin = new Thickness(0, 0, 0, 14)
-        };
-
-        var propertiesPanel = new StackPanel { MinWidth = 420 };
-        propertiesPanel.Children.Add(titleBlock);
-
-        var grid = new Grid
-        {
-            Margin = new Thickness(0),
-        };
-
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-        var labels = new[]
-        {
-            (L.Text("PropertiesName"), entry.Name),
-            (L.Text("PropertiesPath"), entry.Path),
-            (L.Text("PropertiesSize"), FileSizeConverter.FormatSize(entry.Size)),
-            (L.Text("PropertiesType"), type),
-            (L.Text("PropertiesCreated"), createdDate == DateTime.MinValue ? L.Text("PropertiesUnknown") : createdDate.ToString("yyyy-MM-dd HH:mm:ss")),
-            (L.Text("PropertiesModified"), lastModifiedDate == DateTime.MinValue ? L.Text("PropertiesUnknown") : lastModifiedDate.ToString("yyyy-MM-dd HH:mm:ss")),
-        };
-
-        for (int i = 0; i < labels.Length; i++)
-        {
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(28) });
-
-            var labelBlock = new TextBlock
-            {
-                Text = labels[i].Item1,
-                FontWeight = FontWeights.SemiBold,
-                VerticalAlignment = VerticalAlignment.Center,
-                Foreground = (System.Windows.Media.Brush)FindResource("VP.TextPrimaryBrush"),
-            };
-            Grid.SetRow(labelBlock, i);
-            Grid.SetColumn(labelBlock, 0);
-            grid.Children.Add(labelBlock);
-
-            var valueBlock = new TextBlock
-            {
-                Text = labels[i].Item2,
-                VerticalAlignment = VerticalAlignment.Center,
-                TextTrimming = TextTrimming.CharacterEllipsis,
-                ToolTip = labels[i].Item2,
-                Foreground = (System.Windows.Media.Brush)FindResource("VP.TextSecondaryBrush"),
-            };
-            Grid.SetRow(valueBlock, i);
-            Grid.SetColumn(valueBlock, 1);
-            grid.Children.Add(valueBlock);
-        }
-
-        // Add an OK button at the bottom
-        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(40) });
-        var okButton = new Button
-        {
-            Content = L.Text("OkButton"),
-            Width = 80,
-            Height = 28,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            VerticalAlignment = VerticalAlignment.Bottom,
-            Style = (Style)FindResource("VP.AccentButton"),
-        };
-        okButton.Click += (_, _) => CloseContentModal?.Invoke(true);
-        Grid.SetRow(okButton, labels.Length);
-        Grid.SetColumn(okButton, 1);
-        grid.Children.Add(okButton);
-
-        propertiesPanel.Children.Add(grid);
-
-        if (ShowContentAsync is not null)
-        {
-            await ShowContentAsync(propertiesPanel, 520, 560);
+            await ShowErrorAsync(L.Format("OpenExplorerFailedMessage", ex.Message));
         }
     }
 
-    private Task ShowErrorAsync(string message)
+    private async Task ShowErrorAsync(string message)
     {
         if (ShowMessageAsync is not null)
         {
-            return ShowMessageAsync(message, L.Text("ErrorTitle"), MessageBoxButton.OK, MessageBoxImage.Error);
+            await ShowMessageAsync(message, "SpaceMonger.Next", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
         }
 
-        return Task.CompletedTask;
+        await Dispatcher.InvokeAsync(() => MessageBox.Show(Window.GetWindow(this), message, "SpaceMonger.Next", MessageBoxButton.OK, MessageBoxImage.Error));
     }
-
     private void Treemap_SizeChanged(object sender, SizeChangedEventArgs e)
     {
         _viewModel?.UpdateSize((float)e.NewSize.Width, (float)e.NewSize.Height);
     }
 }
+
+
+
+
 
 
 

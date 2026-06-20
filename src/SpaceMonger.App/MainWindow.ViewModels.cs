@@ -107,6 +107,8 @@ public partial class MainWindow
         ChatPanel.SetViewModel(chatVm);
 
         ChatPanel.OpenSettingsRequested += () => OpenSettingsDialog();
+        TreemapView.AskAiRequested += AskAiAboutEntry;
+        TreeViewControl.AskAiRequested += AskAiAboutEntry;
 
         // Track treemap navigation changes to update chat context
         if (_treemapViewModel is not null)
@@ -120,6 +122,18 @@ public partial class MainWindow
         TreeViewControl.DataContext = treeVm;
     }
 
+
+    private void AskAiAboutEntry(FileEntry entry)
+    {
+        if (_chatViewModel is null)
+            return;
+
+        _chatViewModel.LinkedEntry = entry;
+        _chatViewModel.InputText = entry.IsDirectory
+            ? $"深入分析这个目录的空间占用：{entry.Path}"
+            : $"分析这个文件的空间占用和清理风险：{entry.Path}";
+        ChatPanel.FocusInput();
+    }
     private void TreemapViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (_chatViewModel is null || _treemapViewModel is null)
@@ -242,3 +256,4 @@ public partial class MainWindow
     // ─── Console ────────────────────────────────────────────────────
 
 }
+

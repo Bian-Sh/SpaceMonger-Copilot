@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using SpaceMonger.Core.Models;
 using SpaceMonger.Core.Services.Llm;
@@ -33,6 +33,12 @@ public sealed class AgentRuntime : IAgentRuntime
 
         var systemPrompt = BuildSystemPrompt();
         var allToolResults = new List<AgentToolResult>();
+        var seededResults = await ExecuteHeuristicToolsAsync(context, userMessage, cancellationToken).ConfigureAwait(false);
+        if (seededResults.Count > 0)
+        {
+            allToolResults.AddRange(seededResults);
+            messages.Add(("user", BuildObservationMessage(seededResults, reachedToolLimit: false)));
+        }
         var toolCallCount = 0;
         var reachedToolLimit = false;
 
@@ -83,6 +89,93 @@ public sealed class AgentRuntime : IAgentRuntime
         return new AgentResponse(finalText, [], allToolResults, true);
     }
 
+
+    private async Task<IReadOnlyList<AgentToolResult>> ExecuteHeuristicToolsAsync(AgentContext context, string userMessage, CancellationToken cancellationToken)
+    {
+        var calls = BuildHeuristicToolCalls(context, userMessage);
+        if (calls.Count == 0)
+        {
+            return [];
+        }
+
+        var results = new List<AgentToolResult>();
+        foreach (var call in calls.Take(3))
+        {
+            results.Add(await ExecuteToolAsync(context, call, cancellationToken).ConfigureAwait(false));
+        }
+
+        return results;
+    }
+
+    private static IReadOnlyList<AgentToolCall> BuildHeuristicToolCalls(AgentContext context, string userMessage)
+    {
+        var lower = userMessage.ToLowerInvariant();
+        var calls = new List<AgentToolCall>();
+        var targetPath = ExtractLikelyPath(userMessage) ?? context.LinkedEntry?.Path;
+
+        if (ContainsAny(lower, "最大文件", "大文件", "largest", "large files", "biggest files"))
+        {
+            calls.Add(new AgentToolCall("heuristic_large_files", "find_large_files", JsonSerializer.SerializeToElement(new
+            {
+                under_path = targetPath,
+                max_results = 20
+            }, AgentJson.Options)));
+        }
+
+        if (ContainsAny(lower, "深入", "分析", "看看", "summary", "summarize", "占用") && !string.IsNullOrWhiteSpace(targetPath))
+        {
+            calls.Add(new AgentToolCall("heuristic_summary", "summarize_subtree", JsonSerializer.SerializeToElement(new
+            {
+                path = targetPath,
+                top_children = 20
+            }, AgentJson.Options)));
+        }
+
+        var nameQuery = ExtractNameQuery(userMessage);
+        if (!string.IsNullOrWhiteSpace(nameQuery))
+        {
+            calls.Add(new AgentToolCall("heuristic_find_name", "find_by_name", JsonSerializer.SerializeToElement(new
+            {
+                name = nameQuery,
+                max_results = 20
+            }, AgentJson.Options)));
+        }
+
+        return calls;
+    }
+
+    private static string? ExtractLikelyPath(string text)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(text, @"[A-Za-z]:[\\/][^\r\n\""']+");
+        return match.Success ? match.Value.Trim().TrimEnd('.', ',', '，', '。') : null;
+    }
+
+    private static string? ExtractNameQuery(string text)
+    {
+        var lower = text.ToLowerInvariant();
+        foreach (var marker in new[] { "找一下", "查找", "搜索", "find", "search" })
+        {
+            var index = lower.IndexOf(marker, StringComparison.Ordinal);
+            if (index < 0)
+            {
+                continue;
+            }
+
+            var tail = text[(index + marker.Length)..].Trim();
+            var token = tail.Split([' ', '，', ',', '。', '.', '的'], StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(token) && !token.Contains(':', StringComparison.Ordinal))
+            {
+                return token.Trim('"', '\'', '“', '”');
+            }
+        }
+
+        return null;
+    }
+
+    private static bool ContainsAny(string text, params string[] values)
+    {
+        return values.Any(value => text.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
     private async Task<AgentToolResult> ExecuteToolAsync(AgentContext context, AgentToolCall toolCall, CancellationToken cancellationToken)
     {
         if (!_tools.TryGetValue(toolCall.Name, out var tool))
@@ -121,7 +214,7 @@ public sealed class AgentRuntime : IAgentRuntime
         builder.AppendLine("You are a disk space analysis assistant with read-only access to the already scanned file tree.");
         builder.AppendLine();
         builder.AppendLine("Guidelines:");
-        builder.AppendLine("- Use tools when the user asks about paths, directories, names, largest files, or deeper analysis not visible in current_view_items.");
+        builder.AppendLine("- You MUST use tools for path lookup, name lookup, list children, subtree summary, largest files, or multi-step deep-dive requests.");
         builder.AppendLine("- Never claim to execute commands, delete files, move files, or rescan disk. Tools are read-only and query only the in-memory scan tree.");
         builder.AppendLine("- Base path and size claims on provided context or tool observations.");
         builder.AppendLine("- When you need a tool, respond with a single JSON object only, no markdown, no prose:");
@@ -306,3 +399,4 @@ public sealed class AgentRuntime : IAgentRuntime
         }, AgentJson.Options);
     }
 }
+
