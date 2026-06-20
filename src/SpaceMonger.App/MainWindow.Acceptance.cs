@@ -42,7 +42,7 @@ public partial class MainWindow
             CanGoUp = _treemapViewModel?.CanGoUp ?? false,
             BreadcrumbText = string.Join("", BreadcrumbBar.Children.OfType<ContentControl>().Select(c => c.Content?.ToString()).Where(s => !string.IsNullOrEmpty(s))),
             RecommendationsVisible = RecommendationsPanel.Visibility == Visibility.Visible,
-            ConsoleVisible = ConsoleTextBox.Visibility == Visibility.Visible,
+            ConsoleVisible = ConsoleFrame.Visibility == Visibility.Visible,
         };
     }
 

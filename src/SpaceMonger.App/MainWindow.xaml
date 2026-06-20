@@ -120,7 +120,7 @@
                             Padding="0"
                             Margin="0,0,4,0"
                             MinWidth="120"
-                            Height="30"
+                            Height="32"
                             MouseLeftButtonUp="AddressBar_MouseLeftButtonUp">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -292,20 +292,25 @@
                                                             Visibility="Visible" />
 
                                 <!-- Console panel content -->
-                                <TextBox x:Name="ConsoleTextBox"
-                                         Margin="4,0,4,4"
-                                         Padding="12,10"
-                                         Background="#1A1B26"
-                                         Foreground="#A9DC76"
-                                         BorderThickness="0"
-                                         FontFamily="Cascadia Code, SF Mono, Menlo, Consolas, monospace"
-                                         FontSize="12.5"
-                                         IsReadOnly="True"
-                                         TextWrapping="Wrap"
-                                         VerticalScrollBarVisibility="Auto"
-                                         HorizontalScrollBarVisibility="Auto"
-                                         CaretBrush="#A9DC76"
-                                         Visibility="Collapsed" />
+                                <Border x:Name="ConsoleFrame"
+                                        Margin="4,0,4,4"
+                                        Background="#1A1B26"
+                                        CornerRadius="0,0,10,10"
+                                        ClipToBounds="True"
+                                        Visibility="Collapsed">
+                                    <TextBox x:Name="ConsoleTextBox"
+                                             Padding="12,10"
+                                             Background="Transparent"
+                                             Foreground="#A9DC76"
+                                             BorderThickness="0"
+                                             FontFamily="Cascadia Code, SF Mono, Menlo, Consolas, monospace"
+                                             FontSize="12.5"
+                                             IsReadOnly="True"
+                                             TextWrapping="Wrap"
+                                             VerticalScrollBarVisibility="Auto"
+                                             HorizontalScrollBarVisibility="Auto"
+                                             CaretBrush="#A9DC76" />
+                                </Border>
                             </Grid>
                         </Border>
                     </Grid>
@@ -364,23 +369,20 @@
                     <Run Text="{loc:Loc FoldersLabel}" FontWeight="SemiBold" />
                     <Run Text="{Binding FolderCount, Mode=OneWay}" />
                 </TextBlock>
-                <Rectangle Width="1" Height="12" Margin="10,0"
-                           Fill="{StaticResource VP.BorderSubtleBrush}"
-                           VerticalAlignment="Center" />
-                <TextBlock FontStyle="Italic">
-                    <Hyperlink Click="StatusConsoleLink_Click"
-                               Foreground="{StaticResource VP.AccentBrush}"
-                               ToolTip="{loc:Loc OpenConsoleToolTip}">
-                        <Run Text="{Binding ScanProgressText}" />
-                    </Hyperlink>
-                </TextBlock>
+
             </DockPanel>
         </Grid>
 
-        <!-- 鈺愨晲鈺?Settings Page Overlay 鈺愨晲鈺?-->
+        <!-- Settings Page Overlay -->
         <views:SettingsPage x:Name="SettingsPage"
                             Grid.RowSpan="2"
                             Panel.ZIndex="100"
                             Visibility="Collapsed" />
+
+        <!-- App Modal Overlay -->
+        <controls:AppModalHost x:Name="ModalHost"
+                               Grid.RowSpan="2"
+                               Panel.ZIndex="200" />
     </Grid>
 </Window>
+

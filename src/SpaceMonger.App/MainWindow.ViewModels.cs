@@ -152,7 +152,7 @@ public partial class MainWindow
     {
         RecommendationsTabBtn.IsChecked = true;
         RecommendationsPanel.Visibility = Visibility.Visible;
-        ConsoleTextBox.Visibility = Visibility.Collapsed;
+        ConsoleFrame.Visibility = Visibility.Collapsed;
         ConsoleFilterButton.Visibility = Visibility.Collapsed;
     }
 
@@ -160,7 +160,7 @@ public partial class MainWindow
     {
         ConsoleTabBtn.IsChecked = true;
         RecommendationsPanel.Visibility = Visibility.Collapsed;
-        ConsoleTextBox.Visibility = Visibility.Visible;
+        ConsoleFrame.Visibility = Visibility.Visible;
         ConsoleFilterButton.Visibility = Visibility.Visible;
     }
 
@@ -169,7 +169,7 @@ public partial class MainWindow
         if (RecommendationsPanel == null || ConsoleTextBox == null || ConsoleFilterButton == null)
             return;
         RecommendationsPanel.Visibility = Visibility.Visible;
-        ConsoleTextBox.Visibility = Visibility.Collapsed;
+        ConsoleFrame.Visibility = Visibility.Collapsed;
         ConsoleFilterButton.Visibility = Visibility.Collapsed;
     }
 
@@ -178,7 +178,7 @@ public partial class MainWindow
         if (RecommendationsPanel == null || ConsoleTextBox == null || ConsoleFilterButton == null)
             return;
         RecommendationsPanel.Visibility = Visibility.Collapsed;
-        ConsoleTextBox.Visibility = Visibility.Visible;
+        ConsoleFrame.Visibility = Visibility.Visible;
         ConsoleFilterButton.Visibility = Visibility.Visible;
     }
 
