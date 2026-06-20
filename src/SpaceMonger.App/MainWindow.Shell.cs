@@ -46,6 +46,16 @@ public partial class MainWindow
         SettingsPage.Visibility = Visibility.Collapsed;
     }
 
+    private void SwitchToAboutTab()
+    {
+        AboutTabBtn.IsChecked = true;
+    }
+
+    private void VersionDisplay_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        SwitchToAboutTab();
+    }
+
     private void OnSettingsChanged()
     {
         L.SetLanguage(_settingsViewModel?.Language);

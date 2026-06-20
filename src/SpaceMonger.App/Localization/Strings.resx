@@ -616,4 +616,55 @@
   <data name="RestoreToolTip" xml:space="preserve">
     <value>Restore</value>
   </data>
+  <data name="AboutTabHeader" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="VersionLabel" xml:space="preserve">
+    <value>Version </value>
+  </data>
+  <data name="CurrentVersionFormat" xml:space="preserve">
+    <value>Current version: {0}</value>
+  </data>
+  <data name="UpToDateStatus" xml:space="preserve">
+    <value>You are on the latest version</value>
+  </data>
+  <data name="UpdateAvailableTitle" xml:space="preserve">
+    <value>New version {0} available</value>
+  </data>
+  <data name="DownloadUpdateButton" xml:space="preserve">
+    <value>Download Update ({0})</value>
+  </data>
+  <data name="DownloadingStatus" xml:space="preserve">
+    <value>Downloading v{0}...</value>
+  </data>
+  <data name="DownloadCompleteStatus" xml:space="preserve">
+    <value>v{0} downloaded successfully</value>
+  </data>
+  <data name="InstallButton" xml:space="preserve">
+    <value>Install Now</value>
+  </data>
+  <data name="ReDownloadButton" xml:space="preserve">
+    <value>Re-download</value>
+  </data>
+  <data name="ReleaseNotesHeader" xml:space="preserve">
+    <value>Release Notes</value>
+  </data>
+  <data name="UpdateAvailableFormat" xml:space="preserve">
+    <value>(New version 👉{0})</value>
+  </data>
+  <data name="DownloadingFormat" xml:space="preserve">
+    <value>(New version {0} downloading: {1}%)</value>
+  </data>
+  <data name="DownloadReadyFormat" xml:space="preserve">
+    <value>(New version {0} ready)</value>
+  </data>
+  <data name="AboutDescription" xml:space="preserve">
+    <value>A fast, modern disk space analyzer that helps you visualize and clean up your storage. Powered by MFT-level scanning and AI-powered recommendations.</value>
+  </data>
+  <data name="BuyMeCoffee" xml:space="preserve">
+    <value>Buy the author a coffee</value>
+  </data>
+  <data name="GithubLabel" xml:space="preserve">
+    <value>GitHub</value>
+  </data>
 </root>

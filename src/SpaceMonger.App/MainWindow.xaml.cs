@@ -48,6 +48,7 @@ public partial class MainWindow : Window
     private TreemapViewModel? _treemapViewModel;
     private SettingsViewModel? _settingsViewModel;
     private ChatViewModel? _chatViewModel;
+    private UpdateViewModel? _updateViewModel;
     private AcceptanceAutomationServer? _acceptanceAutomationServer;
     private string? _displayPathOverride;
     private bool _suppressSelectedPathNavigation;

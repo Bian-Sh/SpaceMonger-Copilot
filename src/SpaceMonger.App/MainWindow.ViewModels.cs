@@ -68,6 +68,15 @@ public partial class MainWindow
         TreemapView.CloseContentModal = ModalHost.CloseCurrent;
     }
 
+    public void SetUpdateViewModel(UpdateViewModel updateVm)
+    {
+        _updateViewModel = updateVm;
+        AboutPage.DataContext = updateVm;
+
+        if (DataContext is MainViewModel mainVm)
+            mainVm.UpdateVM = updateVm;
+    }
+
     public void SetTreemapViewModel(TreemapViewModel treemapVm)
     {
         _treemapViewModel = treemapVm;
@@ -214,21 +223,32 @@ public partial class MainWindow
 
     private void TreemapTab_Checked(object sender, RoutedEventArgs e)
     {
-        if (TreemapView == null || TreeViewControl == null)
+        if (TreemapView == null || TreeViewControl == null || AboutPage == null)
             return;
         TreemapView.Visibility = Visibility.Visible;
         TreeViewControl.Visibility = Visibility.Collapsed;
+        AboutPage.Visibility = Visibility.Collapsed;
     }
 
     private void TreeViewTab_Checked(object sender, RoutedEventArgs e)
     {
-        if (TreemapView == null || TreeViewControl == null)
+        if (TreemapView == null || TreeViewControl == null || AboutPage == null)
             return;
         TreemapView.Visibility = Visibility.Collapsed;
         TreeViewControl.Visibility = Visibility.Visible;
+        AboutPage.Visibility = Visibility.Collapsed;
 
         // Sync TreeView with current Treemap data
         SyncTreeViewWithTreemap();
+    }
+
+    private void AboutTab_Checked(object sender, RoutedEventArgs e)
+    {
+        if (TreemapView == null || TreeViewControl == null || AboutPage == null)
+            return;
+        TreemapView.Visibility = Visibility.Collapsed;
+        TreeViewControl.Visibility = Visibility.Collapsed;
+        AboutPage.Visibility = Visibility.Visible;
     }
 
     private void SyncTreeViewWithTreemap()

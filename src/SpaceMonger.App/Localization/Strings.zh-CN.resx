@@ -613,4 +613,55 @@
   <data name="RestoreToolTip" xml:space="preserve">
     <value>还原</value>
   </data>
+  <data name="AboutTabHeader" xml:space="preserve">
+    <value>关于</value>
+  </data>
+  <data name="VersionLabel" xml:space="preserve">
+    <value>版本 </value>
+  </data>
+  <data name="CurrentVersionFormat" xml:space="preserve">
+    <value>当前版本：{0}</value>
+  </data>
+  <data name="UpToDateStatus" xml:space="preserve">
+    <value>✅ 当前已是最新版本</value>
+  </data>
+  <data name="UpdateAvailableTitle" xml:space="preserve">
+    <value>发现新版本 {0}</value>
+  </data>
+  <data name="DownloadUpdateButton" xml:space="preserve">
+    <value>下载更新（{0}）</value>
+  </data>
+  <data name="DownloadingStatus" xml:space="preserve">
+    <value>正在下载 v{0}...</value>
+  </data>
+  <data name="DownloadCompleteStatus" xml:space="preserve">
+    <value>✅ v{0} 已下载完成</value>
+  </data>
+  <data name="InstallButton" xml:space="preserve">
+    <value>立即安装</value>
+  </data>
+  <data name="ReDownloadButton" xml:space="preserve">
+    <value>重新下载</value>
+  </data>
+  <data name="ReleaseNotesHeader" xml:space="preserve">
+    <value>更新日志</value>
+  </data>
+  <data name="UpdateAvailableFormat" xml:space="preserve">
+    <value>(发现新版本👉{0})</value>
+  </data>
+  <data name="DownloadingFormat" xml:space="preserve">
+    <value>(新版本{0}下载中：{1}%)</value>
+  </data>
+  <data name="DownloadReadyFormat" xml:space="preserve">
+    <value>(新版本{0} 已就绪)</value>
+  </data>
+  <data name="AboutDescription" xml:space="preserve">
+    <value>一款快速、现代的磁盘空间分析工具，通过 MFT 级扫描和 AI 智能推荐，帮助你可视化并清理存储空间。</value>
+  </data>
+  <data name="BuyMeCoffee" xml:space="preserve">
+    <value>我要投喂作者</value>
+  </data>
+  <data name="GithubLabel" xml:space="preserve">
+    <value>GitHub</value>
+  </data>
 </root>

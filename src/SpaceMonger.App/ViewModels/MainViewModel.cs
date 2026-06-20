@@ -51,6 +51,13 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private RecommendationsViewModel? _recommendationsVM;
 
+    /// <summary>
+    /// Reference to the update view model, set from MainWindow.SetUpdateViewModel.
+    /// Used for status bar version display binding.
+    /// </summary>
+    [ObservableProperty]
+    private UpdateViewModel? _updateVM;
+
     public event Action<ScanSession>? ScanCompleted;
 
     public MainViewModel(IFileScanner fileScanner)
@@ -83,6 +90,7 @@ public partial class MainViewModel : ObservableObject
             return;
         scanTarget = scanTarget.Trim();
 
+        CrashDiagnostics.Log("Scan.Start", scanTarget);
         IsScanning = true;
         ScanProgressText = L.Text("ScanningStatus");
         _scanCts = new CancellationTokenSource();
@@ -97,6 +105,14 @@ public partial class MainViewModel : ObservableObject
             });
 
             var session = await _fileScanner.ScanAsync(scanTarget, progress, _scanCts.Token);
+            if (session.IsCancelled || _scanCts.IsCancellationRequested)
+            {
+                CrashDiagnostics.Log("Scan.CancelledSession", $"target={scanTarget}, hasRoot={session.RootEntry is not null}, files={session.TotalFiles}, folders={session.TotalFolders}");
+                ScanProgressText = L.Text("ScanCancelledStatus");
+                return;
+            }
+
+            CrashDiagnostics.Log("Scan.Completed", $"target={scanTarget}, files={session.TotalFiles}, folders={session.TotalFolders}, hasRoot={session.RootEntry is not null}");
             DebugBreakpoints.Hit("scan-returned");
             CurrentSession = session;
             UpdateStatusBar(session);
@@ -105,6 +121,7 @@ public partial class MainViewModel : ObservableObject
         }
         catch (OperationCanceledException)
         {
+            CrashDiagnostics.Log("Scan.CancelledException", scanTarget);
             ScanProgressText = L.Text("ScanCancelledStatus");
         }
         finally

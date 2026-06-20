@@ -1,6 +1,8 @@
-﻿using System.Windows;
+using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
+using SpaceMonger.App.Diagnostics;
 using SpaceMonger.App.Localization;
+using SpaceMonger.App.Services;
 using SpaceMonger.App.ViewModels;
 using SpaceMonger.Core.Services.Analysis;
 using SpaceMonger.Core.Services.Agent;
@@ -27,6 +29,7 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        CrashDiagnostics.Register(this);
 
         var services = new ServiceCollection();
 
@@ -68,6 +71,10 @@ public partial class App : Application
         // TreeView services
         services.AddTransient<TreeViewModel>();
 
+        // Update services
+        services.AddSingleton<UpdateService>();
+        services.AddTransient<UpdateViewModel>();
+
         Services = services.BuildServiceProvider();
 
         var settingsService = Services.GetRequiredService<ISettingsService>();
@@ -79,6 +86,7 @@ public partial class App : Application
         var settingsViewModel = Services.GetRequiredService<SettingsViewModel>();
         var chatViewModel = Services.GetRequiredService<ChatViewModel>();
         var treeViewModel = Services.GetRequiredService<TreeViewModel>();
+        var updateViewModel = Services.GetRequiredService<UpdateViewModel>();
 
         var mainWindow = new MainWindow
         {
@@ -90,6 +98,7 @@ public partial class App : Application
         mainWindow.SetViewModels(recommendationsViewModel, settingsViewModel);
         mainWindow.SetChatViewModel(chatViewModel);
         mainWindow.SetTreeViewModel(treeViewModel);
+        mainWindow.SetUpdateViewModel(updateViewModel);
 
         mainViewModel.ScanCompleted += session =>
         {
@@ -99,6 +108,13 @@ public partial class App : Application
         };
 
         mainWindow.Show();
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(2000);
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(
+                () => updateViewModel.CheckForUpdateCommand.Execute(null));
+        });
     }
 }
 
