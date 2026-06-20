@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Resources;
 using System.Windows;
 using System.Windows.Markup;
+using System.Windows.Controls;
 
 namespace SpaceMonger.App.Localization;
 
@@ -22,7 +23,8 @@ public sealed class LocExtension : MarkupExtension
             target.TargetObject is DependencyObject dependencyObject &&
             target.TargetProperty is DependencyProperty dependencyProperty)
         {
-            return new LocBinding(Key, dependencyObject, dependencyProperty).Value;
+            var binding = new LocBinding(Key, dependencyObject, dependencyProperty);
+            return binding.Value;
         }
 
         return L.Text(Key);
@@ -35,11 +37,11 @@ public sealed class LocBinding : INotifyPropertyChanged
     private readonly DependencyObject _targetObject;
     private readonly DependencyProperty _targetProperty;
 
-    public LocBinding(string key, DependencyObject targetObject, DependencyProperty targetProperty)
+    public LocBinding(string key, DependencyObject targetObject, DependencyProperty dependencyProperty)
     {
         _key = key;
         _targetObject = targetObject;
-        _targetProperty = targetProperty;
+        _targetProperty = dependencyProperty;
         L.LanguageChanged += OnLanguageChanged;
     }
 
@@ -50,7 +52,28 @@ public sealed class LocBinding : INotifyPropertyChanged
     private void OnLanguageChanged()
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Value)));
-        _targetObject.Dispatcher.InvokeAsync(() => _targetObject.SetValue(_targetProperty, Value));
+        _targetObject.Dispatcher.InvokeAsync(() =>
+        {
+            // For ToolTip, we need to force close and reopen
+            if (_targetProperty == ToolTipService.ToolTipProperty && _targetObject is FrameworkElement element)
+            {
+                // Get the current tooltip
+                var currentToolTip = ToolTipService.GetToolTip(element);
+                
+                // If it's an open ToolTip object, close it
+                if (currentToolTip is ToolTip tp)
+                {
+                    tp.IsOpen = false;
+                }
+                
+                // Set new value
+                ToolTipService.SetToolTip(element, Value);
+            }
+            else
+            {
+                _targetObject.SetValue(_targetProperty, Value);
+            }
+        });
     }
 }
 

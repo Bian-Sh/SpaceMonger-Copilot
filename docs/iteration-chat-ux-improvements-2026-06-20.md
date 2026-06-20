@@ -6,15 +6,25 @@
 1. 添加复制按钮（鼠标悬停时显示，使用 opencode 的图标）
 2. 修复滚轮滚动问题
 3. 气泡自适应窗口宽度
+4. 用户消息复制按钮在右下角，AI消息复制按钮在左下角
+5. 复制按钮放在气泡内部，划入后只显示icon，icon纯白，不要背景变色
+6. 划入划出点击icon都要有响应的变化
 
 ## 修改内容
 
-### 1. 复制按钮
+### 1. 复制按钮（opencode 风格，气泡内部，带交互反馈）
 
-- 添加了 opencode 风格的复制图标（SVG path）
-- 鼠标悬停在气泡上时显示复制按钮
-- 点击复制按钮将消息文本复制到剪贴板
-- 使用 `Opacity` 动画控制显示/隐藏
+- 使用 opencode 的复制图标 SVG path：`M6.2513 6.24935V2.91602H17.0846V13.7493H13.7513M13.7513 6.24935V17.0827H2.91797V6.24935H13.7513Z`
+- **用户消息**：复制按钮在气泡**右下角**（内部）
+- **AI消息**：复制按钮在气泡**左下角**（内部）
+- 点击复制按钮复制完整的 markdown 原始文本
+- icon 纯白色 `Stroke="White"`，默认 `Opacity="0.6"`
+- **交互反馈**：
+  - 鼠标划入：icon 透明度 0.6→1（变亮）
+  - 鼠标划出：icon 透明度 1→0.6（恢复）
+  - 点击：icon 短暂变为浅蓝色（300ms），然后恢复白色
+- 无背景色，无边框，纯透明
+- 使用 Border + MouseLeftButtonDown 替代 Button，避免按钮样式干扰
 
 ### 2. 滚轮滚动修复
 
@@ -42,8 +52,8 @@
 ## 验证
 
 - 已运行 `dotnet build src\SpaceMonger.sln`，构建成功
-- 已发布 `win-x64` folder 版到 `outputs\SpaceMonger-chat-ux-20260620`
+- 已发布 `win-x64` folder 版到 `outputs\SpaceMonger-chat-copy-v5-20260620`
 
 ## 发布产物
 
-- `outputs/SpaceMonger-chat-ux-20260620/SpaceMonger.App.exe`
+- `outputs/SpaceMonger-chat-copy-v5-20260620/SpaceMonger.App.exe`

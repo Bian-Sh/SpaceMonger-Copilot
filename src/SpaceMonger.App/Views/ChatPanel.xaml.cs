@@ -3,6 +3,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Shapes;
+using SpaceMonger.App.Localization;
 using SpaceMonger.App.ViewModels;
 using SpaceMonger.Core.Models;
 
@@ -17,6 +19,7 @@ public partial class ChatPanel : UserControl
     public ChatPanel()
     {
         InitializeComponent();
+        L.LanguageChanged += OnLanguageChanged;
     }
 
     public void SetViewModel(ChatViewModel vm)
@@ -32,6 +35,42 @@ public partial class ChatPanel : UserControl
 
         // Subscribe to collection changes for auto-scroll
         vm.Messages.CollectionChanged += Messages_CollectionChanged;
+    }
+
+    private void OnLanguageChanged()
+    {
+        Dispatcher.InvokeAsync(() =>
+        {
+            // Update all copy button tooltips
+            UpdateCopyButtonTooltips();
+        });
+    }
+
+    private void UpdateCopyButtonTooltips()
+    {
+        var tooltipText = L.Text("CopyMessageToolTip");
+        
+        // Find all copy buttons in the visual tree
+        var stackPanel = FindChild<StackPanel>(MessagesItemsControl);
+        if (stackPanel == null) return;
+
+        foreach (var child in stackPanel.Children)
+        {
+            if (child is FrameworkElement element)
+            {
+                var aiCopyBorder = FindChildByName<Border>(element, "AiCopyButtonBorder");
+                if (aiCopyBorder != null)
+                {
+                    ToolTipService.SetToolTip(aiCopyBorder, tooltipText);
+                }
+
+                var userCopyBorder = FindChildByName<Border>(element, "UserCopyButtonBorder");
+                if (userCopyBorder != null)
+                {
+                    ToolTipService.SetToolTip(userCopyBorder, tooltipText);
+                }
+            }
+        }
     }
 
     private void Messages_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -87,9 +126,56 @@ public partial class ChatPanel : UserControl
         }
     }
 
-    private void CopyMessageButton_Click(object sender, RoutedEventArgs e)
+    private void BubbleBorder_MouseEnter(object sender, MouseEventArgs e)
     {
-        if (sender is Button button && button.DataContext is ChatMessage message)
+        if (sender is Border border)
+        {
+            // Find the copy button border in the visual tree
+            var grid = FindChild<Grid>(border);
+            if (grid != null)
+            {
+                // Find AI copy button
+                var aiCopyBorder = FindChildByName<Border>(grid, "AiCopyButtonBorder");
+                if (aiCopyBorder != null && aiCopyBorder.Visibility == Visibility.Visible)
+                {
+                    aiCopyBorder.Opacity = 1;
+                }
+
+                // Find User copy button
+                var userCopyBorder = FindChildByName<Border>(grid, "UserCopyButtonBorder");
+                if (userCopyBorder != null && userCopyBorder.Visibility == Visibility.Visible)
+                {
+                    userCopyBorder.Opacity = 1;
+                }
+            }
+        }
+    }
+
+    private void BubbleBorder_MouseLeave(object sender, MouseEventArgs e)
+    {
+        if (sender is Border border)
+        {
+            var grid = FindChild<Grid>(border);
+            if (grid != null)
+            {
+                var aiCopyBorder = FindChildByName<Border>(grid, "AiCopyButtonBorder");
+                if (aiCopyBorder != null)
+                {
+                    aiCopyBorder.Opacity = 0;
+                }
+
+                var userCopyBorder = FindChildByName<Border>(grid, "UserCopyButtonBorder");
+                if (userCopyBorder != null)
+                {
+                    userCopyBorder.Opacity = 0;
+                }
+            }
+        }
+    }
+
+    private void CopyButton_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is Border border && border.DataContext is ChatMessage message)
         {
             var textToCopy = message.Text;
             if (!string.IsNullOrEmpty(textToCopy))
@@ -97,6 +183,27 @@ public partial class ChatPanel : UserControl
                 try
                 {
                     Clipboard.SetText(textToCopy);
+                    
+                    // Visual feedback - briefly brighten the icon
+                    var icon = FindChild<Path>(border);
+                    if (icon != null)
+                    {
+                        var originalOpacity = icon.Opacity;
+                        icon.Opacity = 1;
+                        icon.Stroke = new SolidColorBrush(Color.FromRgb(100, 200, 255)); // Light blue flash
+                        
+                        var timer = new System.Windows.Threading.DispatcherTimer
+                        {
+                            Interval = TimeSpan.FromMilliseconds(300)
+                        };
+                        timer.Tick += (s, args) =>
+                        {
+                            icon.Opacity = originalOpacity;
+                            icon.Stroke = new SolidColorBrush(Colors.White);
+                            timer.Stop();
+                        };
+                        timer.Start();
+                    }
                 }
                 catch
                 {
@@ -107,35 +214,26 @@ public partial class ChatPanel : UserControl
         }
     }
 
-    private void MessageBorder_MouseEnter(object sender, MouseEventArgs e)
+    private void CopyButton_MouseEnter(object sender, MouseEventArgs e)
     {
-        if (sender is FrameworkElement element)
+        if (sender is Border border)
         {
-            // Find the copy button in the parent grid
-            var parent = VisualTreeHelper.GetParent(element) as Grid;
-            if (parent != null)
+            var icon = FindChild<Path>(border);
+            if (icon != null)
             {
-                var copyButton = FindChild<Button>(parent);
-                if (copyButton != null)
-                {
-                    copyButton.Opacity = 1;
-                }
+                icon.Opacity = 1; // Full brightness on hover
             }
         }
     }
 
-    private void MessageBorder_MouseLeave(object sender, MouseEventArgs e)
+    private void CopyButton_MouseLeave(object sender, MouseEventArgs e)
     {
-        if (sender is FrameworkElement element)
+        if (sender is Border border)
         {
-            var parent = VisualTreeHelper.GetParent(element) as Grid;
-            if (parent != null)
+            var icon = FindChild<Path>(border);
+            if (icon != null)
             {
-                var copyButton = FindChild<Button>(parent);
-                if (copyButton != null)
-                {
-                    copyButton.Opacity = 0;
-                }
+                icon.Opacity = 0.6; // Back to default
             }
         }
     }
@@ -143,9 +241,9 @@ public partial class ChatPanel : UserControl
     private void FlowDocumentScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
         // Forward the mouse wheel event to the parent ScrollViewer
-        if (sender is FlowDocumentScrollViewer viewer)
+        if (sender is FlowDocumentScrollViewer)
         {
-            var parentScrollViewer = FindParent<ScrollViewer>(viewer);
+            var parentScrollViewer = FindParent<ScrollViewer>((DependencyObject)sender);
             if (parentScrollViewer != null)
             {
                 parentScrollViewer.ScrollToVerticalOffset(parentScrollViewer.VerticalOffset - e.Delta);
@@ -175,6 +273,21 @@ public partial class ChatPanel : UserControl
                 return typedChild;
 
             var result = FindChild<T>(child);
+            if (result != null)
+                return result;
+        }
+        return null;
+    }
+
+    private static T? FindChildByName<T>(DependencyObject parent, string name) where T : FrameworkElement
+    {
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T typedChild && typedChild.Name == name)
+                return typedChild;
+
+            var result = FindChildByName<T>(child, name);
             if (result != null)
                 return result;
         }
