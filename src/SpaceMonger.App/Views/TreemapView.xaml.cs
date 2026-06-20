@@ -82,11 +82,7 @@ public partial class TreemapView : UserControl
                 : insideScan
                     ? L.Text("TreemapNoChildDataTitle")
                     : L.Text("TreemapEmptyTitle");
-            EmptyStateHint.Text = outsideScan
-                ? L.Text("TreemapAnalysisRequiredHint")
-                : insideScan
-                    ? L.Text("TreemapNoChildDataHint")
-                    : L.Text("TreemapEmptyHint");
+
         }
 
         // Hide opaque SkiaSharp canvas when empty (Opacity=0 keeps element in visual tree)
