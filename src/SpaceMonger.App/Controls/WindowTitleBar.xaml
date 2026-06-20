@@ -37,6 +37,7 @@
                     WindowChrome.IsHitTestVisibleInChrome="True">
             <Button x:Name="SettingsButton"
                     Content="&#xE713;"
+                    FontSize="18"
                     Style="{StaticResource VP.TitleBarButton}"
                     Click="SettingsButton_Click"
                     ToolTip="Settings" />
@@ -45,19 +46,19 @@
                     Click="CollapseChatButton_Click"
                     ToolTip="Toggle chat panel">
                 <Button.Content>
-                    <Grid Width="16" Height="12">
+                    <Grid Width="16" Height="20">
                         <!-- Chat open: rectangle with divider slightly right (right panel = chat) -->
                         <Grid x:Name="PanelOpenIcon">
                             <Border BorderBrush="{StaticResource VP.TextSecondaryBrush}"
                                     BorderThickness="1" CornerRadius="2" />
-                            <Line X1="9.5" Y1="0" X2="9.5" Y2="12"
+                            <Line X1="9.5" Y1="0" X2="9.5" Y2="20"
                                   Stroke="{StaticResource VP.TextSecondaryBrush}" StrokeThickness="1" />
                         </Grid>
                         <!-- Chat collapsed: rectangle with divider slightly left (left panel = chat) -->
                         <Grid x:Name="PanelClosedIcon" Visibility="Collapsed">
                             <Border BorderBrush="{StaticResource VP.TextSecondaryBrush}"
                                     BorderThickness="1" CornerRadius="2" />
-                            <Line X1="6.5" Y1="0" X2="6.5" Y2="12"
+                            <Line X1="6.5" Y1="0" X2="6.5" Y2="20"
                                   Stroke="{StaticResource VP.TextSecondaryBrush}" StrokeThickness="1" />
                         </Grid>
                     </Grid>
