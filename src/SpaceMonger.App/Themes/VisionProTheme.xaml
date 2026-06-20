@@ -6,21 +6,21 @@
          ═══════════════════════════════════════════════════════════════ -->
 
     <!-- ── Colors ──────────────────────────────────────────────────── -->
-    <Color x:Key="VP.Background">#0F0F0F</Color>
-    <Color x:Key="VP.BackgroundAlt">#1A1A1E</Color>
-    <Color x:Key="VP.Surface">#30FFFFFF</Color>          <!-- 18% white — more opaque for readability on white backgrounds -->
-    <Color x:Key="VP.SurfaceHover">#1AFFFFFF</Color>     <!-- 10% white -->
-    <Color x:Key="VP.SurfaceActive">#24FFFFFF</Color>    <!-- 14% white -->
-    <Color x:Key="VP.SettingsCard">#24FFFFFF</Color>     <!-- 14% white -->
-    <Color x:Key="VP.Card">#08FFFFFF</Color>             <!-- 3% white — recommendation cards -->
-    <Color x:Key="VP.BorderLight">#1FFFFFFF</Color>     <!-- 12% white -->
-    <Color x:Key="VP.BorderSubtle">#0FFFFFFF</Color>     <!-- 6% white -->
+    <Color x:Key="VP.Background">#343440</Color>
+    <Color x:Key="VP.BackgroundAlt">#484853</Color>
+    <Color x:Key="VP.Surface">#1AFFFFFF</Color>          <!-- 10% white over slate background -->
+    <Color x:Key="VP.SurfaceHover">#22FFFFFF</Color>     <!-- 13% white -->
+    <Color x:Key="VP.SurfaceActive">#2BFFFFFF</Color>    <!-- 17% white -->
+    <Color x:Key="VP.SettingsCard">#1EFFFFFF</Color>     <!-- 12% white -->
+    <Color x:Key="VP.Card">#12FFFFFF</Color>             <!-- 7% white — recommendation cards -->
+    <Color x:Key="VP.BorderLight">#24FFFFFF</Color>      <!-- 14% white -->
+    <Color x:Key="VP.BorderSubtle">#14FFFFFF</Color>     <!-- 8% white -->
 
     <Color x:Key="VP.TextPrimary">#FFFFFF</Color>
     <Color x:Key="VP.TextSecondary">#C7C7CC</Color>
     <Color x:Key="VP.TextTertiary">#AEAEB2</Color>
-    <Color x:Key="VP.Accent">#0A84FF</Color>
-    <Color x:Key="VP.AccentHover">#409CFF</Color>
+    <Color x:Key="VP.Accent">#2562A7</Color>
+    <Color x:Key="VP.AccentHover">#2E73C2</Color>
     <Color x:Key="VP.Danger">#FF453A</Color>
     <Color x:Key="VP.DangerPressed">#CC1A1A</Color>
     <Color x:Key="VP.Success">#30D158</Color>
@@ -45,7 +45,7 @@
     <SolidColorBrush x:Key="VP.DangerPressedBrush" Color="{StaticResource VP.DangerPressed}" />
     <SolidColorBrush x:Key="VP.SuccessBrush" Color="{StaticResource VP.Success}" />
     <SolidColorBrush x:Key="VP.WarningBrush" Color="{StaticResource VP.Warning}" />
-    <SolidColorBrush x:Key="VP.OverlayBrush" Color="#80404050" />
+    <SolidColorBrush x:Key="VP.OverlayBrush" Color="#80484853" />
 
     <!-- ── Typography ──────────────────────────────────────────────── -->
     <FontFamily x:Key="VP.FontFamily">Segoe UI Variable, Segoe UI</FontFamily>
