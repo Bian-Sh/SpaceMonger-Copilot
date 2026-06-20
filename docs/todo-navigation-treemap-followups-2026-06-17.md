@@ -6,7 +6,7 @@
 
 ## 待办项
 
-### 1. 文件夹选择后的导航联动
+### 1. 文件夹选择后的导航联动（2026-06-18 已实现，待手动验证）
 
 期望行为：
 
@@ -17,7 +17,7 @@
 当前问题：
 
 - 已尝试通过 `SelectedPath` 变化统一调用 `NavigateToPathOrSelect()`，但行为仍不稳定，已撤回。
-- 后续需要明确 `SelectedPath`、`CurrentRoot`、扫描根节点和地址栏显示路径的单一数据源，避免相互触发和状态分裂。
+- 2026-06-18 已改为由 `MainWindow.NavigateToPathOrSelect()` 统一处理 `SelectedPath`、`CurrentRoot`、扫描根节点和地址栏显示路径；详见 `docs/iteration-folder-selection-navigation-sync-2026-06-18.md`。仍建议做一次 UI 手动验证。
 
 ### 2. Treemap 文字清晰度与中文显示
 
@@ -49,3 +49,4 @@
 
 - 以上三项不属于本次提交内容；本次提交只保留其它已确认修复。
 - 修改中文资源文件时必须用真实 UTF-8 内容检查，不能依据 PowerShell 或 diff 的显示乱码判断文件损坏。
+
