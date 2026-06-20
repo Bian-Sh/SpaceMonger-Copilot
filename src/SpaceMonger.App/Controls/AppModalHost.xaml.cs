@@ -117,7 +117,8 @@ public partial class AppModalHost : UserControl
         {
             Orientation = Orientation.Horizontal,
             HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(40, 0, 40, 0)
         };
         Grid.SetRow(contentPanel, 3);
         root.Children.Add(contentPanel);
