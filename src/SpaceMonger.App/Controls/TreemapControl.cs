@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using SkiaSharp;
@@ -125,8 +125,8 @@ public class TreemapControl : SKElement
         canvas.DrawRect(fullRect, fillPaint);
 
         // Darker border for definition.
-        borderPaint.Color = DarkenColor(dirColor, 0.35f);
-        borderPaint.StrokeWidth = node.Depth <= 1 ? 2f : 1f;
+        borderPaint.Color = DarkenColor(dirColor, 0.38f);
+        borderPaint.StrokeWidth = node.Depth <= 1 ? 1.5f : 0.75f;
         canvas.DrawRect(fullRect, borderPaint);
 
         // Label in the header area — always black text like SpaceMonger.
@@ -171,8 +171,8 @@ public class TreemapControl : SKElement
         fillPaint.Color = nodeColor;
         canvas.DrawRect(rect, fillPaint);
 
-        borderPaint.Color = DarkenColor(nodeColor, 0.25f);
-        borderPaint.StrokeWidth = 1f;
+        borderPaint.Color = DarkenColor(nodeColor, 0.30f);
+        borderPaint.StrokeWidth = 0.75f;
         canvas.DrawRect(rect, borderPaint);
 
         if (node.Label is not null)

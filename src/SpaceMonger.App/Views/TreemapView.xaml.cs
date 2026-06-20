@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -17,6 +17,12 @@ public partial class TreemapView : UserControl
 {
     private TreemapViewModel? _viewModel;
     private bool _isScanning;
+
+    public Func<string, string, MessageBoxButton, MessageBoxImage, Task<MessageBoxResult>>? ShowMessageAsync { get; set; }
+
+    public Func<FrameworkElement, double, double, Task<bool?>>? ShowContentAsync { get; set; }
+
+    public Action<object?>? CloseContentModal { get; set; }
 
     public TreemapView()
     {
@@ -130,7 +136,7 @@ public partial class TreemapView : UserControl
 
         // "Open in Explorer" menu item
         var openInExplorerItem = new MenuItem { Header = L.Text("OpenInExplorerMenu") };
-        openInExplorerItem.Click += (_, _) =>
+        openInExplorerItem.Click += async (_, _) =>
         {
             try
             {
@@ -138,18 +144,14 @@ public partial class TreemapView : UserControl
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
-                    L.Format("OpenExplorerFailedMessage", ex.Message),
-                    L.Text("ErrorTitle"),
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
+                await ShowErrorAsync(L.Format("OpenExplorerFailedMessage", ex.Message));
             }
         };
         contextMenu.Items.Add(openInExplorerItem);
 
         // "Copy Path" menu item
         var copyPathItem = new MenuItem { Header = L.Text("CopyPathMenu") };
-        copyPathItem.Click += (_, _) =>
+        copyPathItem.Click += async (_, _) =>
         {
             try
             {
@@ -157,11 +159,7 @@ public partial class TreemapView : UserControl
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
-                    L.Format("CopyPathFailedMessage", ex.Message),
-                    L.Text("ErrorTitle"),
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
+                await ShowErrorAsync(L.Format("CopyPathFailedMessage", ex.Message));
             }
         };
         contextMenu.Items.Add(copyPathItem);
@@ -171,7 +169,7 @@ public partial class TreemapView : UserControl
 
         // "Properties" menu item
         var propertiesItem = new MenuItem { Header = L.Text("PropertiesMenu") };
-        propertiesItem.Click += (_, _) => ShowPropertiesDialog(entry);
+        propertiesItem.Click += async (_, _) => await ShowPropertiesDialogAsync(entry);
         contextMenu.Items.Add(propertiesItem);
 
         // Show the context menu at the mouse position
@@ -179,7 +177,7 @@ public partial class TreemapView : UserControl
         contextMenu.IsOpen = true;
     }
 
-    private static void ShowPropertiesDialog(FileEntry entry)
+    private async Task ShowPropertiesDialogAsync(FileEntry entry)
     {
         string type;
         DateTime createdDate = DateTime.MinValue;
@@ -215,19 +213,21 @@ public partial class TreemapView : UserControl
             type = entry.IsDirectory ? L.Text("FolderType") : L.Text("FileType");
         }
 
-        var propertiesWindow = new Window
+        var titleBlock = new TextBlock
         {
-            Title = L.Format("PropertiesTitle", entry.Name),
-            Width = 400,
-            Height = 280,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            ResizeMode = ResizeMode.NoResize,
-            Owner = Application.Current.MainWindow,
+            Text = L.Text("PropertiesTitle"),
+            FontSize = 17,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = (System.Windows.Media.Brush)FindResource("VP.TextPrimaryBrush"),
+            Margin = new Thickness(0, 0, 0, 14)
         };
+
+        var propertiesPanel = new StackPanel { MinWidth = 420 };
+        propertiesPanel.Children.Add(titleBlock);
 
         var grid = new Grid
         {
-            Margin = new Thickness(16),
+            Margin = new Thickness(0),
         };
 
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) });
@@ -252,6 +252,7 @@ public partial class TreemapView : UserControl
                 Text = labels[i].Item1,
                 FontWeight = FontWeights.SemiBold,
                 VerticalAlignment = VerticalAlignment.Center,
+                Foreground = (System.Windows.Media.Brush)FindResource("VP.TextPrimaryBrush"),
             };
             Grid.SetRow(labelBlock, i);
             Grid.SetColumn(labelBlock, 0);
@@ -263,6 +264,7 @@ public partial class TreemapView : UserControl
                 VerticalAlignment = VerticalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 ToolTip = labels[i].Item2,
+                Foreground = (System.Windows.Media.Brush)FindResource("VP.TextSecondaryBrush"),
             };
             Grid.SetRow(valueBlock, i);
             Grid.SetColumn(valueBlock, 1);
@@ -278,14 +280,29 @@ public partial class TreemapView : UserControl
             Height = 28,
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Bottom,
+            Style = (Style)FindResource("VP.AccentButton"),
         };
-        okButton.Click += (_, _) => propertiesWindow.Close();
+        okButton.Click += (_, _) => CloseContentModal?.Invoke(true);
         Grid.SetRow(okButton, labels.Length);
         Grid.SetColumn(okButton, 1);
         grid.Children.Add(okButton);
 
-        propertiesWindow.Content = grid;
-        propertiesWindow.ShowDialog();
+        propertiesPanel.Children.Add(grid);
+
+        if (ShowContentAsync is not null)
+        {
+            await ShowContentAsync(propertiesPanel, 520, 560);
+        }
+    }
+
+    private Task ShowErrorAsync(string message)
+    {
+        if (ShowMessageAsync is not null)
+        {
+            return ShowMessageAsync(message, L.Text("ErrorTitle"), MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+
+        return Task.CompletedTask;
     }
 
     private void Treemap_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -293,3 +310,7 @@ public partial class TreemapView : UserControl
         _viewModel?.UpdateSize((float)e.NewSize.Width, (float)e.NewSize.Height);
     }
 }
+
+
+
+
