@@ -46,7 +46,7 @@
     <value>Recommend Cleanup</value>
   </data>
   <data name="RecommendCleanupToolTip" xml:space="preserve">
-    <value>Uses AI to scan the current view and recommend files and folders that can be safely removed to free up disk space. Only deletable items are shown 鈥?files deemed important are not listed.</value>
+    <value>Uses AI to scan the current view and recommend files and folders that can be safely removed to free up disk space. Only deletable items are shown — files deemed important are not listed.</value>
   </data>
   <data name="AnalyzeButton" xml:space="preserve">
     <value>Analyze</value>
@@ -103,7 +103,7 @@
     <value>Analysis complete: {0} recommendation{1} found.</value>
   </data>
   <data name="CleaningStatus" xml:space="preserve">
-    <value>Cleaning: {0}/{1} 鈥?{2}</value>
+    <value>Cleaning: {0}/{1} — {2}</value>
   </data>
   <data name="CleanupCompleteStatus" xml:space="preserve">
     <value>Cleanup complete: {0} items removed ({1} freed)</value>
@@ -151,7 +151,7 @@
     <value>Settings saved</value>
   </data>
   <data name="UpButton" xml:space="preserve">
-    <value>鈫?Up</value>
+    <value>Up</value>
   </data>
   <data name="NavigateUpToolTip" xml:space="preserve">
     <value>Navigate up one level</value>
@@ -380,7 +380,7 @@
     <value>Scanning...</value>
   </data>
   <data name="ScanProgressStatus" xml:space="preserve">
-    <value>{0} 鈥?{1:N0} files, {2:N0} folders</value>
+    <value>{0} — {1:N0} files, {2:N0} folders</value>
   </data>
   <data name="ScanCancelledStatus" xml:space="preserve">
     <value>Scan cancelled.</value>
@@ -470,7 +470,7 @@
     <value>Switch to the console tab to inspect the analysis process, or adjust filters and try again.</value>
   </data>
   <data name="SettingsBackToAppButton" xml:space="preserve">
-    <value>鈫?Back to app</value>
+    <value>Back to app</value>
   </data>
   <data name="SettingsSearchPlaceholder" xml:space="preserve">
     <value>Search settings...</value>

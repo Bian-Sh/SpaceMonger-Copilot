@@ -467,7 +467,7 @@
     <value>可以切换到控制台查看分析过程，或调整筛选条件后重试。</value>
   </data>
   <data name="SettingsBackToAppButton" xml:space="preserve">
-    <value>← 返回应用</value>
+    <value>返回应用</value>
   </data>
   <data name="SettingsSearchPlaceholder" xml:space="preserve">
     <value>搜索设置...</value>
