@@ -3,6 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 using SpaceMonger.App.Localization;
 using SpaceMonger.App.ViewModels;
 using SpaceMonger.Core.Services.Analysis;
+using SpaceMonger.Core.Services.Agent;
+using SpaceMonger.Core.Services.FileTree;
 using SpaceMonger.Core.Services.Chat;
 using SpaceMonger.Core.Services.Llm;
 using SpaceMonger.Core.Services.Scanning;
@@ -52,7 +54,14 @@ public partial class App : Application
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<RecommendationsViewModel>();
 
-        // US4 chat services
+        // Agent and chat services
+        services.AddSingleton<IFileTreeQueryService, FileTreeQueryService>();
+        services.AddSingleton<IAgentTool, FindByNameTool>();
+        services.AddSingleton<IAgentTool, FindByPathTool>();
+        services.AddSingleton<IAgentTool, ListChildrenTool>();
+        services.AddSingleton<IAgentTool, SummarizeSubtreeTool>();
+        services.AddSingleton<IAgentTool, FindLargeFilesTool>();
+        services.AddSingleton<IAgentRuntime, AgentRuntime>();
         services.AddSingleton<IChatService, ChatService>();
         services.AddTransient<ChatViewModel>();
 
@@ -92,5 +101,4 @@ public partial class App : Application
         mainWindow.Show();
     }
 }
-
 

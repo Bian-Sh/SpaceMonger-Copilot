@@ -1,6 +1,5 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using SpaceMonger.Core.Models;
+﻿using SpaceMonger.Core.Models;
+using SpaceMonger.Core.Services.Agent;
 using SpaceMonger.Core.Services.Llm;
 
 namespace SpaceMonger.Core.Services.Chat;
@@ -10,18 +9,12 @@ public class ChatService : IChatService
     private const int MaxEstimatedTokens = 150_000;
     private const int CharsPerToken = 4;
 
-    private readonly ILlmClient _llmClient;
+    private readonly IAgentRuntime _agentRuntime;
     private readonly List<(string role, string content)> _conversationHistory = [];
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
+    public ChatService(IAgentRuntime agentRuntime)
     {
-        WriteIndented = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-    };
-
-    public ChatService(ILlmClient llmClient)
-    {
-        _llmClient = llmClient;
+        _agentRuntime = agentRuntime;
     }
 
     public async Task<string> SendMessageAsync(
@@ -34,33 +27,16 @@ public class ChatService : IChatService
         string? baseUrl,
         CancellationToken cancellationToken)
     {
-        // Step 1: Build context block JSON
-        var contextBlock = BuildContextBlock(currentViewRoot, linkedEntry, linkedRecommendation, session);
-
-        // Step 2: Build the full user message with context prefix
-        var fullUserMessage = $"{contextBlock}\n\nUser question: {userMessage}";
-
-        // Step 3: Build the system prompt
-        var systemPrompt = BuildSystemPrompt();
-
-        // Step 4: Add user message to conversation history
-        _conversationHistory.Add(("user", fullUserMessage));
-
-        // Step 5: Call the LLM
-        var response = await _llmClient.SendChatAsync(
-            systemPrompt,
+        var response = await _agentRuntime.RunAsync(
+            new AgentContext(session, currentViewRoot, linkedEntry, linkedRecommendation),
             _conversationHistory,
+            userMessage,
             apiKey,
             baseUrl,
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
 
-        // Step 6: Add assistant response to conversation history
-        _conversationHistory.Add(("assistant", response));
-
-        // Step 7: Truncate oldest messages if estimated tokens exceed ~150K
-        TruncateHistoryIfNeeded(systemPrompt);
-
-        return response;
+        AddTurnToHistory(userMessage, response.Content);
+        return response.Content;
     }
 
     public async Task<string> StreamMessageAsync(
@@ -74,19 +50,17 @@ public class ChatService : IChatService
         Action<string> onToken,
         CancellationToken cancellationToken)
     {
-        var contextBlock = BuildContextBlock(currentViewRoot, linkedEntry, linkedRecommendation, session);
-        var fullUserMessage = $"{contextBlock}\n\nUser question: {userMessage}";
-        var systemPrompt = BuildSystemPrompt();
+        var response = await _agentRuntime.RunAsync(
+            new AgentContext(session, currentViewRoot, linkedEntry, linkedRecommendation),
+            _conversationHistory,
+            userMessage,
+            apiKey,
+            baseUrl,
+            cancellationToken).ConfigureAwait(false);
 
-        _conversationHistory.Add(("user", fullUserMessage));
-
-        var fullResponse = await _llmClient.StreamChatAsync(
-            systemPrompt, _conversationHistory, apiKey, baseUrl, onToken, cancellationToken);
-
-        _conversationHistory.Add(("assistant", fullResponse));
-        TruncateHistoryIfNeeded(systemPrompt);
-
-        return fullResponse;
+        onToken(response.Content);
+        AddTurnToHistory(userMessage, response.Content);
+        return response.Content;
     }
 
     public async Task<ChatResponse> StreamMessageWithThinkingAsync(
@@ -101,20 +75,23 @@ public class ChatService : IChatService
         Action<string>? onTextToken,
         CancellationToken cancellationToken)
     {
-        var contextBlock = BuildContextBlock(currentViewRoot, linkedEntry, linkedRecommendation, session);
-        var fullUserMessage = $"{contextBlock}\n\nUser question: {userMessage}";
-        var systemPrompt = BuildSystemPrompt();
+        var response = await _agentRuntime.RunAsync(
+            new AgentContext(session, currentViewRoot, linkedEntry, linkedRecommendation),
+            _conversationHistory,
+            userMessage,
+            apiKey,
+            baseUrl,
+            cancellationToken).ConfigureAwait(false);
 
-        _conversationHistory.Add(("user", fullUserMessage));
+        if (response.ToolResults.Count > 0)
+        {
+            var limitNote = response.ReachedToolLimit ? " Tool limit reached; answered from partial observations." : string.Empty;
+            onThinkingToken?.Invoke($"Queried {response.ToolResults.Count} read-only file tree tool(s).{limitNote}\n");
+        }
 
-        var response = await _llmClient.StreamChatWithThinkingAsync(
-            systemPrompt, _conversationHistory, apiKey, baseUrl,
-            onThinkingToken, onTextToken, cancellationToken);
-
-        _conversationHistory.Add(("assistant", response.Text));
-        TruncateHistoryIfNeeded(systemPrompt);
-
-        return response;
+        onTextToken?.Invoke(response.Content);
+        AddTurnToHistory(userMessage, response.Content);
+        return new ChatResponse(response.Content, string.Empty);
     }
 
     public void ClearHistory()
@@ -122,96 +99,24 @@ public class ChatService : IChatService
         _conversationHistory.Clear();
     }
 
-    private static string BuildContextBlock(
-        FileEntry currentViewRoot,
-        FileEntry? linkedEntry,
-        CleanupRecommendation? linkedRecommendation,
-        ScanSession session)
+    private void AddTurnToHistory(string userMessage, string assistantResponse)
     {
-        // Build selected_item from linkedEntry or linkedRecommendation
-        object? selectedItem = null;
-
-        if (linkedEntry is not null)
-        {
-            selectedItem = new
-            {
-                path = linkedEntry.Path,
-                size_bytes = linkedEntry.Size,
-                type = linkedEntry.IsDirectory ? "directory" : "file",
-                extension = linkedEntry.Extension,
-                last_modified = linkedEntry.LastModified.ToString("O")
-            };
-        }
-        else if (linkedRecommendation is not null)
-        {
-            selectedItem = new
-            {
-                path = linkedRecommendation.TargetPath,
-                size_bytes = linkedRecommendation.Size,
-                type = linkedRecommendation.Entry?.IsDirectory == true ? "directory" : "file",
-                extension = linkedRecommendation.Entry?.Extension,
-                last_modified = linkedRecommendation.Entry?.LastModified.ToString("O")
-            };
-        }
-
-        var contextObject = new
-        {
-            current_view_path = currentViewRoot.Path,
-            current_view_items = currentViewRoot.Children
-                .OrderByDescending(c => c.Size)
-                .Select(c => new
-                {
-                    path = c.Path,
-                    size_bytes = c.Size,
-                    type = c.IsDirectory ? "directory" : "file"
-                }),
-            selected_item = selectedItem,
-            scan_summary = new
-            {
-                total_size_bytes = session.TotalSize,
-                total_files = session.TotalFiles,
-                drive_capacity_bytes = session.DriveCapacity
-            }
-        };
-
-        return JsonSerializer.Serialize(contextObject, JsonOptions);
+        _conversationHistory.Add(("user", userMessage));
+        _conversationHistory.Add(("assistant", assistantResponse));
+        TruncateHistoryIfNeeded();
     }
 
-    private static string BuildSystemPrompt()
-    {
-        return """
-            You are a disk space analysis assistant. You help users understand their disk usage and make informed decisions about cleaning up files.
-
-            ## Guidelines
-
-            - Reference actual scan data provided in the context block — never hallucinate paths or sizes
-            - Provide accurate information about well-known system files (hiberfil.sys, pagefile.sys, swapfile.sys, etc.)
-            - Include specific removal or management instructions when asked, with clear warnings about consequences
-            - Format commands as fenced code blocks — the user will manually copy and execute them
-            - NEVER claim to execute commands, modify files, or take actions on the system
-            - Cite actual file paths and sizes from the provided scan context
-            - If a question is not related to disk space analysis, redirect the conversation back to disk space topics
-            - When discussing sizes, use human-readable units (KB, MB, GB) alongside exact byte counts when relevant
-            """;
-    }
-
-    private void TruncateHistoryIfNeeded(string systemPrompt)
+    private void TruncateHistoryIfNeeded()
     {
         while (_conversationHistory.Count > 2)
         {
-            var totalChars = systemPrompt.Length;
-            foreach (var (_, content) in _conversationHistory)
-            {
-                totalChars += content.Length;
-            }
-
+            var totalChars = _conversationHistory.Sum(message => message.content.Length);
             var estimatedTokens = totalChars / CharsPerToken;
             if (estimatedTokens <= MaxEstimatedTokens)
             {
                 break;
             }
 
-            // Remove the oldest user/assistant pair (first two entries)
             _conversationHistory.RemoveAt(0);
             if (_conversationHistory.Count > 0)
             {
