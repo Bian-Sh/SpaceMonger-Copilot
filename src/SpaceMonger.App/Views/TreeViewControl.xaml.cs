@@ -10,10 +10,31 @@ namespace SpaceMonger.App.Views;
 public partial class TreeViewControl : UserControl
 {
     public event Action<FileEntry>? AskAiRequested;
+        private ScrollViewer? _headerScrollViewer;
 
     public TreeViewControl()
     {
         InitializeComponent();
+        Loaded += TreeViewControl_Loaded;
+    }
+
+    private void TreeViewControl_Loaded(object? sender, System.Windows.RoutedEventArgs e)
+    {
+        // subscribe to any ScrollViewer.ScrollChanged routed events from within the TreeView
+        // this is more robust than finding a descendant ScrollViewer directly
+        FileTreeView.AddHandler(ScrollViewer.ScrollChangedEvent, new ScrollChangedEventHandler(TreeScroll_ScrollChanged));
+
+        // avoid depending on generated field from XAML; resolve by name
+        _headerScrollViewer = FindName("HeaderScrollViewer") as ScrollViewer;
+    }
+
+    private void TreeScroll_ScrollChanged(object? sender, ScrollChangedEventArgs e)
+    {
+        try
+        {
+            _headerScrollViewer?.ScrollToHorizontalOffset(e.HorizontalOffset);
+        }
+        catch { }
     }
 
     private void TreeViewItem_Selected(object sender, RoutedEventArgs e)
@@ -65,6 +86,21 @@ public partial class TreeViewControl : UserControl
             }
 
             current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+        }
+
+        return null;
+    }
+    private static T? FindDescendant<T>(DependencyObject parent) where T : DependencyObject
+    {
+        if (parent == null) return null;
+
+        var count = System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent);
+        for (int i = 0; i < count; i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+            if (child is T typed) return typed;
+            var result = FindDescendant<T>(child);
+            if (result != null) return result;
         }
 
         return null;
