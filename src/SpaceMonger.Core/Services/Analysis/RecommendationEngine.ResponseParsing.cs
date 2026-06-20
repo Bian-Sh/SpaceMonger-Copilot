@@ -111,14 +111,27 @@ public partial class RecommendationEngine
             {
                 try
                 {
-                    var path = rec.GetProperty("path").GetString();
+                    if (!rec.TryGetProperty("path", out var pathEl) || pathEl.ValueKind != JsonValueKind.String)
+                    {
+                        diagnostics.MalformedRecommendationCount++;
+                        continue;
+                    }
+                    var path = pathEl.GetString();
                     if (string.IsNullOrWhiteSpace(path))
                         continue;
 
-                    var sizeBytes = rec.GetProperty("size_bytes").GetInt64();
-                    var categoryStr = rec.GetProperty("category").GetString() ?? "Other";
-                    var safetyStr = rec.GetProperty("safety_rating").GetString() ?? "ReviewFirst";
-                    var explanation = rec.GetProperty("explanation").GetString() ?? string.Empty;
+                    long sizeBytes = 0;
+                    if (rec.TryGetProperty("size_bytes", out var sizeEl) && sizeEl.ValueKind == JsonValueKind.Number)
+                        sizeBytes = sizeEl.GetInt64();
+                    var categoryStr = "Other";
+                    if (rec.TryGetProperty("category", out var catEl) && catEl.ValueKind == JsonValueKind.String)
+                        categoryStr = catEl.GetString() ?? "Other";
+                    var safetyStr = "ReviewFirst";
+                    if (rec.TryGetProperty("safety_rating", out var safetyEl) && safetyEl.ValueKind == JsonValueKind.String)
+                        safetyStr = safetyEl.GetString() ?? "ReviewFirst";
+                    var explanation = "";
+                    if (rec.TryGetProperty("explanation", out var expEl) && expEl.ValueKind == JsonValueKind.String)
+                        explanation = expEl.GetString() ?? "";
 
                     if (!Enum.TryParse<RecommendationCategory>(categoryStr, ignoreCase: true, out var category))
                     {
