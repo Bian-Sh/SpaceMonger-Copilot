@@ -142,6 +142,108 @@ public class AnthropicClient : ILlmClient
         return fullResponse.ToString();
     }
 
+    public async Task<ChatResponse> StreamChatWithThinkingAsync(
+        string systemPrompt,
+        List<(string role, string content)> messages,
+        string apiKey,
+        string? baseUrl,
+        Action<string>? onThinkingToken,
+        Action<string>? onTextToken,
+        CancellationToken cancellationToken)
+    {
+        var requestBody = BuildRequestBody(
+            systemPrompt,
+            messages,
+            ChatMaxTokens,
+            GetModel(baseUrl, preferDeepSeekPro: false),
+            IsDeepSeekAnthropicEndpoint(baseUrl));
+        requestBody["stream"] = true;
+
+        var jsonBody = requestBody.ToJsonString();
+        using var request = CreateRequest(jsonBody, apiKey, baseUrl);
+
+        using var response = await _httpClient.SendAsync(
+            request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            throw new HttpRequestException(
+                $"Anthropic API streaming request failed with status {(int)response.StatusCode}: {errorBody}");
+        }
+
+        using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        using var reader = new StreamReader(stream, Encoding.UTF8);
+
+        var fullText = new StringBuilder();
+        var fullThinking = new StringBuilder();
+        var currentBlockType = "text"; // Track current block type
+
+        while (!reader.EndOfStream)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+            if (line is null)
+                break;
+
+            if (!line.StartsWith("data: ", StringComparison.Ordinal))
+                continue;
+
+            var eventData = line.Substring(6);
+            if (eventData == "[DONE]")
+                break;
+
+            using var doc = JsonDocument.Parse(eventData);
+            var root = doc.RootElement;
+
+            if (!root.TryGetProperty("type", out var typeElement))
+                continue;
+
+            var eventType = typeElement.GetString();
+
+            // Handle content_block_start to detect thinking blocks
+            if (eventType == "content_block_start"
+                && root.TryGetProperty("content_block", out var contentBlock))
+            {
+                if (contentBlock.TryGetProperty("type", out var blockType))
+                {
+                    currentBlockType = blockType.GetString() ?? "text";
+                }
+            }
+
+            if (eventType == "content_block_delta"
+                && root.TryGetProperty("delta", out var delta))
+            {
+                // Handle thinking delta
+                if (currentBlockType == "thinking"
+                    && delta.TryGetProperty("thinking", out var thinkingElement))
+                {
+                    var thinking = thinkingElement.GetString();
+                    if (thinking is not null)
+                    {
+                        fullThinking.Append(thinking);
+                        onThinkingToken?.Invoke(thinking);
+                    }
+                }
+                // Handle text delta
+                else if (currentBlockType == "text"
+                    && delta.TryGetProperty("text", out var textElement))
+                {
+                    var text = textElement.GetString();
+                    if (text is not null)
+                    {
+                        fullText.Append(text);
+                        onTextToken?.Invoke(text);
+                    }
+                }
+            }
+        }
+
+        return new ChatResponse(fullText.ToString(), fullThinking.ToString());
+    }
+
     public async Task<bool> ValidateApiKeyAsync(string apiKey, string? baseUrl)
     {
         var requestBody = new JsonObject

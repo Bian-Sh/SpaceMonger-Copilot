@@ -2,7 +2,9 @@ using System.Collections.Specialized;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using SpaceMonger.App.ViewModels;
+using SpaceMonger.Core.Models;
 
 namespace SpaceMonger.App.Views;
 
@@ -74,5 +76,108 @@ public partial class ChatPanel : UserControl
             _viewModel.LinkedRecommendation = null;
             _viewModel.LinkedItemPath = null;
         }
+    }
+
+    private void ThinkingBorder_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement element && element.DataContext is ChatMessage message)
+        {
+            message.IsThinkingExpanded = !message.IsThinkingExpanded;
+            e.Handled = true;
+        }
+    }
+
+    private void CopyMessageButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button button && button.DataContext is ChatMessage message)
+        {
+            var textToCopy = message.Text;
+            if (!string.IsNullOrEmpty(textToCopy))
+            {
+                try
+                {
+                    Clipboard.SetText(textToCopy);
+                }
+                catch
+                {
+                    // Clipboard might be unavailable
+                }
+            }
+            e.Handled = true;
+        }
+    }
+
+    private void MessageBorder_MouseEnter(object sender, MouseEventArgs e)
+    {
+        if (sender is FrameworkElement element)
+        {
+            // Find the copy button in the parent grid
+            var parent = VisualTreeHelper.GetParent(element) as Grid;
+            if (parent != null)
+            {
+                var copyButton = FindChild<Button>(parent);
+                if (copyButton != null)
+                {
+                    copyButton.Opacity = 1;
+                }
+            }
+        }
+    }
+
+    private void MessageBorder_MouseLeave(object sender, MouseEventArgs e)
+    {
+        if (sender is FrameworkElement element)
+        {
+            var parent = VisualTreeHelper.GetParent(element) as Grid;
+            if (parent != null)
+            {
+                var copyButton = FindChild<Button>(parent);
+                if (copyButton != null)
+                {
+                    copyButton.Opacity = 0;
+                }
+            }
+        }
+    }
+
+    private void FlowDocumentScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        // Forward the mouse wheel event to the parent ScrollViewer
+        if (sender is FlowDocumentScrollViewer viewer)
+        {
+            var parentScrollViewer = FindParent<ScrollViewer>(viewer);
+            if (parentScrollViewer != null)
+            {
+                parentScrollViewer.ScrollToVerticalOffset(parentScrollViewer.VerticalOffset - e.Delta);
+                e.Handled = true;
+            }
+        }
+    }
+
+    private static T? FindParent<T>(DependencyObject child) where T : DependencyObject
+    {
+        var parent = VisualTreeHelper.GetParent(child);
+        while (parent != null)
+        {
+            if (parent is T typedParent)
+                return typedParent;
+            parent = VisualTreeHelper.GetParent(parent);
+        }
+        return null;
+    }
+
+    private static T? FindChild<T>(DependencyObject parent) where T : DependencyObject
+    {
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T typedChild)
+                return typedChild;
+
+            var result = FindChild<T>(child);
+            if (result != null)
+                return result;
+        }
+        return null;
     }
 }

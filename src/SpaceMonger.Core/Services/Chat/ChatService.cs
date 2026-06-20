@@ -89,6 +89,34 @@ public class ChatService : IChatService
         return fullResponse;
     }
 
+    public async Task<ChatResponse> StreamMessageWithThinkingAsync(
+        string userMessage,
+        FileEntry? linkedEntry,
+        CleanupRecommendation? linkedRecommendation,
+        FileEntry currentViewRoot,
+        ScanSession session,
+        string apiKey,
+        string? baseUrl,
+        Action<string>? onThinkingToken,
+        Action<string>? onTextToken,
+        CancellationToken cancellationToken)
+    {
+        var contextBlock = BuildContextBlock(currentViewRoot, linkedEntry, linkedRecommendation, session);
+        var fullUserMessage = $"{contextBlock}\n\nUser question: {userMessage}";
+        var systemPrompt = BuildSystemPrompt();
+
+        _conversationHistory.Add(("user", fullUserMessage));
+
+        var response = await _llmClient.StreamChatWithThinkingAsync(
+            systemPrompt, _conversationHistory, apiKey, baseUrl,
+            onThinkingToken, onTextToken, cancellationToken);
+
+        _conversationHistory.Add(("assistant", response.Text));
+        TruncateHistoryIfNeeded(systemPrompt);
+
+        return response;
+    }
+
     public void ClearHistory()
     {
         _conversationHistory.Clear();

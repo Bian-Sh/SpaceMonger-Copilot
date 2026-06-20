@@ -141,6 +141,7 @@ public partial class ChatViewModel : ObservableObject
         {
             Sender = ChatSender.Assistant,
             Text = "",
+            Thinking = "",
             Timestamp = DateTime.Now,
             IsStreaming = true
         };
@@ -153,7 +154,7 @@ public partial class ChatViewModel : ObservableObject
             var baseUrl = settings.AnthropicBaseUrl;
 
             var userInput = InputText;
-            await _chatService.StreamMessageAsync(
+            await _chatService.StreamMessageWithThinkingAsync(
                 userInput,
                 LinkedEntry,
                 LinkedRecommendation,
@@ -161,7 +162,8 @@ public partial class ChatViewModel : ObservableObject
                 _currentSession!,
                 apiKey,
                 baseUrl,
-                token => assistantMessage.Text += token,
+                thinkingToken => assistantMessage.Thinking += thinkingToken,
+                textToken => assistantMessage.Text += textToken,
                 CancellationToken.None);
 
             assistantMessage.IsStreaming = false;
@@ -192,6 +194,12 @@ public partial class ChatViewModel : ObservableObject
         {
             IsSending = false;
         }
+    }
+
+    [RelayCommand]
+    private void ToggleThinking(ChatMessage message)
+    {
+        message.IsThinkingExpanded = !message.IsThinkingExpanded;
     }
 }
 

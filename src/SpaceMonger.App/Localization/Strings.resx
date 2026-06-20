@@ -589,4 +589,13 @@
   <data name="SortByModifiedToolTip" xml:space="preserve">
     <value>Sort by date modified</value>
   </data>
+  <data name="ThinkingLabel" xml:space="preserve">
+    <value>Thinking</value>
+  </data>
+  <data name="ThinkingText" xml:space="preserve">
+    <value>Thinking...</value>
+  </data>
+  <data name="CopyMessageToolTip" xml:space="preserve">
+    <value>Copy message</value>
+  </data>
 </root>

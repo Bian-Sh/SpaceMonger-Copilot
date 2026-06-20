@@ -1,4 +1,5 @@
 using SpaceMonger.Core.Models;
+using SpaceMonger.Core.Services.Llm;
 
 namespace SpaceMonger.Core.Services.Chat;
 
@@ -23,6 +24,18 @@ public interface IChatService
         string apiKey,
         string? baseUrl,
         Action<string> onToken,
+        CancellationToken cancellationToken);
+
+    Task<ChatResponse> StreamMessageWithThinkingAsync(
+        string userMessage,
+        FileEntry? linkedEntry,
+        CleanupRecommendation? linkedRecommendation,
+        FileEntry currentViewRoot,
+        ScanSession session,
+        string apiKey,
+        string? baseUrl,
+        Action<string>? onThinkingToken,
+        Action<string>? onTextToken,
         CancellationToken cancellationToken);
 
     void ClearHistory();

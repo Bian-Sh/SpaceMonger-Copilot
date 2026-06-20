@@ -586,4 +586,13 @@
   <data name="SortByModifiedToolTip" xml:space="preserve">
     <value>按修改日期排序</value>
   </data>
+  <data name="ThinkingLabel" xml:space="preserve">
+    <value>思考中</value>
+  </data>
+  <data name="ThinkingText" xml:space="preserve">
+    <value>思考中...</value>
+  </data>
+  <data name="CopyMessageToolTip" xml:space="preserve">
+    <value>复制消息</value>
+  </data>
 </root>
