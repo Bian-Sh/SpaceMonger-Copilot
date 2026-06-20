@@ -20,8 +20,12 @@ public partial class TreeViewControl : UserControl
     {
         if (e.OriginalSource is TreeViewItem item && item.DataContext is TreeViewItemViewModel vm)
         {
-            var dataContext = DataContext as TreeViewModel;
-            dataContext?.SelectEntry(vm.Entry);
+            if (DataContext is TreeViewModel dataContext)
+            {
+                dataContext.SelectedItem = vm;
+            }
+
+            e.Handled = true;
         }
     }
 
@@ -37,16 +41,19 @@ public partial class TreeViewControl : UserControl
         item.IsSelected = true;
         e.Handled = true;
 
-        var dataContext = DataContext as TreeViewModel;
-        dataContext?.SelectEntry(vm.Entry);
+        if (DataContext is TreeViewModel dataContext)
+        {
+            dataContext.SelectedItem = vm;
+        }
 
         var menu = BuildContextMenu(vm.Entry);
-        item.ContextMenu = menu;
+        // Defer opening until after the mouse event completes to avoid
+        // the menu closing immediately (opening on MouseDown can be
+        // followed by mouse-up processing that dismisses it).
         menu.PlacementTarget = item;
-        menu.IsOpen = true;
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
+        Dispatcher.BeginInvoke(() => menu.IsOpen = true);
     }
-
-
     private static T? FindParent<T>(DependencyObject child) where T : DependencyObject
     {
         var current = child;
@@ -118,5 +125,10 @@ public partial class TreeViewControl : UserControl
         await Dispatcher.InvokeAsync(() => MessageBox.Show(Window.GetWindow(this), message, "SpaceMonger.Next", MessageBoxButton.OK, MessageBoxImage.Error));
     }
 }
+
+
+
+
+
 
 

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using SpaceMonger.Core.Models;
 
 namespace SpaceMonger.Core.Services.Scanning;
@@ -115,6 +115,7 @@ public partial class IncrementalFileScanner
                         Name = rec.FileName,
                         IsDirectory = rec.IsDirectory,
                         IsReparsePoint = (rec.FileAttributes & (uint)FileAttributes.ReparsePoint) != 0,
+                        Attributes = (FileAttributes)rec.FileAttributes,
                         FileReferenceNumber = rec.FileReferenceNumber
                     };
                 }
@@ -126,6 +127,8 @@ public partial class IncrementalFileScanner
                     {
                         Name = dirInfo.Name,
                         IsDirectory = true,
+                        IsReparsePoint = (dirInfo.Attributes & FileAttributes.ReparsePoint) != 0,
+                        Attributes = dirInfo.Attributes,
                         FileReferenceNumber = targetFrn
                     };
                     Trace.WriteLine("[MFT] " +$"Created synthetic root for FRN 0x{targetFrn:X16}");
@@ -230,3 +233,4 @@ public partial class IncrementalFileScanner
     }
 
 }
+

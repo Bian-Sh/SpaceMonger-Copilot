@@ -53,7 +53,7 @@ public class FileScanner : IFileScanner
                 try
                 {
                     // Use FileSystemEnumerable<T> to read all entries in one pass.
-                    // This maps directly to FindFirstFile/FindNextFile — one syscall per entry,
+                    // This maps directly to FindFirstFile/FindNextFile 鈥?one syscall per entry,
                     // no extra GetFileAttributesEx or stat calls like FileInfo/DirectoryInfo would cause.
                     var enumerable = new FileSystemEnumerable<(string FullPath, string Name, FileAttributes Attributes, long Length, DateTime LastWrite, bool IsDir)>(
                         current.Path,
@@ -69,7 +69,7 @@ public class FileScanner : IFileScanner
                         {
                             IgnoreInaccessible = false,
                             RecurseSubdirectories = false,
-                            AttributesToSkip = 0 // Don't skip anything — we handle attributes ourselves.
+                            AttributesToSkip = 0 // Don't skip anything 鈥?we handle attributes ourselves.
                         });
 
                     foreach (var item in enumerable)
@@ -93,6 +93,7 @@ public class FileScanner : IFileScanner
                                 Name = item.Name,
                                 IsDirectory = true,
                                 IsReparsePoint = isReparsePoint,
+                                Attributes = item.Attributes,
                                 LastModified = item.LastWrite,
                                 Depth = current.Depth + 1,
                                 Parent = current
@@ -116,9 +117,10 @@ public class FileScanner : IFileScanner
                                 IsDirectory = false,
                                 IsReparsePoint = isReparsePoint,
                                 IsCloudPlaceholder = isCloudPlaceholder,
+                                Attributes = item.Attributes,
                                 LastModified = item.LastWrite,
                                 Extension = System.IO.Path.GetExtension(item.Name)?.ToLowerInvariant(),
-                                // Length comes straight from WIN32_FIND_DATA — no extra syscall.
+                                // Length comes straight from WIN32_FIND_DATA 鈥?no extra syscall.
                                 // Cloud placeholders report 0 to avoid triggering downloads.
                                 Size = isCloudPlaceholder ? 0 : item.Length,
                                 Depth = current.Depth + 1,
@@ -138,7 +140,7 @@ public class FileScanner : IFileScanner
                     // Skip directories that cannot be read due to I/O errors.
                 }
 
-                // Throttle progress reports — reporting every directory hammers the UI thread.
+                // Throttle progress reports 鈥?reporting every directory hammers the UI thread.
                 if (++reportCounter % ProgressReportInterval == 0)
                 {
                     progress.Report(new ScanProgress(current.Path, fileCount, folderCount));
@@ -199,7 +201,7 @@ public class FileScanner : IFileScanner
 
     private static FileEntry CreateRootEntry(string path)
     {
-        // Only the root needs a DirectoryInfo call — one syscall for the entire scan.
+        // Only the root needs a DirectoryInfo call 鈥?one syscall for the entire scan.
         var dirInfo = new DirectoryInfo(path);
         return new FileEntry
         {
@@ -207,6 +209,7 @@ public class FileScanner : IFileScanner
             Name = dirInfo.Name,
             IsDirectory = true,
             IsReparsePoint = (dirInfo.Attributes & FileAttributes.ReparsePoint) != 0,
+            Attributes = dirInfo.Attributes,
             LastModified = dirInfo.LastWriteTime,
             Depth = 0
         };
@@ -229,17 +232,27 @@ public class FileScanner : IFileScanner
 
             foreach (var child in entry.Children)
             {
-                if (child.IsDirectory)
-                {
-                    stack.Push(child);
-                }
+                stack.Push(child);
             }
         }
 
         for (int i = postOrder.Count - 1; i >= 0; i--)
         {
-            var dir = postOrder[i];
-            dir.Size = dir.Children.Sum(c => c.Size);
+            var entry = postOrder[i];
+            if (entry.IsDirectory)
+            {
+                entry.Size = entry.Children.Sum(c => c.Size);
+                entry.SubtreeFileCount = entry.Children.Sum(c => c.SubtreeFileCount > 0 ? c.SubtreeFileCount : c.IsDirectory ? 0 : 1);
+                entry.SubtreeFolderCount = 1 + entry.Children.Sum(c => c.SubtreeFolderCount > 0 ? c.SubtreeFolderCount : c.IsDirectory ? 1 : 0);
+                entry.SubtreeItemCount = entry.SubtreeFileCount + entry.SubtreeFolderCount;
+            }
+            else
+            {
+                entry.SubtreeFileCount = 1;
+                entry.SubtreeFolderCount = 0;
+                entry.SubtreeItemCount = 1;
+            }
         }
     }
 }
+

@@ -1,9 +1,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
-using System.Windows;
+using System.IO;
 using SpaceMonger.Core.Models;
-using SpaceMonger.Core.Services.Treemap;
+using SpaceMonger.App.Diagnostics;
 
 namespace SpaceMonger.App.ViewModels;
 
@@ -11,6 +11,7 @@ public partial class TreeViewModel : ObservableObject
 {
     private FileEntry? _scanRoot;
     private ScanSession? _session;
+    private readonly Dictionary<FileEntry, TreeEntryStats> _statsCache = new();
 
     [ObservableProperty]
     private ObservableCollection<TreeViewItemViewModel> _rootItems = new();
@@ -19,7 +20,7 @@ public partial class TreeViewModel : ObservableObject
     private TreeViewItemViewModel? _selectedItem;
 
     [ObservableProperty]
-    private string _sortBy = "Size"; // Size, Name, Type, Modified
+    private string _sortBy = "Size";
 
     [ObservableProperty]
     private bool _sortDescending = true;
@@ -35,8 +36,10 @@ public partial class TreeViewModel : ObservableObject
 
     public void SetRoot(FileEntry root, ScanSession? session = null)
     {
+        CrashDiagnostics.Log("TreeView.SetRoot", $"root={root.Path}, children={root.Children.Count}, size={root.Size}, cancelled={session?.IsCancelled}");
         _scanRoot = root;
         _session = session;
+        _statsCache.Clear();
         RebuildTree();
     }
 
@@ -89,6 +92,7 @@ public partial class TreeViewModel : ObservableObject
 
     private void RebuildTree()
     {
+        CrashDiagnostics.Log("TreeView.RebuildTree", $"hasRoot={_scanRoot is not null}");
         RootItems.Clear();
 
         if (_scanRoot is null)
@@ -98,10 +102,8 @@ public partial class TreeViewModel : ObservableObject
         TotalFiles = _session?.TotalFiles ?? 0;
         TotalFolders = _session?.TotalFolders ?? 0;
 
-        var rootItem = new TreeViewItemViewModel(_scanRoot, 0, SortBy, SortDescending);
+        var rootItem = new TreeViewItemViewModel(_scanRoot, 0, SortBy, SortDescending, _statsCache);
         RootItems.Add(rootItem);
-
-        // Auto-expand root
         rootItem.IsExpanded = true;
     }
 
@@ -111,28 +113,42 @@ public partial class TreeViewModel : ObservableObject
             return;
 
         var rootVm = RootItems[0];
-        var target = FindTreeViewItem(rootVm, entry);
+        var target = FindTreeViewItemByPath(rootVm, entry);
         if (target is not null)
         {
-            target.IsSelected = true;
             ExpandToItem(target);
+            target.IsSelected = true;
             SelectedItem = target;
         }
     }
 
-    private static TreeViewItemViewModel? FindTreeViewItem(TreeViewItemViewModel current, FileEntry target)
+    private static TreeViewItemViewModel? FindTreeViewItemByPath(TreeViewItemViewModel root, FileEntry target)
     {
-        if (current.Entry == target)
-            return current;
-
-        foreach (var child in current.Children)
+        var path = new Stack<FileEntry>();
+        var currentEntry = target;
+        while (currentEntry is not null)
         {
-            var found = FindTreeViewItem(child, target);
-            if (found is not null)
-                return found;
+            path.Push(currentEntry);
+            currentEntry = currentEntry.Parent;
         }
 
-        return null;
+        if (path.Count == 0 || path.Pop() != root.Entry)
+            return null;
+
+        var current = root;
+        while (path.Count > 0)
+        {
+            var nextEntry = path.Pop();
+            current.EnsureChildrenLoaded();
+
+            var next = current.Children.FirstOrDefault(child => child.Entry == nextEntry);
+            if (next is null)
+                return null;
+
+            current = next;
+        }
+
+        return current;
     }
 
     private static void ExpandToItem(TreeViewItemViewModel item)
@@ -148,11 +164,14 @@ public partial class TreeViewModel : ObservableObject
 
 public partial class TreeViewItemViewModel : ObservableObject
 {
+    private const double PercentBarMaxWidth = 124;
     private readonly string _sortBy;
     private readonly bool _sortDescending;
+    private readonly Dictionary<FileEntry, TreeEntryStats> _statsCache;
 
     public FileEntry Entry { get; }
     public TreeViewItemViewModel? Parent { get; }
+    public int Depth { get; }
 
     [ObservableProperty]
     private ObservableCollection<TreeViewItemViewModel> _children = new();
@@ -173,51 +192,88 @@ public partial class TreeViewItemViewModel : ObservableObject
     public bool IsDirectory => Entry.IsDirectory;
     public bool IsAccessDenied => Entry.IsAccessDenied;
     public bool IsReparsePoint => Entry.IsReparsePoint;
+    public bool HasChildren => Entry.IsDirectory && Entry.Children.Count > 0;
+    public bool HasNoChildren => !HasChildren;
+    public double IndentWidth => Depth * 16.0;
+    public System.Windows.Thickness IndentMargin => new(IndentWidth, 0, 0, 0);
+    public IReadOnlyList<int> IndentLevels { get; }
 
     public string SizeText => FormatSize(Entry.Size);
-    public string TypeText => Entry.IsDirectory ? "File folder" : (Entry.Extension?.TrimStart('.')?.ToUpper() ?? "File");
-    public string ModifiedText => Entry.LastModified.ToString("yyyy-MM-dd HH:mm");
+    public string AllocatedText => FormatSize(Entry.Size);
+    public string TypeText => Entry.IsDirectory ? "File folder" : (Entry.Extension?.TrimStart('.')?.ToUpperInvariant() ?? "File");
+    public string ModifiedText => Entry.LastModified == default ? string.Empty : Entry.LastModified.ToString("yyyy-MM-dd HH:mm:ss");
+    public string AttributeText { get; }
+    public int ItemCount => Stats.ItemCount;
+    public int FileCount => Stats.FileCount;
+    public int FolderCount => Stats.FolderCount;
+    public double ParentPercent { get; }
+    public string ParentPercentText => $"{ParentPercent:F1} %";
+    public double ParentPercentBarWidth => Math.Max(0, Math.Min(PercentBarMaxWidth, PercentBarMaxWidth * ParentPercent / 100.0));
+    public TreeEntryStats Stats { get; }
 
-    // Windows 11 folder icon (Segoe MDL2 Assets)
     public string IconGlyph => Entry.IsDirectory ? "\uE8B7" : GetFileIconGlyph(Entry.Extension);
 
-    public TreeViewItemViewModel(FileEntry entry, int depth, string sortBy, bool sortDescending, TreeViewItemViewModel? parent = null)
+    public TreeViewItemViewModel(
+        FileEntry entry,
+        int depth,
+        string sortBy,
+        bool sortDescending,
+        Dictionary<FileEntry, TreeEntryStats> statsCache,
+        TreeViewItemViewModel? parent = null)
     {
         Entry = entry;
         Parent = parent;
+        Depth = depth;
         _sortBy = sortBy;
         _sortDescending = sortDescending;
-
-        // Add dummy child for directories to show expand arrow
-        if (entry.IsDirectory && entry.Children.Count > 0)
-        {
-            Children.Add(new TreeViewItemViewModel(entry.Children[0], depth + 1, sortBy, sortDescending, this)
-            {
-                HasLoadedChildren = true
-            });
-        }
+        _statsCache = statsCache;
+        IndentLevels = Enumerable.Range(0, depth).ToArray();
+        Stats = GetStats(entry);
+        AttributeText = BuildAttributeText(entry);
+        ParentPercent = parent?.Entry.Size > 0 ? entry.Size * 100.0 / parent.Entry.Size : 100.0;
     }
 
     partial void OnIsExpandedChanged(bool value)
     {
         if (value && !HasLoadedChildren)
         {
-            LoadChildren();
-            HasLoadedChildren = true;
+            EnsureChildrenLoaded();
         }
+    }
+
+    public void EnsureChildrenLoaded()
+    {
+        if (HasLoadedChildren)
+            return;
+
+        LoadChildren();
+        HasLoadedChildren = true;
     }
 
     private void LoadChildren()
     {
+        CrashDiagnostics.Log("TreeView.LoadChildren", $"entry={Entry.Path}, children={Entry.Children.Count}, depth={Depth}");
         Children.Clear();
 
         var sorted = GetSortedChildren(Entry.Children, _sortBy, _sortDescending);
 
         foreach (var child in sorted)
         {
-            var childVm = new TreeViewItemViewModel(child, Entry.Depth + 1, _sortBy, _sortDescending, this);
+            var childVm = new TreeViewItemViewModel(child, Depth + 1, _sortBy, _sortDescending, _statsCache, this);
             Children.Add(childVm);
         }
+    }
+
+    private TreeEntryStats GetStats(FileEntry entry)
+    {
+        if (_statsCache.TryGetValue(entry, out var stats))
+        {
+            return stats;
+        }
+
+        stats = new TreeEntryStats(1, entry.IsDirectory ? 0 : 1, entry.IsDirectory ? 1 : 0);
+        _statsCache[entry] = stats;
+        return stats;
     }
 
     private static List<FileEntry> GetSortedChildren(List<FileEntry> children, string sortBy, bool descending)
@@ -238,37 +294,75 @@ public partial class TreeViewItemViewModel : ObservableObject
                 : children.OrderBy(c => c.Size).ToList()
         };
 
-        // Always put directories first
         return sorted.OrderByDescending(c => c.IsDirectory).ThenByDescending(c => descending ? c.Size : -c.Size).ToList();
+    }
+
+    private static string BuildAttributeText(FileEntry entry)
+    {
+        var flags = new List<string>();
+
+        if (entry.Attributes is { } attributes)
+        {
+            AddFlag(flags, attributes, FileAttributes.ReadOnly, "R");
+            AddFlag(flags, attributes, FileAttributes.Hidden, "H");
+            AddFlag(flags, attributes, FileAttributes.System, "S");
+            AddFlag(flags, attributes, FileAttributes.Archive, "A");
+            AddFlag(flags, attributes, FileAttributes.Compressed, "C");
+            AddFlag(flags, attributes, FileAttributes.Encrypted, "E");
+            AddFlag(flags, attributes, FileAttributes.ReparsePoint, "L");
+        }
+        else if (entry.IsReparsePoint)
+        {
+            flags.Add("L");
+        }
+        if (entry.IsAccessDenied)
+            flags.Add("DENY");
+        if (entry.IsCloudPlaceholder)
+            flags.Add("Cloud");
+
+        return string.Join(string.Empty, flags.Distinct());
+    }
+
+    private static void AddFlag(List<string> flags, FileAttributes attributes, FileAttributes flag, string text)
+    {
+        if (attributes.HasFlag(flag))
+        {
+            flags.Add(text);
+        }
     }
 
     private static string GetFileIconGlyph(string? extension)
     {
-        return extension?.ToLower() switch
+        return extension?.ToLowerInvariant() switch
         {
-            ".exe" or ".msi" or ".bat" or ".cmd" or ".ps1" => "\uE7EF", // Program
-            ".dll" or ".sys" or ".ocx" => "\uE74C", // Settings
-            ".jpg" or ".jpeg" or ".png" or ".gif" or ".bmp" or ".svg" or ".webp" => "\uEB9F", // Photo
-            ".mp4" or ".avi" or ".mkv" or ".mov" or ".wmv" => "\uE786", // Video
-            ".mp3" or ".wav" or ".flac" or ".aac" or ".ogg" => "\uE8D6", // Music
-            ".zip" or ".rar" or ".7z" or ".tar" or ".gz" => "\uE8B8", // Zip folder
-            ".pdf" => "\uEA90", // PDF
-            ".doc" or ".docx" => "\uE8A5", // Word
-            ".xls" or ".xlsx" => "\uE8A7", // Excel
-            ".ppt" or ".pptx" => "\uE8A6", // PowerPoint
-            ".txt" or ".log" or ".ini" or ".cfg" => "\uE8A5", // Text
-            ".cs" or ".js" or ".ts" or ".py" or ".java" or ".cpp" or ".h" => "\uE943", // Code
-            ".html" or ".css" or ".xml" or ".json" => "\uE943", // Code
-            _ => "\uE8A5" // Default file
+            ".exe" or ".msi" or ".bat" or ".cmd" or ".ps1" => "\uE7EF",
+            ".dll" or ".sys" or ".ocx" => "\uE74C",
+            ".jpg" or ".jpeg" or ".png" or ".gif" or ".bmp" or ".svg" or ".webp" => "\uEB9F",
+            ".mp4" or ".avi" or ".mkv" or ".mov" or ".wmv" => "\uE786",
+            ".mp3" or ".wav" or ".flac" or ".aac" or ".ogg" => "\uE8D6",
+            ".zip" or ".rar" or ".7z" or ".tar" or ".gz" => "\uE8B8",
+            ".pdf" => "\uEA90",
+            ".doc" or ".docx" => "\uE8A5",
+            ".xls" or ".xlsx" => "\uE8A7",
+            ".ppt" or ".pptx" => "\uE8A6",
+            ".txt" or ".log" or ".ini" or ".cfg" => "\uE8A5",
+            ".cs" or ".js" or ".ts" or ".py" or ".java" or ".cpp" or ".h" => "\uE943",
+            ".html" or ".css" or ".xml" or ".json" => "\uE943",
+            _ => "\uE8A5"
         };
     }
 
     private static string FormatSize(long bytes)
     {
-        if (bytes < 1024L) return $"{bytes} B";
+        if (bytes < 1024L) return bytes == 0 ? "0" : $"{bytes} B";
         if (bytes < 1024L * 1024) return $"{bytes / 1024.0:F1} KB";
         if (bytes < 1024L * 1024 * 1024) return $"{bytes / (1024.0 * 1024):F1} MB";
         if (bytes < 1024L * 1024 * 1024 * 1024) return $"{bytes / (1024.0 * 1024 * 1024):F1} GB";
         return $"{bytes / (1024.0 * 1024 * 1024 * 1024):F1} TB";
     }
 }
+
+public sealed record TreeEntryStats(int ItemCount, int FileCount, int FolderCount);
+
+
+

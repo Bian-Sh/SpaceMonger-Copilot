@@ -17,6 +17,7 @@ internal record UsnChange(
     string FileName,
     UsnChangeKind Kind,
     bool IsDirectory,
+    uint FileAttributes,
     long OldParentFileReferenceNumber = 0,
     string? OldFileName = null);
 
@@ -164,7 +165,7 @@ internal static class UsnJournalReader
         var fileName = Marshal.PtrToStringUni(recordPtr + fileNameOffset, fileNameLength / 2) ?? string.Empty;
         var isDirectory = (fileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
 
-        records.Add(new RawUsnRecord(frn, parentFrn, fileName, reason, isDirectory));
+        records.Add(new RawUsnRecord(frn, parentFrn, fileName, reason, isDirectory, fileAttributes));
     }
 
     /// <summary>
@@ -175,17 +176,17 @@ internal static class UsnJournalReader
     {
         // Group by FRN — take the last record's name/parent but OR all reasons together.
         // Preserve the first parent FRN and name so renames can locate the entry by old location.
-        var grouped = new Dictionary<long, (long FirstParentFrn, string FirstFileName, long LastParentFrn, string LastFileName, uint CombinedReason, bool IsDirectory)>();
+        var grouped = new Dictionary<long, (long FirstParentFrn, string FirstFileName, long LastParentFrn, string LastFileName, uint CombinedReason, bool IsDirectory, uint FileAttributes)>();
 
         foreach (var rec in rawRecords)
         {
             if (grouped.TryGetValue(rec.Frn, out var existing))
             {
-                grouped[rec.Frn] = (existing.FirstParentFrn, existing.FirstFileName, rec.ParentFrn, rec.FileName, existing.CombinedReason | rec.Reason, rec.IsDirectory);
+                grouped[rec.Frn] = (existing.FirstParentFrn, existing.FirstFileName, rec.ParentFrn, rec.FileName, existing.CombinedReason | rec.Reason, rec.IsDirectory, rec.FileAttributes);
             }
             else
             {
-                grouped[rec.Frn] = (rec.ParentFrn, rec.FileName, rec.ParentFrn, rec.FileName, rec.Reason, rec.IsDirectory);
+                grouped[rec.Frn] = (rec.ParentFrn, rec.FileName, rec.ParentFrn, rec.FileName, rec.Reason, rec.IsDirectory, rec.FileAttributes);
             }
         }
 
@@ -194,7 +195,7 @@ internal static class UsnJournalReader
         foreach (var (frn, entry) in grouped)
         {
             var kind = ClassifyChange(entry.CombinedReason);
-            var change = new UsnChange(frn, entry.LastParentFrn, entry.LastFileName, kind, entry.IsDirectory,
+            var change = new UsnChange(frn, entry.LastParentFrn, entry.LastFileName, kind, entry.IsDirectory, entry.FileAttributes,
                 OldParentFileReferenceNumber: entry.FirstParentFrn,
                 OldFileName: entry.FirstFileName);
             changes.Add(change);
@@ -220,5 +221,5 @@ internal static class UsnJournalReader
         return UsnChangeKind.Modify;
     }
 
-    private record RawUsnRecord(long Frn, long ParentFrn, string FileName, uint Reason, bool IsDirectory);
+    private record RawUsnRecord(long Frn, long ParentFrn, string FileName, uint Reason, bool IsDirectory, uint FileAttributes);
 }
