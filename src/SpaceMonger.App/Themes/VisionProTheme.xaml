@@ -13,8 +13,8 @@
     <Color x:Key="VP.SurfaceActive">#2BFFFFFF</Color>    <!-- 17% white -->
     <Color x:Key="VP.SettingsCard">#1EFFFFFF</Color>     <!-- 12% white -->
     <Color x:Key="VP.Card">#12FFFFFF</Color>             <!-- 7% white — recommendation cards -->
-    <Color x:Key="VP.BorderLight">#24FFFFFF</Color>      <!-- 14% white -->
-    <Color x:Key="VP.BorderSubtle">#14FFFFFF</Color>     <!-- 8% white -->
+    <Color x:Key="VP.BorderLight">#2FFFFFFF</Color>      <!-- 19% white -->
+    <Color x:Key="VP.BorderSubtle">#20FFFFFF</Color>     <!-- 13% white -->
 
     <Color x:Key="VP.TextPrimary">#FFFFFF</Color>
     <Color x:Key="VP.TextSecondary">#C7C7CC</Color>
@@ -515,7 +515,7 @@
 
     <!-- ── GridSplitter (subtle) ───────────────────────────────────── -->
     <Style x:Key="VP.GridSplitterH" TargetType="GridSplitter">
-        <Setter Property="Height" Value="1" />
+        <Setter Property="Height" Value="2" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="Background" Value="{StaticResource VP.BorderSubtleBrush}" />
         <Setter Property="ShowsPreview" Value="True" />
@@ -525,7 +525,7 @@
     </Style>
 
     <Style x:Key="VP.GridSplitterV" TargetType="GridSplitter">
-        <Setter Property="Width" Value="1" />
+        <Setter Property="Width" Value="2" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="VerticalAlignment" Value="Stretch" />
         <Setter Property="Background" Value="{StaticResource VP.BorderSubtleBrush}" />
