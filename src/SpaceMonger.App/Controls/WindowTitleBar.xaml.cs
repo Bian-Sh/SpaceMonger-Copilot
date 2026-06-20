@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
@@ -8,6 +8,7 @@ public partial class WindowTitleBar : UserControl
 {
     public event RoutedEventHandler? SettingsRequested;
     public event RoutedEventHandler? CollapseChatRequested;
+    public event RoutedEventHandler? CloseRequested;
 
     public WindowTitleBar()
     {
@@ -75,7 +76,7 @@ public partial class WindowTitleBar : UserControl
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
-        ParentWindow?.Close();
+        CloseRequested?.Invoke(this, e);
     }
 
     private static void ToggleMaximize(Window window)
@@ -101,3 +102,5 @@ public partial class WindowTitleBar : UserControl
         MaximizeButton.ToolTip = isMaximized ? "Restore" : "Maximize";
     }
 }
+
+

@@ -11,6 +11,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Data;
 using Microsoft.Extensions.DependencyInjection;
+using SpaceMonger.App.Controls;
 using SpaceMonger.App.Diagnostics;
 using SpaceMonger.App.Helpers;
 using SpaceMonger.App.Localization;
@@ -42,6 +43,7 @@ public partial class MainWindow
 
         ConsoleTextBox.Text = _consoleLog.ToString();
         ConsoleTextBox.ScrollToEnd();
+        ConsoleFrame.Visibility = Visibility.Visible;
     }
 
     private void ConsoleLogLevel_Click(object sender, RoutedEventArgs e)
@@ -65,12 +67,6 @@ public partial class MainWindow
         ConsoleFilterButton.ContextMenu.PlacementTarget = ConsoleFilterButton;
         ConsoleFilterButton.ContextMenu.IsOpen = true;
         e.Handled = true;
-    }
-
-    private void StatusConsoleLink_Click(object sender, RoutedEventArgs e)
-    {
-        EnsureBottomPanelVisible();
-        ShowConsolePanel();
     }
 
     private void AppendAnalysisDiagnostics(AnalysisDiagnostics? diagnostics)
@@ -129,11 +125,11 @@ public partial class MainWindow
         var mainVm = DataContext as MainViewModel;
         if (mainVm?.CurrentSession is null)
         {
-            await ShowAppMessageAsync(
-                L.Text("AnalyzeNoScanMessage"),
+            await ShowAppModalAsync(
                 L.Text("AnalyzeNoScanTitle"),
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+                L.Text("AnalyzeNoScanMessage"),
+                ModalMessageType.Info,
+                ModalButtonFlags.Positive);
             return;
         }
 
@@ -248,3 +244,4 @@ public sealed record ConsoleLogEntry(DateTime Timestamp, ConsoleLogLevel Level, 
     public string ToLogLine() => $"[{Timestamp:HH:mm:ss}] [{Level}] {Message}";
 
 }
+

@@ -11,6 +11,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Data;
 using Microsoft.Extensions.DependencyInjection;
+using SpaceMonger.App.Controls;
 using SpaceMonger.App.Diagnostics;
 using SpaceMonger.App.Helpers;
 using SpaceMonger.App.Localization;
@@ -50,18 +51,57 @@ public partial class MainWindow : Window
     private AcceptanceAutomationServer? _acceptanceAutomationServer;
     private string? _displayPathOverride;
     private bool _suppressSelectedPathNavigation;
+    private bool _closeConfirmed;
+    private bool _closePromptShowing;
 
     public MainWindow()
     {
         InitializeComponent();
         Directory.CreateDirectory(Path.GetDirectoryName(_consoleLogPath)!);
-        AppendConsoleLine("Console log file: " + _consoleLogPath, ConsoleLogLevel.Info);
+        File.WriteAllText(_consoleLogPath, "Console log file: " + _consoleLogPath + Environment.NewLine);
         Loaded += MainWindow_Loaded;
+        Closing += MainWindow_Closing;
         StateChanged += MainWindow_StateChanged;
         Closed += (_, _) => _acceptanceAutomationServer?.Dispose();
+        TitleBar.CloseRequested += async (_, _) => await RequestCloseAsync();
         SpaceMonger.App.Localization.L.LanguageChanged += OnAppLanguageChanged;
     }
 
+
+    private void MainWindow_Closing(object? sender, CancelEventArgs e)
+    {
+        if (_closeConfirmed)
+            return;
+
+        e.Cancel = true;
+        _ = RequestCloseAsync();
+    }
+
+    private async Task RequestCloseAsync()
+    {
+        if (_closePromptShowing)
+            return;
+
+        _closePromptShowing = true;
+        try
+        {
+            var result = await ShowAppModalAsync(
+                L.Text("CloseAppTitle"),
+                L.Text("CloseAppMessage"),
+                ModalMessageType.Warning,
+                ModalButtonFlags.Positive | ModalButtonFlags.Negative);
+
+            if (result == ModalResult.Positive)
+            {
+                _closeConfirmed = true;
+                Close();
+            }
+        }
+        finally
+        {
+            _closePromptShowing = false;
+        }
+    }
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
         // Enable DWM backdrop and dark mode
@@ -97,3 +137,5 @@ public partial class MainWindow : Window
     }
 
 }
+
+
