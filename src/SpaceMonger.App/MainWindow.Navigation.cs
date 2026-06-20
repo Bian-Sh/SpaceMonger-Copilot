@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -231,6 +231,7 @@ public partial class MainWindow
                             Opacity = 0.95,
                             VerticalAlignment = VerticalAlignment.Center,
                             TextAlignment = TextAlignment.Center,
+                            RenderTransform = new TranslateTransform(0, -2),
                         },
                         Background = Brushes.Transparent,
                         BorderThickness = new Thickness(0),
@@ -295,6 +296,7 @@ public partial class MainWindow
                         Opacity = 0.95,
                         VerticalAlignment = VerticalAlignment.Center,
                         TextAlignment = TextAlignment.Center,
+                            RenderTransform = new TranslateTransform(0, -2),
                     },
                     Background = Brushes.Transparent,
                     BorderThickness = new Thickness(0),
