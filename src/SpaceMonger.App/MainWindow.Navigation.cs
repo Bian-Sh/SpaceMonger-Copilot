@@ -226,15 +226,16 @@ public partial class MainWindow
                         Content = new TextBlock
                         {
                             Text = "›",
-                            FontSize = 14,
-                            Opacity = 0.6,
+                            FontSize = 18,
+                            FontWeight = FontWeights.SemiBold,
+                            Opacity = 0.95,
                             VerticalAlignment = VerticalAlignment.Center,
                             TextAlignment = TextAlignment.Center,
                         },
                         Background = Brushes.Transparent,
                         BorderThickness = new Thickness(0),
-                        Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xAE, 0xAE, 0xB2)),
-                        Padding = new Thickness(4, 0, 4, 0),
+                        Foreground = (SolidColorBrush)FindResource("VP.TextPrimaryBrush"),
+                        Padding = new Thickness(5, 0, 5, 0),
                         Cursor = Cursors.Hand,
                         Tag = ownerPath,
                         VerticalContentAlignment = VerticalAlignment.Center,
@@ -244,7 +245,7 @@ public partial class MainWindow
                     sepBtn.ContextMenu = sepMenu;
                     sepBtn.Click += BreadcrumbChevron_Click;
                     sepBtn.MouseEnter += (s, _) => ((Button)s).Foreground = (SolidColorBrush)FindResource("VP.TextPrimaryBrush");
-                    sepBtn.MouseLeave += (s, _) => ((Button)s).Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xAE, 0xAE, 0xB2));
+                    sepBtn.MouseLeave += (s, _) => ((Button)s).Foreground = (SolidColorBrush)FindResource("VP.TextPrimaryBrush");
                     BreadcrumbBar.Children.Add(sepBtn);
                 }
 
@@ -289,15 +290,16 @@ public partial class MainWindow
                     Content = new TextBlock
                     {
                         Text = "›",
-                        FontSize = 14,
-                        Opacity = 0.6,
+                        FontSize = 18,
+                        FontWeight = FontWeights.SemiBold,
+                        Opacity = 0.95,
                         VerticalAlignment = VerticalAlignment.Center,
                         TextAlignment = TextAlignment.Center,
                     },
                     Background = Brushes.Transparent,
                     BorderThickness = new Thickness(0),
-                    Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xAE, 0xAE, 0xB2)),
-                    Padding = new Thickness(4, 0, 4, 0),
+                    Foreground = (SolidColorBrush)FindResource("VP.TextPrimaryBrush"),
+                    Padding = new Thickness(5, 0, 5, 0),
                     Cursor = Cursors.Hand,
                     Tag = segments[^1].path,
                     VerticalContentAlignment = VerticalAlignment.Center,
@@ -307,7 +309,7 @@ public partial class MainWindow
                 trailBtn.ContextMenu = trailMenu;
                 trailBtn.Click += BreadcrumbChevron_Click;
                 trailBtn.MouseEnter += (s, _) => ((Button)s).Foreground = (SolidColorBrush)FindResource("VP.TextPrimaryBrush");
-                trailBtn.MouseLeave += (s, _) => ((Button)s).Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xAE, 0xAE, 0xB2));
+                trailBtn.MouseLeave += (s, _) => ((Button)s).Foreground = (SolidColorBrush)FindResource("VP.TextPrimaryBrush");
                 BreadcrumbBar.Children.Add(trailBtn);
             }
         }
