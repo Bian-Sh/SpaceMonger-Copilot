@@ -1,4 +1,5 @@
-using System.Windows;
+﻿using System.Windows;
+using System.Windows.Controls;
 using SpaceMonger.App.Converters;
 using SpaceMonger.App.Localization;
 using SpaceMonger.Core.Enums;
@@ -6,8 +7,10 @@ using SpaceMonger.Core.Models;
 
 namespace SpaceMonger.App.Views;
 
-public partial class CleanupSummaryDialog : Window
+public partial class CleanupSummaryDialog : UserControl
 {
+    public event Action<bool?>? CloseRequested;
+
     public CleanupSummaryDialog(List<CleanupAction> actions)
     {
         InitializeComponent();
@@ -22,10 +25,8 @@ public partial class CleanupSummaryDialog : Window
 
         long totalFreed = successActions.Sum(a => a.ActualSizeFreed);
 
-        // Success summary
         SuccessSummary.Text = L.Format("CleanupSummarySuccess", successActions.Count, FileSizeConverter.FormatSize(totalFreed));
 
-        // Already removed
         if (alreadyRemovedActions.Count > 0)
         {
             AlreadyRemovedText.Text = L.Format("CleanupSummaryAlreadyRemoved", alreadyRemovedActions.Count);
@@ -36,7 +37,6 @@ public partial class CleanupSummaryDialog : Window
             AlreadyRemovedText.Visibility = Visibility.Collapsed;
         }
 
-        // Skipped items
         if (skippedActions.Count > 0)
         {
             SkippedGroupHeader.Text = L.Format("SkippedItemsWithCount", skippedActions.Count);
@@ -52,12 +52,11 @@ public partial class CleanupSummaryDialog : Window
             SkippedGroup.Visibility = Visibility.Collapsed;
         }
 
-        // Total space recovered
         TotalRecovered.Text = L.Format("TotalSpaceRecovered", FileSizeConverter.FormatSize(totalFreed));
     }
 
     private void OkButton_Click(object sender, RoutedEventArgs e)
     {
-        DialogResult = true;
+        CloseRequested?.Invoke(true);
     }
 }
