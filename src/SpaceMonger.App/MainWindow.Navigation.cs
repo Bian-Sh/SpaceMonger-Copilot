@@ -236,6 +236,7 @@ public partial class MainWindow
                         Background = Brushes.Transparent,
                         BorderThickness = new Thickness(0),
                         Foreground = (SolidColorBrush)FindResource("VP.TextPrimaryBrush"),
+                        Style = (Style)FindResource("VP.BreadcrumbButton"),
                         Padding = new Thickness(5, 0, 5, 0),
                         Cursor = Cursors.Hand,
                         Tag = ownerPath,
@@ -245,8 +246,7 @@ public partial class MainWindow
                     sepMenu.Opened += BreadcrumbDropdown_Opened;
                     sepBtn.ContextMenu = sepMenu;
                     sepBtn.Click += BreadcrumbChevron_Click;
-                    sepBtn.MouseEnter += (s, _) => ((Button)s).Foreground = (SolidColorBrush)FindResource("VP.TextPrimaryBrush");
-                    sepBtn.MouseLeave += (s, _) => ((Button)s).Foreground = (SolidColorBrush)FindResource("VP.TextPrimaryBrush");
+                    // style handles hover visuals
                     BreadcrumbBar.Children.Add(sepBtn);
                 }
 
@@ -266,20 +266,12 @@ public partial class MainWindow
                     BorderThickness = new Thickness(0),
                     Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xE0, 0xE0, 0xE0)),
                     Padding = new Thickness(4, 2, 2, 2),
+                    Style = (Style)FindResource("VP.BreadcrumbButton"),
                     Cursor = Cursors.Hand,
                     Tag = segPath,
                 };
                 nameButton.Click += BreadcrumbSegment_Click;
-                nameButton.MouseEnter += (s, _) =>
-                {
-                    ((Button)s).Background = (SolidColorBrush)FindResource("VP.SurfaceHoverBrush");
-                    ((Button)s).Foreground = (SolidColorBrush)FindResource("VP.TextPrimaryBrush");
-                };
-                nameButton.MouseLeave += (s, _) =>
-                {
-                    ((Button)s).Background = Brushes.Transparent;
-                    ((Button)s).Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xE0, 0xE0, 0xE0));
-                };
+                // style handles hover visuals
                 BreadcrumbBar.Children.Add(nameButton);
             }
 
@@ -302,6 +294,7 @@ public partial class MainWindow
                     BorderThickness = new Thickness(0),
                     Foreground = (SolidColorBrush)FindResource("VP.TextPrimaryBrush"),
                     Padding = new Thickness(5, 0, 5, 0),
+                    Style = (Style)FindResource("VP.BreadcrumbButton"),
                     Cursor = Cursors.Hand,
                     Tag = segments[^1].path,
                     VerticalContentAlignment = VerticalAlignment.Center,
@@ -310,8 +303,7 @@ public partial class MainWindow
                 trailMenu.Opened += BreadcrumbDropdown_Opened;
                 trailBtn.ContextMenu = trailMenu;
                 trailBtn.Click += BreadcrumbChevron_Click;
-                trailBtn.MouseEnter += (s, _) => ((Button)s).Foreground = (SolidColorBrush)FindResource("VP.TextPrimaryBrush");
-                trailBtn.MouseLeave += (s, _) => ((Button)s).Foreground = (SolidColorBrush)FindResource("VP.TextPrimaryBrush");
+                // style handles hover visuals
                 BreadcrumbBar.Children.Add(trailBtn);
             }
         }

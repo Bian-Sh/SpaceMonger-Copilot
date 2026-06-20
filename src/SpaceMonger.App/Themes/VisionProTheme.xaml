@@ -63,6 +63,48 @@
         <Setter Property="Padding" Value="12" />
     </Style>
 
+    <!-- ── Breadcrumb Button (address bar segments) ───────────────── -->
+    <!-- Matches title-bar hover behavior but uses rounded corners for the
+         hover/highlight background so breadcrumb segments feel less
+         visually abrupt. -->
+    <Style x:Key="VP.BreadcrumbButton" TargetType="Button">
+        <Setter Property="FontFamily" Value="{StaticResource VP.FontFamily}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{StaticResource VP.TextSecondaryBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="6,2" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd"
+                            Background="{TemplateBinding Background}"
+                            Padding="{TemplateBinding Padding}"
+                            CornerRadius="6"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background"
+                                    Value="{StaticResource VP.SurfaceHoverBrush}" />
+                            <Setter Property="Foreground" Value="{StaticResource VP.TextPrimaryBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Background"
+                                    Value="{StaticResource VP.SurfaceActiveBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="VP.GlassPanelLarge" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource VP.SurfaceBrush}" />
         <Setter Property="BorderBrush" Value="{StaticResource VP.BorderLightBrush}" />

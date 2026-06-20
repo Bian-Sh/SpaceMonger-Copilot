@@ -110,7 +110,7 @@
                             Click="ScanButton_Click"
                             ToolTip="{loc:Loc ScanButtonToolTip}" />
 
-                    <!-- Address bar: LAST child 鈫?fills remaining space between nav and action buttons -->
+                    <!-- Address bar: LAST child fills remaining space between nav and action buttons -->
                     <Border x:Name="AddressBarBorder"
                             DockPanel.Dock="Left"
                             Background="{StaticResource VP.SurfaceBrush}"
@@ -154,29 +154,42 @@
                             <!-- Folder picker icon inside address bar, right-aligned -->
                             <Button x:Name="BrowseButton"
                                     Grid.Column="1"
-                                    Width="32" Height="Auto"
-                                    Padding="4,5"
+                                    Width="32" Height="32"
+                                    Padding="0"
                                     Background="Transparent"
                                     BorderThickness="0"
-                                    Foreground="{StaticResource VP.TextSecondaryBrush}"
                                     Command="{Binding BrowseCommand}"
                                     ToolTip="{loc:Loc BrowseButtonToolTip}">
                                 <Button.Template>
                                     <ControlTemplate TargetType="Button">
-                                        <ContentPresenter HorizontalAlignment="Center"
-                                                          VerticalAlignment="Center" />
+                                        <Border Background="Transparent"
+                                                Padding="{TemplateBinding Padding}">
+                                            <TextBlock x:Name="Ico"
+                                                       Text="&#xE838;"
+                                                       FontFamily="Segoe MDL2 Assets"
+                                                       FontSize="14"
+                                                       Foreground="{StaticResource VP.TextSecondaryBrush}"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center" />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Ico" Property="Foreground"
+                                                        Value="{StaticResource VP.TextPrimaryBrush}" />
+                                            </Trigger>
+                                            <Trigger Property="IsPressed" Value="True">
+                                                <Setter TargetName="Ico" Property="Foreground"
+                                                        Value="{StaticResource VP.AccentBrush}" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
                                     </ControlTemplate>
                                 </Button.Template>
-                                <TextBlock Text="&#xE838;"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="14" />
                             </Button>
                         </Grid>
                     </Border>
                 </DockPanel>
             </Border>
 
-            <!-- 鈺愨晲鈺?Left content (treemap/treeview + bottom panel) 鈺愨晲鈺?-->
             <Grid Grid.Row="2" Grid.Column="0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -360,7 +373,6 @@
                                  Grid.RowSpan="3" Grid.Column="2"
                                  Visibility="Visible" />
 
-            <!-- 鈺愨晲鈺?Status Bar (flat) 鈺愨晲鈺?-->
             <Grid Grid.Row="4" Grid.ColumnSpan="3" Margin="4,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
