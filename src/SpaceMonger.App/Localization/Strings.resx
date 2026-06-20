@@ -598,4 +598,22 @@
   <data name="CopyMessageToolTip" xml:space="preserve">
     <value>Copy message</value>
   </data>
+  <data name="MinimizeToolTip" xml:space="preserve">
+    <value>Minimize</value>
+  </data>
+  <data name="MaximizeToolTip" xml:space="preserve">
+    <value>Maximize</value>
+  </data>
+  <data name="CloseToolTip" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="CollapseChatPanelToolTip" xml:space="preserve">
+    <value>Collapse chat panel</value>
+  </data>
+  <data name="ExpandChatPanelToolTip" xml:space="preserve">
+    <value>Expand chat panel</value>
+  </data>
+  <data name="RestoreToolTip" xml:space="preserve">
+    <value>Restore</value>
+  </data>
 </root>

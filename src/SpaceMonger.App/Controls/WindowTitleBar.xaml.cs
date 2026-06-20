@@ -1,6 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using SpaceMonger.App.Localization;
 
 namespace SpaceMonger.App.Controls;
 
@@ -36,7 +37,7 @@ public partial class WindowTitleBar : UserControl
     {
         PanelOpenIcon.Visibility = isChatVisible ? Visibility.Visible : Visibility.Collapsed;
         PanelClosedIcon.Visibility = isChatVisible ? Visibility.Collapsed : Visibility.Visible;
-        CollapseChatButton.ToolTip = isChatVisible ? "Collapse chat panel" : "Expand chat panel";
+        CollapseChatButton.ToolTip = isChatVisible ? L.Text("CollapseChatPanelToolTip") : L.Text("ExpandChatPanelToolTip");
     }
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -99,7 +100,7 @@ public partial class WindowTitleBar : UserControl
     {
         // E922 = Maximize, E923 = Restore
         MaximizeButton.Content = isMaximized ? "\uE923" : "\uE922";
-        MaximizeButton.ToolTip = isMaximized ? "Restore" : "Maximize";
+        MaximizeButton.ToolTip = isMaximized ? L.Text("RestoreToolTip") : L.Text("MaximizeToolTip");
     }
 }
 

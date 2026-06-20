@@ -1,6 +1,7 @@
 ﻿<UserControl x:Class="SpaceMonger.App.Controls.WindowTitleBar"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:SpaceMonger.App.Localization"
              Height="36"
              Background="Transparent">
 
@@ -40,11 +41,11 @@
                     FontSize="18"
                     Style="{StaticResource VP.TitleBarButton}"
                     Click="SettingsButton_Click"
-                    ToolTip="Settings" />
+                    ToolTip="{loc:Loc SettingsButtonToolTip}" />
             <Button x:Name="CollapseChatButton"
                     Style="{StaticResource VP.TitleBarButton}"
                     Click="CollapseChatButton_Click"
-                    ToolTip="Toggle chat panel">
+                    ToolTip="{loc:Loc CollapseChatPanelToolTip}">
                 <Button.Content>
                     <Grid Width="16" Height="20">
                         <!-- Chat open: rectangle with divider slightly right (right panel = chat) -->
@@ -68,17 +69,17 @@
                     Content="&#xE921;"
                     Style="{StaticResource VP.TitleBarButton}"
                     Click="MinimizeButton_Click"
-                    ToolTip="Minimize" />
+                    ToolTip="{loc:Loc MinimizeToolTip}" />
             <Button x:Name="MaximizeButton"
                     Content="&#xE922;"
                     Style="{StaticResource VP.TitleBarButton}"
                     Click="MaximizeButton_Click"
-                    ToolTip="Maximize" />
+                    ToolTip="{loc:Loc MaximizeToolTip}" />
             <Button x:Name="CloseButton"
                     Content="&#xE8BB;"
                     Style="{StaticResource VP.TitleBarCloseButton}"
                     Click="CloseButton_Click"
-                    ToolTip="Close" />
+                    ToolTip="{loc:Loc CloseToolTip}" />
         </StackPanel>
     </Grid>
 </UserControl>

@@ -595,4 +595,22 @@
   <data name="CopyMessageToolTip" xml:space="preserve">
     <value>复制消息</value>
   </data>
+  <data name="MinimizeToolTip" xml:space="preserve">
+    <value>最小化</value>
+  </data>
+  <data name="MaximizeToolTip" xml:space="preserve">
+    <value>最大化</value>
+  </data>
+  <data name="CloseToolTip" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="CollapseChatPanelToolTip" xml:space="preserve">
+    <value>收起聊天面板</value>
+  </data>
+  <data name="ExpandChatPanelToolTip" xml:space="preserve">
+    <value>展开聊天面板</value>
+  </data>
+  <data name="RestoreToolTip" xml:space="preserve">
+    <value>还原</value>
+  </data>
 </root>
