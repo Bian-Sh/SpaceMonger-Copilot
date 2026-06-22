@@ -202,8 +202,7 @@
                     <Border Grid.Row="0"
                             Background="{StaticResource VP.SurfaceBrush}"
                             CornerRadius="10,10,0,0"
-                            Margin="0,0,0,-0.5"
-                            Padding="4,2">
+                            Margin="0,0,0,-0.5">
                         <StackPanel Orientation="Horizontal">
                             <RadioButton x:Name="TreemapTabBtn"
                                          Content="{loc:Loc TreemapTabHeader}"
