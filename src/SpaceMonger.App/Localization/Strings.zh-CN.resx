@@ -659,7 +659,19 @@
     <value>一款快速、现代的磁盘空间分析工具，通过 MFT 级扫描和 AI 智能推荐，帮助你可视化并清理存储空间。</value>
   </data>
   <data name="BuyMeCoffee" xml:space="preserve">
-    <value>我要投喂作者</value>
+    <value>投喂作者</value>
+  </data>
+  <data name="DonateDialogTitle" xml:space="preserve">
+    <value>投喂作者</value>
+  </data>
+  <data name="DonateAlipayLabel" xml:space="preserve">
+    <value>支付宝</value>
+  </data>
+  <data name="DonateWeChatLabel" xml:space="preserve">
+    <value>微信</value>
+  </data>
+  <data name="DonateThankYou" xml:space="preserve">
+    <value>感谢您的支持 </value>
   </data>
   <data name="GithubLabel" xml:space="preserve">
     <value>GitHub</value>
