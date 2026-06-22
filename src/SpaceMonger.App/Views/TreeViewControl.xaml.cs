@@ -28,11 +28,61 @@ public partial class TreeViewControl : UserControl
         _headerScrollViewer = FindName("HeaderScrollViewer") as ScrollViewer;
     }
 
+    private bool _syncing;
+
     private void TreeScroll_ScrollChanged(object? sender, ScrollChangedEventArgs e)
     {
+        if (_syncing) return;
+
         try
         {
-            _headerScrollViewer?.ScrollToHorizontalOffset(e.HorizontalOffset);
+            if (_headerScrollViewer is null || HeaderContentGrid is null || HeaderSpacerColumn is null) return;
+
+            var treeSv = FindDescendant<ScrollViewer>(FileTreeView);
+            if (treeSv is null) return;
+
+            double treeExtent = treeSv.ExtentWidth;
+            if (treeExtent <= 0) return;
+
+            // Sum the ActualWidth of the 9 content columns (col0–col8)
+            double contentWidth = 0;
+            int dataColCount = HeaderContentGrid.ColumnDefinitions.Count - 1; // exclude spacer
+            for (int i = 0; i < dataColCount; i++)
+            {
+                contentWidth += HeaderContentGrid.ColumnDefinitions[i].ActualWidth;
+            }
+
+            // Set spacer to fill the gap so header content matches tree extent width
+            double spacerWidth = Math.Max(0, treeExtent - contentWidth);
+            HeaderSpacerColumn.Width = new GridLength(spacerWidth);
+
+            // Defer offset sync to after layout processes the spacer change
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                try
+                {
+                    if (_headerScrollViewer is null) return;
+
+                    // Use proportional mapping to handle minor extent width differences
+                    // caused by Border thickness, SharedSizeScope layout overhead, etc.
+                    double treeScrollable = treeSv.ScrollableWidth;
+                    double hdrScrollable = _headerScrollViewer.ScrollableWidth;
+
+                    // Only guard the header scroll to prevent feedback loops
+                    _syncing = true;
+                    if (treeScrollable > 0 && hdrScrollable > 0)
+                    {
+                        double ratio = treeSv.HorizontalOffset / treeScrollable;
+                        _headerScrollViewer.ScrollToHorizontalOffset(ratio * hdrScrollable);
+                    }
+                    else
+                    {
+                        _headerScrollViewer.ScrollToHorizontalOffset(treeSv.HorizontalOffset);
+                    }
+                    _syncing = false;
+                }
+                catch { _syncing = false; }
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
         }
         catch { }
     }

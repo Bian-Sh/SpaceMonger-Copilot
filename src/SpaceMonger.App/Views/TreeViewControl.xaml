@@ -78,21 +78,22 @@
 
         <ScrollViewer x:Name="HeaderScrollViewer" Grid.Row="0" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" CanContentScroll="False">
             <Border
-                Background="{StaticResource VP.SurfaceBrush}"
+                Background="{StaticResource VP.BackgroundBrush}"
                 BorderBrush="{StaticResource VP.BorderSubtleBrush}"
                 BorderThickness="0.5,0.5,0.5,0"
                 CornerRadius="0">
-                <Grid>
+                <Grid x:Name="HeaderContentGrid">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="col0" />
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="col1" />
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="col2" />
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="col3" />
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="col4" />
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="col5" />
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="col6" />
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="col7" />
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="col8" />
+                        <ColumnDefinition Width="Auto" MinWidth="300" SharedSizeGroup="col0" />
+                        <ColumnDefinition Width="Auto" MinWidth="90" SharedSizeGroup="col1" />
+                        <ColumnDefinition Width="Auto" MinWidth="80" SharedSizeGroup="col2" />
+                        <ColumnDefinition Width="Auto" MinWidth="80" SharedSizeGroup="col3" />
+                        <ColumnDefinition Width="Auto" MinWidth="60" SharedSizeGroup="col4" />
+                        <ColumnDefinition Width="Auto" MinWidth="60" SharedSizeGroup="col5" />
+                        <ColumnDefinition Width="Auto" MinWidth="60" SharedSizeGroup="col6" />
+                        <ColumnDefinition Width="Auto" MinWidth="130" SharedSizeGroup="col7" />
+                        <ColumnDefinition Width="Auto" MinWidth="100" SharedSizeGroup="col8" />
+                        <ColumnDefinition x:Name="HeaderSpacerColumn" Width="0" />
                     </Grid.ColumnDefinitions>
 
                     <Button Grid.Column="0" Style="{StaticResource TreeHeaderButton}" Command="{Binding SortByNameCommand}">
@@ -164,6 +165,7 @@
                                                               ContentSource="Header"
                                                               HorizontalAlignment="Stretch" />
                                         </Border>
+                                        <Border Height="0" BorderBrush="{StaticResource VP.BorderSubtleBrush}" BorderThickness="0,0,0,0.5" Opacity="0.35" />
                                         <ItemsPresenter x:Name="ItemsHost" Visibility="Collapsed" />
                                     </StackPanel>
                                     <ControlTemplate.Triggers>
@@ -193,15 +195,15 @@
                     <HierarchicalDataTemplate DataType="{x:Type vm:TreeViewItemViewModel}" ItemsSource="{Binding Children}">
                         <Grid Height="24" ClipToBounds="True">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" SharedSizeGroup="col0" />
-                                <ColumnDefinition Width="Auto" SharedSizeGroup="col1" />
-                                <ColumnDefinition Width="Auto" SharedSizeGroup="col2" />
-                                <ColumnDefinition Width="Auto" SharedSizeGroup="col3" />
-                                <ColumnDefinition Width="Auto" SharedSizeGroup="col4" />
-                                <ColumnDefinition Width="Auto" SharedSizeGroup="col5" />
-                                <ColumnDefinition Width="Auto" SharedSizeGroup="col6" />
-                                <ColumnDefinition Width="Auto" SharedSizeGroup="col7" />
-                                <ColumnDefinition Width="Auto" SharedSizeGroup="col8" />
+                                <ColumnDefinition Width="Auto" MinWidth="300" SharedSizeGroup="col0" />
+                                <ColumnDefinition Width="Auto" MinWidth="90" SharedSizeGroup="col1" />
+                                <ColumnDefinition Width="Auto" MinWidth="80" SharedSizeGroup="col2" />
+                                <ColumnDefinition Width="Auto" MinWidth="80" SharedSizeGroup="col3" />
+                                <ColumnDefinition Width="Auto" MinWidth="60" SharedSizeGroup="col4" />
+                                <ColumnDefinition Width="Auto" MinWidth="60" SharedSizeGroup="col5" />
+                                <ColumnDefinition Width="Auto" MinWidth="60" SharedSizeGroup="col6" />
+                                <ColumnDefinition Width="Auto" MinWidth="130" SharedSizeGroup="col7" />
+                                <ColumnDefinition Width="Auto" MinWidth="100" SharedSizeGroup="col8" />
                             </Grid.ColumnDefinitions>
 
                             <Border Grid.Column="0" Style="{StaticResource TreeColumnBorder}">
