@@ -194,9 +194,13 @@ public partial class TreeViewItemViewModel : ObservableObject
     public bool IsReparsePoint => Entry.IsReparsePoint;
     public bool HasChildren => Entry.IsDirectory && Entry.Children.Count > 0;
     public bool HasNoChildren => !HasChildren;
-    public double IndentWidth => Depth * 16.0;
-    public System.Windows.Thickness IndentMargin => new(IndentWidth, 0, 0, 0);
-    public IReadOnlyList<int> IndentLevels { get; }
+    public bool HasParent => Parent is not null;
+    public bool IsLastChild { get; }
+    public double ToggleOffset => Depth * 16.0;
+    public double IconOffset => ToggleOffset + 22.0;
+    public System.Windows.Thickness ToggleMargin => new(ToggleOffset, 0, 0, 0);
+    public System.Windows.Thickness IconMargin => new(IconOffset, 0, 0, 0);
+    public IReadOnlyList<TreeGuideSegment> TreeGuideSegments { get; }
 
     public string SizeText => FormatSize(Entry.Size);
     public string AllocatedText => FormatSize(Entry.Size);
@@ -219,15 +223,17 @@ public partial class TreeViewItemViewModel : ObservableObject
         string sortBy,
         bool sortDescending,
         Dictionary<FileEntry, TreeEntryStats> statsCache,
-        TreeViewItemViewModel? parent = null)
+        TreeViewItemViewModel? parent = null,
+        bool isLastChild = true)
     {
         Entry = entry;
         Parent = parent;
         Depth = depth;
+        IsLastChild = isLastChild;
         _sortBy = sortBy;
         _sortDescending = sortDescending;
         _statsCache = statsCache;
-        IndentLevels = Enumerable.Range(0, depth).ToArray();
+        TreeGuideSegments = BuildTreeGuideSegments(parent);
         Stats = GetStats(entry);
         AttributeText = BuildAttributeText(entry);
         ParentPercent = parent?.Entry.Size > 0 ? entry.Size * 100.0 / parent.Entry.Size : 100.0;
@@ -257,11 +263,22 @@ public partial class TreeViewItemViewModel : ObservableObject
 
         var sorted = GetSortedChildren(Entry.Children, _sortBy, _sortDescending);
 
-        foreach (var child in sorted)
+        for (var index = 0; index < sorted.Count; index++)
         {
-            var childVm = new TreeViewItemViewModel(child, Depth + 1, _sortBy, _sortDescending, _statsCache, this);
+            var child = sorted[index];
+            var childVm = new TreeViewItemViewModel(child, Depth + 1, _sortBy, _sortDescending, _statsCache, this, index == sorted.Count - 1);
             Children.Add(childVm);
         }
+    }
+
+    private static IReadOnlyList<TreeGuideSegment> BuildTreeGuideSegments(TreeViewItemViewModel? parent)
+    {
+        if (parent?.Parent is null)
+        {
+            return Array.Empty<TreeGuideSegment>();
+        }
+
+        return parent.TreeGuideSegments.Concat(new[] { new TreeGuideSegment(!parent.IsLastChild) }).ToArray();
     }
 
     private TreeEntryStats GetStats(FileEntry entry)
@@ -364,5 +381,4 @@ public partial class TreeViewItemViewModel : ObservableObject
 
 public sealed record TreeEntryStats(int ItemCount, int FileCount, int FolderCount);
 
-
-
+public sealed record TreeGuideSegment(bool Continues);

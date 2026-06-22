@@ -4,6 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:SpaceMonger.App.ViewModels"
+             xmlns:controls="clr-namespace:SpaceMonger.App.Controls"
              xmlns:converters="clr-namespace:SpaceMonger.App.Converters"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:TreeViewModel, IsDesignTimeCreatable=False}"
@@ -208,97 +209,74 @@
 
                             <Border Grid.Column="0" Style="{StaticResource TreeColumnBorder}">
                                 <Grid>
-                                    <ItemsControl ItemsSource="{Binding IndentLevels}"
-                                                  HorizontalAlignment="Left"
-                                                  Width="{Binding IndentWidth}"
-                                                  IsHitTestVisible="False">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <StackPanel Orientation="Horizontal" />
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Border Width="16" BorderBrush="{StaticResource VP.BorderSubtleBrush}" BorderThickness="0,0,0.5,0" Opacity="0.45" />
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
+                                    <Grid VerticalAlignment="Center" HorizontalAlignment="Left">
+                                        <controls:TreeGuideControl Segments="{Binding TreeGuideSegments}"
+                                                                   HasParent="{Binding HasParent}"
+                                                                   IsLastChild="{Binding IsLastChild}"
+                                                                   HasChildren="{Binding HasChildren}"
+                                                                   IsDebugColored="False"
+                                                                   Height="24"
+                                                                   IsHitTestVisible="False" />
 
-                                    <StackPanel Orientation="Horizontal"
-                                                VerticalAlignment="Center"
-                                                Margin="{Binding IndentMargin}">
-                                        <!-- connector for items that have children: placed to the LEFT of the foldout triangle -->
-                                        <Rectangle Width="18"
-                                                   Height="0.5"
-                                                   Fill="{StaticResource VP.BorderSubtleBrush}"
-                                                   Opacity="0.45"
-                                                   VerticalAlignment="Center"
-                                                   Margin="0,0,6,0"
-                                                   IsHitTestVisible="False"
-                                                   Visibility="{Binding HasChildren, Converter={StaticResource BoolToVisibilityConverter}}" />
-
-                                        <ToggleButton Width="32"
-                                                      Height="32"
-                                                      Margin="0,0,2,0"
+                                        <ToggleButton Width="18"
+                                                      Height="24"
+                                                      HorizontalAlignment="Left"
+                                                      Margin="{Binding ToggleMargin}"
                                                       IsChecked="{Binding IsExpanded, Mode=TwoWay}"
                                                       Visibility="{Binding HasChildren, Converter={StaticResource BoolToVisibilityConverter}}"
                                                       Style="{StaticResource ExpandToggleStyle}"
                                                       FocusVisualStyle="{x:Null}">
-                                        <TextBlock Text="▸" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
-                                            <TextBlock.RenderTransform>
-                                                <TranslateTransform Y="-5" />
-                                            </TextBlock.RenderTransform>
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Foreground" Value="White" />
-                                                    <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
-                                                    <Setter Property="RenderTransform">
-                                                        <Setter.Value>
-                                                            <RotateTransform Angle="0" />
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                    <Style.Triggers>
-                                                        <!-- rotate when the bound viewmodel node is expanded -->
-                                                        <DataTrigger Binding="{Binding IsExpanded}" Value="True">
-                                                            <Setter Property="RenderTransform">
-                                                                <Setter.Value>
-                                                                    <RotateTransform Angle="90" />
-                                                                </Setter.Value>
-                                                            </Setter>
-                                                        </DataTrigger>
-
-                                                        <!-- hover and pressed change only the icon color (no background changes) -->
-                                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ToggleButton}}" Value="True">
-                                                            <Setter Property="Foreground" Value="{StaticResource VP.TextPrimaryBrush}" />
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding IsPressed, RelativeSource={RelativeSource AncestorType=ToggleButton}}" Value="True">
-                                                            <Setter Property="Foreground" Value="{StaticResource VP.AccentBrush}" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
+                                            <TextBlock Text="▸"
+                                                       FontSize="24"
+                                                       LineHeight="24"
+                                                       LineStackingStrategy="BlockLineHeight"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       RenderTransformOrigin="0.5,0.5">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="White" />
+                                                        <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
+                                                        <Setter Property="RenderTransform">
+                                                            <Setter.Value>
+                                                                <RotateTransform Angle="0" />
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                                                                <Setter Property="RenderTransform">
+                                                                    <Setter.Value>
+                                                                        <RotateTransform Angle="90" />
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ToggleButton}}" Value="True">
+                                                                <Setter Property="Foreground" Value="{StaticResource VP.TextPrimaryBrush}" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsPressed, RelativeSource={RelativeSource AncestorType=ToggleButton}}" Value="True">
+                                                                <Setter Property="Foreground" Value="{StaticResource VP.AccentBrush}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
                                         </ToggleButton>
 
-                                        <!-- connector for items without children: directly connects to the entity icon/text -->
-                                        <Rectangle Width="18"
-                                                   Height="0.5"
-                                                   Fill="{StaticResource VP.BorderSubtleBrush}"
-                                                   Opacity="0.45"
-                                                   VerticalAlignment="Center"
-                                                   Margin="0,0,6,0"
-                                                   IsHitTestVisible="False"
-                                                   Visibility="{Binding HasNoChildren, Converter={StaticResource BoolToVisibilityConverter}}" />
-                                        <TextBlock Text="{Binding IconGlyph}"
-                                                   FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="14"
-                                                   Foreground="{StaticResource VP.TextSecondaryBrush}"
-                                                   Margin="0,0,6,0"
-                                                   VerticalAlignment="Center" />
-                                        <TextBlock Text="{Binding Name}"
-                                                   Style="{StaticResource TreeCellText}"
-                                                   ToolTip="{Binding Entry.Path}" />
-                                    </StackPanel>
+                                        <StackPanel Orientation="Horizontal"
+                                                    VerticalAlignment="Center"
+                                                    HorizontalAlignment="Left"
+                                                    Margin="{Binding IconMargin}">
+                                            <TextBlock Text="{Binding IconGlyph}"
+                                                       FontFamily="Segoe MDL2 Assets"
+                                                       FontSize="14"
+                                                       Foreground="{StaticResource VP.TextSecondaryBrush}"
+                                                       Margin="0,0,6,0"
+                                                       VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding Name}"
+                                                       Style="{StaticResource TreeCellText}"
+                                                       ToolTip="{Binding Entry.Path}" />
+                                        </StackPanel>
+                                    </Grid>
                                 </Grid>
                             </Border>
 
