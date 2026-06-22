@@ -109,6 +109,19 @@ public partial class App : Application
 
         mainWindow.Show();
 
+        // Support --scan <path> command-line argument for auto-scanning
+        if (e.Args.Length >= 2 && e.Args[0] == "--scan")
+        {
+            var scanPath = e.Args[1];
+            mainViewModel.SelectedPath = scanPath;
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(1000);
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(
+                    () => mainViewModel.ScanCommand.Execute(null));
+            });
+        }
+
         _ = Task.Run(async () =>
         {
             await Task.Delay(2000);

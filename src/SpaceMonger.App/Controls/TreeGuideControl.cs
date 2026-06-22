@@ -38,7 +38,7 @@ public sealed class TreeGuideControl : FrameworkElement
         new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender));
 
     private const double IndentSize = 16.0;
-    private const double StemX = 8.0;
+    private const double StemX = 9.0;
     private const double PreferredRowHeight = 24.0;
     private const double JunctionY = 12.0;
     private const double ToggleSlotWidth = 18.0;

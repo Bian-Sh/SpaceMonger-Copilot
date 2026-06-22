@@ -11,10 +11,10 @@
     <Grid Margin="0,0,4,0">
         <!-- Treemap area: rounded container with clip -->
         <Border x:Name="TreemapContainer"
-                CornerRadius="10"
+                CornerRadius="0,0,10,10"
                 ClipToBounds="True"
                 BorderBrush="{StaticResource VP.BorderSubtleBrush}"
-                BorderThickness="0.5">
+                BorderThickness="0.5,0,0.5,0.5">
             <Grid>
                 <controls:TreemapControl x:Name="Treemap"
                                          NodeClicked="Treemap_NodeClicked"
@@ -50,7 +50,7 @@
                 <!-- Scanning overlay -->
                 <Border x:Name="ScanningOverlay"
                         Background="{StaticResource VP.OverlayBrush}"
-                        CornerRadius="10"
+                        CornerRadius="0,0,10,10"
                         Visibility="Collapsed">
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                         <TextBlock Text="{loc:Loc ScanningStatus}"
