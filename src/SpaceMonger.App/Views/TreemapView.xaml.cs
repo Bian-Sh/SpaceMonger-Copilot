@@ -6,6 +6,7 @@ using SpaceMonger.App.Services;
 using System.Windows.Controls;
 using System.Windows.Input;
 using SpaceMonger.App.Localization;
+using System.Windows.Media;
 using SpaceMonger.App.Controls;
 using SpaceMonger.App.Converters;
 using SpaceMonger.App.ViewModels;
@@ -196,6 +197,33 @@ public partial class TreemapView : UserControl
 
         await Dispatcher.InvokeAsync(() => MessageBox.Show(Window.GetWindow(this), message, "SpaceMonger.Next", MessageBoxButton.OK, MessageBoxImage.Error));
     }
+    private void TreemapContainer_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        // WPF Border.ClipToBounds clips to rectangle, not CornerRadius.
+        // Apply explicit Clip matching CornerRadius="0,0,10,10" (bottom corners only).
+        var w = TreemapContainer.ActualWidth;
+        var h = TreemapContainer.ActualHeight;
+        if (w > 0 && h > 0)
+        {
+            const double r = 10.0;
+            var figure = new PathFigure
+            {
+                StartPoint = new Point(0, 0),
+                IsClosed = true,
+                IsFilled = true,
+            };
+            figure.Segments.Add(new LineSegment(new Point(w, 0), true));
+            figure.Segments.Add(new LineSegment(new Point(w, h - r), true));
+            figure.Segments.Add(new ArcSegment(new Point(w - r, h), new Size(r, r), 0, false, SweepDirection.Clockwise, true));
+            figure.Segments.Add(new LineSegment(new Point(r, h), true));
+            figure.Segments.Add(new ArcSegment(new Point(0, h - r), new Size(r, r), 0, false, SweepDirection.Clockwise, true));
+
+            var geometry = new PathGeometry(new[] { figure });
+            geometry.Freeze();
+            TreemapContainer.Clip = geometry;
+        }
+    }
+
     private void Treemap_SizeChanged(object sender, SizeChangedEventArgs e)
     {
         _viewModel?.UpdateSize((float)e.NewSize.Width, (float)e.NewSize.Height);
