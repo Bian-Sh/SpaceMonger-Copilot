@@ -113,7 +113,7 @@
                 CornerRadius="0">
                 <Grid x:Name="HeaderContentGrid">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" MinWidth="300" SharedSizeGroup="col0" />
+                        <ColumnDefinition Width="Auto" MinWidth="225" SharedSizeGroup="col0" />
                         <ColumnDefinition Width="Auto" MinWidth="90" SharedSizeGroup="col1" />
                         <ColumnDefinition Width="Auto" MinWidth="80" SharedSizeGroup="col2" />
                         <ColumnDefinition Width="Auto" MinWidth="80" SharedSizeGroup="col3" />
@@ -225,7 +225,7 @@
                     <HierarchicalDataTemplate DataType="{x:Type vm:TreeViewItemViewModel}" ItemsSource="{Binding Children}">
                         <Grid Height="24" ClipToBounds="True">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" MinWidth="300" SharedSizeGroup="col0" />
+                                <ColumnDefinition Width="Auto" MinWidth="225" SharedSizeGroup="col0" />
                                 <ColumnDefinition Width="Auto" MinWidth="90" SharedSizeGroup="col1" />
                                 <ColumnDefinition Width="Auto" MinWidth="80" SharedSizeGroup="col2" />
                                 <ColumnDefinition Width="Auto" MinWidth="80" SharedSizeGroup="col3" />
