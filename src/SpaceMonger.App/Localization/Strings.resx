@@ -679,4 +679,7 @@
   <data name="GithubLabel" xml:space="preserve">
     <value>GitHub</value>
   </data>
+  <data name="VersionDisplayToolTip" xml:space="preserve">
+    <value>AboutPage</value>
+  </data>
 </root>

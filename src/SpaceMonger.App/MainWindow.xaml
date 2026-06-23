@@ -432,6 +432,7 @@
                            FontSize="14"
                            Margin="0,0,4,0"
                            Cursor="Hand"
+                           ToolTip="{loc:Loc VersionDisplayToolTip}"
                            MouseLeftButtonDown="VersionDisplay_Click">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">

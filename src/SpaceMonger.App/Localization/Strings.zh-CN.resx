@@ -676,4 +676,7 @@
   <data name="GithubLabel" xml:space="preserve">
     <value>GitHub</value>
   </data>
+  <data name="VersionDisplayToolTip" xml:space="preserve">
+    <value>关于页面</value>
+  </data>
 </root>
