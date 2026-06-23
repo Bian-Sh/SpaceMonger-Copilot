@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -81,8 +81,29 @@ public partial class DonateDialog : Window
         storyboard.Begin();
     }
 
+    private void AnimateOut()
+    {
+        var duration = TimeSpan.FromMilliseconds(250);
+        var easing = new CubicEase { EasingMode = EasingMode.EaseIn };
+
+        var maskAnim = new DoubleAnimation(1, 0, duration);
+
+        CardBorder.RenderTransform = new ScaleTransform(1, 1);
+        CardBorder.RenderTransformOrigin = new Point(0.5, 0.5);
+
+        var scaleXAnim = new DoubleAnimation(1, 0.9, duration) { EasingFunction = easing };
+        var scaleYAnim = new DoubleAnimation(1, 0.9, duration) { EasingFunction = easing };
+
+        CardBorder.RenderTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleXAnim);
+        CardBorder.RenderTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleYAnim);
+
+        maskAnim.Completed += (_, _) => Close();
+        RootGrid.BeginAnimation(OpacityProperty, maskAnim);
+    }
+
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
-        Close();
+        AnimateOut();
     }
 }
+
