@@ -1,4 +1,4 @@
-<UserControl x:Class="SpaceMonger.App.Views.ChatPanel"
+﻿<UserControl x:Class="SpaceMonger.App.Views.ChatPanel"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -18,7 +18,7 @@
         <converters:SubtractConverter x:Key="SubtractConverter" Subtrahend="50" />
     </UserControl.Resources>
 
-    <Border Style="{StaticResource VP.GlassPanelLarge}" Margin="4,0,0,0" Padding="0">
+    <Border Style="{StaticResource VP.GlassPanelLarge}" Margin="0" Padding="0">
         <DockPanel>
 
             <!-- 1. API Key Warning (top, conditional) -->
@@ -455,3 +455,4 @@
         </DockPanel>
     </Border>
 </UserControl>
+

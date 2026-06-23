@@ -1,35 +1,115 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
+using SpaceMonger.App.Helpers;
 using SpaceMonger.App.Localization;
 
 namespace SpaceMonger.App;
 
 public partial class MainWindow
 {
+    private const double DefaultChatPanelWidth = 360;
+    private const double MinChatPanelWidth = 260;
+
     private bool _isChatCollapsed;
+    private bool _isChatAnimating;
+    private double _expandedChatPanelWidth = DefaultChatPanelWidth;
 
     private void OpenSettingsDialog() => ShowSettingsPage();
 
     private void ToggleChatPanel()
     {
-        _isChatCollapsed = !_isChatCollapsed;
+        if (_isChatAnimating)
+            return;
 
-        if (_isChatCollapsed)
+        _isChatCollapsed = !_isChatCollapsed;
+        AnimateChatPanel(_isChatCollapsed);
+        TitleBar.UpdateCollapseIcon(!_isChatCollapsed);
+    }
+
+    private void ChatPanelViewport_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (_isChatCollapsed || _isChatAnimating || e.NewSize.Width < MinChatPanelWidth)
+            return;
+
+        _expandedChatPanelWidth = e.NewSize.Width;
+    }
+
+    private void ClearChatPanelSlideTransform()
+    {
+        if (ChatPanelContainer.RenderTransform is TranslateTransform translateTransform)
+            translateTransform.BeginAnimation(TranslateTransform.XProperty, null);
+
+        ChatPanelContainer.RenderTransform = null;
+    }
+
+    private void AnimateChatPanel(bool collapse)
+    {
+        _isChatAnimating = true;
+        var duration = TimeSpan.FromMilliseconds(250);
+        var easing = new CubicEase { EasingMode = collapse ? EasingMode.EaseIn : EasingMode.EaseOut };
+
+        ChatPanelColumn.BeginAnimation(ColumnDefinition.WidthProperty, null);
+        ClearChatPanelSlideTransform();
+
+        if (collapse)
         {
-            ChatPanelColumn.Width = new GridLength(0);
+            _expandedChatPanelWidth = Math.Max(ChatPanelColumn.ActualWidth, MinChatPanelWidth);
             ChatPanelColumn.MinWidth = 0;
-            ChatPanel.Visibility = Visibility.Collapsed;
-            ChatSplitter.Visibility = Visibility.Collapsed;
+            ChatPanelContainer.Width = _expandedChatPanelWidth;
+            ChatPanelContainer.HorizontalAlignment = HorizontalAlignment.Left;
+
+            var widthAnim = new GridLengthAnimation
+            {
+                From = new GridLength(_expandedChatPanelWidth),
+                To = new GridLength(0),
+                Duration = duration,
+                EasingFunction = easing
+            };
+
+            widthAnim.Completed += (_, _) =>
+            {
+                ChatPanelColumn.BeginAnimation(ColumnDefinition.WidthProperty, null);
+                ChatPanelColumn.Width = new GridLength(0);
+                ClearChatPanelSlideTransform();
+                ChatPanelContainer.Width = double.NaN;
+                ChatPanelViewport.Visibility = Visibility.Collapsed;
+                ChatSplitter.Visibility = Visibility.Collapsed;
+                _isChatAnimating = false;
+            };
+            ChatPanelColumn.BeginAnimation(ColumnDefinition.WidthProperty, widthAnim);
         }
         else
         {
-            ChatPanelColumn.Width = new GridLength(360);
-            ChatPanelColumn.MinWidth = 260;
-            ChatPanel.Visibility = Visibility.Visible;
+            var targetWidth = Math.Max(_expandedChatPanelWidth, MinChatPanelWidth);
+            ChatPanelColumn.MinWidth = 0;
+            ChatPanelColumn.Width = new GridLength(0);
+            ChatPanelViewport.Visibility = Visibility.Visible;
             ChatSplitter.Visibility = Visibility.Visible;
-        }
+            ChatPanelContainer.Width = targetWidth;
+            ChatPanelContainer.HorizontalAlignment = HorizontalAlignment.Left;
 
-        TitleBar.UpdateCollapseIcon(!_isChatCollapsed);
+            var widthAnim = new GridLengthAnimation
+            {
+                From = new GridLength(0),
+                To = new GridLength(targetWidth),
+                Duration = duration,
+                EasingFunction = easing
+            };
+
+            widthAnim.Completed += (_, _) =>
+            {
+                ChatPanelColumn.BeginAnimation(ColumnDefinition.WidthProperty, null);
+                ChatPanelColumn.Width = new GridLength(targetWidth);
+                ChatPanelColumn.MinWidth = MinChatPanelWidth;
+                ClearChatPanelSlideTransform();
+                ChatPanelContainer.Width = double.NaN;
+                ChatPanelContainer.HorizontalAlignment = HorizontalAlignment.Stretch;
+                _isChatAnimating = false;
+            };
+            ChatPanelColumn.BeginAnimation(ColumnDefinition.WidthProperty, widthAnim);
+        }
     }
 
     private void ShowSettingsPage()
@@ -38,12 +118,12 @@ public partial class MainWindow
             return;
 
         SettingsPage.ReloadSettingsForOpen();
-        SettingsPage.Visibility = Visibility.Visible;
+        SettingsPage.AnimateIn();
     }
 
     private void HideSettingsPage()
     {
-        SettingsPage.Visibility = Visibility.Collapsed;
+        SettingsPage.AnimateOut(null);
     }
 
     private void SwitchToAboutTab()
@@ -62,3 +142,5 @@ public partial class MainWindow
         _chatViewModel?.RefreshApiKeyStatus();
     }
 }
+
+

@@ -361,16 +361,36 @@
                     </Grid>
                 </Grid>
 
-                <!-- Vertical splitter -->
+                <!-- Chat panel area -->
                 <GridSplitter x:Name="ChatSplitter"
-                              Grid.Row="2" Grid.Column="1"
+                              Grid.RowSpan="3"
+                              Grid.Column="1"
                               Style="{StaticResource VP.GridSplitterV}"
-                              Margin="4,0" />
+                              Width="12"
+                              Margin="0"
+                              Background="Transparent">
+                    <GridSplitter.Template>
+                        <ControlTemplate TargetType="{x:Type GridSplitter}">
+                            <Grid Background="{TemplateBinding Background}">
+                                <Border Width="2"
+                                        HorizontalAlignment="Center"
+                                        Background="{StaticResource VP.BorderSubtleBrush}" />
+                            </Grid>
+                        </ControlTemplate>
+                    </GridSplitter.Template>
+                </GridSplitter>
 
-                <!-- Chat panel (spans toolbar + content rows, stops above status bar) -->
-                <views:ChatPanel x:Name="ChatPanel"
-                                 Grid.RowSpan="3" Grid.Column="2"
-                                 Visibility="Visible" />
+                <Grid x:Name="ChatPanelViewport"
+                      Grid.RowSpan="3"
+                      Grid.Column="2"
+                      ClipToBounds="True"
+                      SizeChanged="ChatPanelViewport_SizeChanged">
+                    <Border x:Name="ChatPanelContainer"
+                            HorizontalAlignment="Stretch">
+                        <views:ChatPanel x:Name="ChatPanel"
+                                         Visibility="Visible" />
+                    </Border>
+                </Grid>
 
             <Grid Grid.Row="4" Grid.ColumnSpan="3" Margin="4,0">
                 <Grid.ColumnDefinitions>
@@ -465,4 +485,5 @@
                                Panel.ZIndex="200" />
     </Grid>
 </Window>
+
 
