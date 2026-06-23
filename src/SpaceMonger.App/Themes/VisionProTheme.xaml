@@ -493,14 +493,30 @@
                                   Visibility="Collapsed"
                                   HorizontalAlignment="Center"
                                   VerticalAlignment="Center" />
+                            <Rectangle x:Name="IndeterminateMark"
+                                       Width="10"
+                                       Height="2"
+                                       RadiusX="1"
+                                       RadiusY="1"
+                                       Fill="{StaticResource VP.AccentBrush}"
+                                       Visibility="Collapsed"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
                         </Grid>
                         <ContentPresenter VerticalAlignment="Center" />
                     </StackPanel>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="CheckBorder" Property="Background" Value="#330A84FF" />
-                            <Setter TargetName="CheckBorder" Property="BorderBrush" Value="{StaticResource VP.AccentBrush}" />
+                            <Setter TargetName="CheckBorder" Property="Background" Value="{StaticResource VP.AccentHoverBrush}" />
+                            <Setter TargetName="CheckBorder" Property="BorderBrush" Value="Transparent" />
+                            <Setter TargetName="CheckMark" Property="Stroke" Value="{StaticResource VP.TextPrimaryBrush}" />
                             <Setter TargetName="CheckMark" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="{x:Null}">
+                            <Setter TargetName="CheckBorder" Property="Background" Value="{StaticResource VP.AccentBrush}" />
+                            <Setter TargetName="CheckBorder" Property="BorderBrush" Value="Transparent" />
+                            <Setter TargetName="IndeterminateMark" Property="Fill" Value="{StaticResource VP.TextPrimaryBrush}" />
+                            <Setter TargetName="IndeterminateMark" Property="Visibility" Value="Visible" />
                         </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="CheckBorder" Property="BorderBrush" Value="{StaticResource VP.AccentHoverBrush}" />
