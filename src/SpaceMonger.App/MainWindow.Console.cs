@@ -43,7 +43,6 @@ public partial class MainWindow
 
         ConsoleTextBox.Text = _consoleLog.ToString();
         ConsoleTextBox.ScrollToEnd();
-        ConsoleFrame.Visibility = Visibility.Visible;
     }
 
     private void ConsoleLogLevel_Click(object sender, RoutedEventArgs e)
@@ -211,7 +210,6 @@ public partial class MainWindow
             mainVm.ScanProgressText = L.Format("AnalysisFailedStatus", _recommendationsViewModel.AnalysisError);
             AppendConsoleLine(mainVm.ScanProgressText, ConsoleLogLevel.Error);
             AppendAnalysisDiagnostics(_recommendationsViewModel.LastDiagnostics);
-            ShowConsolePanel();
         }
         else
         {
@@ -222,7 +220,6 @@ public partial class MainWindow
             if (count == 0)
             {
                 AppendConsoleLine("DIAG: zero final recommendations. Inspect parsed_recs/protected_filtered/parse_error above to determine whether this was an empty model result, parse failure, or post-filtering.");
-                ShowConsolePanel();
             }
         }
     }
