@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
@@ -385,15 +385,6 @@
   <data name="ScanCancelledStatus" xml:space="preserve">
     <value>Scan cancelled.</value>
   </data>
-  <data name="FreeSpaceName" xml:space="preserve">
-    <value>Free Space</value>
-  </data>
-  <data name="FreeSpacePath" xml:space="preserve">
-    <value>(free space)</value>
-  </data>
-  <data name="FreeSpaceWithSize" xml:space="preserve">
-    <value>Free Space ({0})</value>
-  </data>
   <data name="ItemsToRemove" xml:space="preserve">
     <value>Items to remove: {0}</value>
   </data>
@@ -681,5 +672,62 @@
   </data>
   <data name="VersionDisplayToolTip" xml:space="preserve">
     <value>AboutPage</value>
+  </data>
+  <data name="ThemeSectionLabel" xml:space="preserve">
+    <value>Theme</value>
+  </data>
+  <data name="ThemePresetsLabel" xml:space="preserve">
+    <value>Presets</value>
+  </data>
+  <data name="ThemeAccentColorLabel" xml:space="preserve">
+    <value>Accent Color</value>
+  </data>
+  <data name="ThemeAccentColorHint" xml:space="preserve">
+    <value>Hex color for accent (e.g., #FF2562A7)</value>
+  </data>
+  <data name="ThemeApplyButton" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="ThemeAppliedToast" xml:space="preserve">
+    <value>Theme applied</value>
+  </data>
+  <data name="ThemeGlassLabel" xml:space="preserve">
+    <value>Frosted Glass</value>
+  </data>
+  <data name="ThemeGlassHint" xml:space="preserve">
+    <value>Enable frosted-glass / acrylic effect on the window</value>
+  </data>
+  <data name="ThemeGlassOption" xml:space="preserve">
+    <value>Enable frosted glass effect</value>
+  </data>
+  <data name="ThemeBackdropTypeLabel" xml:space="preserve">
+    <value>Glass Type</value>
+  </data>
+  <data name="ThemeBackdropTypeHint" xml:space="preserve">
+    <value>Choose backdrop material type: None, Mica, or Acrylic</value>
+  </data>
+  <data name="ThemeBackdropNone" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="ThemeBlurLabel" xml:space="preserve">
+    <value>Gaussian Blur</value>
+  </data>
+  <data name="ThemeBlurHint" xml:space="preserve">
+    <value>Blur radius for glass panels (0 = no blur, max = 60)</value>
+  </data>
+  <data name="ThemeOpacityLabel" xml:space="preserve">
+    <value>Transparency</value>
+  </data>
+  <data name="ThemeOpacityHint" xml:space="preserve">
+    <value>Glass panel opacity (0.1 nearly transparent, 1.0 fully opaque)</value>
+  </data>
+  <data name="ThemeAutoContrastLabel" xml:space="preserve">
+    <value>Auto Contrast</value>
+  </data>
+  <data name="ThemeAutoContrastHint" xml:space="preserve">
+    <value>Automatically compute text colors for readability against background</value>
+  </data>
+  <data name="ThemeAutoContrastOption" xml:space="preserve">
+    <value>Auto-adjust text for contrast</value>
   </data>
 </root>

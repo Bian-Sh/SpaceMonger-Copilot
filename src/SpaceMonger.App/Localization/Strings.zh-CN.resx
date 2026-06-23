@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
@@ -382,15 +382,6 @@
   <data name="ScanCancelledStatus" xml:space="preserve">
     <value>扫描已取消。</value>
   </data>
-  <data name="FreeSpaceName" xml:space="preserve">
-    <value>可用空间</value>
-  </data>
-  <data name="FreeSpacePath" xml:space="preserve">
-    <value>（可用空间）</value>
-  </data>
-  <data name="FreeSpaceWithSize" xml:space="preserve">
-    <value>可用空间（{0}）</value>
-  </data>
   <data name="ItemsToRemove" xml:space="preserve">
     <value>要移除的项目：{0}</value>
   </data>
@@ -678,5 +669,62 @@
   </data>
   <data name="VersionDisplayToolTip" xml:space="preserve">
     <value>关于页面</value>
+  </data>
+  <data name="ThemeSectionLabel" xml:space="preserve">
+    <value>主题</value>
+  </data>
+  <data name="ThemePresetsLabel" xml:space="preserve">
+    <value>预设主题</value>
+  </data>
+  <data name="ThemeAccentColorLabel" xml:space="preserve">
+    <value>强调色</value>
+  </data>
+  <data name="ThemeAccentColorHint" xml:space="preserve">
+    <value>输入十六进制颜色值（如 #FF2562A7）</value>
+  </data>
+  <data name="ThemeApplyButton" xml:space="preserve">
+    <value>应用</value>
+  </data>
+  <data name="ThemeAppliedToast" xml:space="preserve">
+    <value>主题已应用</value>
+  </data>
+  <data name="ThemeGlassLabel" xml:space="preserve">
+    <value>磨砂玻璃</value>
+  </data>
+  <data name="ThemeGlassHint" xml:space="preserve">
+    <value>启用窗口磨砂/亚克力半透明效果</value>
+  </data>
+  <data name="ThemeGlassOption" xml:space="preserve">
+    <value>启用磨砂玻璃效果</value>
+  </data>
+  <data name="ThemeBackdropTypeLabel" xml:space="preserve">
+    <value>玻璃类型</value>
+  </data>
+  <data name="ThemeBackdropTypeHint" xml:space="preserve">
+    <value>选择背景材质类型：无、Mica 或 Acrylic</value>
+  </data>
+  <data name="ThemeBackdropNone" xml:space="preserve">
+    <value>无</value>
+  </data>
+  <data name="ThemeBlurLabel" xml:space="preserve">
+    <value>高斯模糊</value>
+  </data>
+  <data name="ThemeBlurHint" xml:space="preserve">
+    <value>玻璃面板模糊半径（0=关闭，最大60）</value>
+  </data>
+  <data name="ThemeOpacityLabel" xml:space="preserve">
+    <value>透明度</value>
+  </data>
+  <data name="ThemeOpacityHint" xml:space="preserve">
+    <value>玻璃面板不透明度（0.1 几乎透明，1.0 完全不透明）</value>
+  </data>
+  <data name="ThemeAutoContrastLabel" xml:space="preserve">
+    <value>自动撞色</value>
+  </data>
+  <data name="ThemeAutoContrastHint" xml:space="preserve">
+    <value>根据背景亮度自动计算文字颜色以保证可读性</value>
+  </data>
+  <data name="ThemeAutoContrastOption" xml:space="preserve">
+    <value>自动调整文字对比度</value>
   </data>
 </root>

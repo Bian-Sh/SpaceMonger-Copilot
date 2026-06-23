@@ -330,13 +330,6 @@ public partial class TreemapViewModel : ObservableObject
         RecomputeLayout();
     }
 
-    private static readonly FileEntry FreeSpaceSentinel = new()
-    {
-        Name = L.Text("FreeSpaceName"),
-        IsDirectory = false,
-        Path = L.Text("FreeSpacePath"),
-    };
-
     private void RecomputeLayout()
     {
         if (CurrentRoot is not null && !IsInCurrentScan(CurrentRoot))
@@ -356,46 +349,7 @@ public partial class TreemapViewModel : ObservableObject
             return;
         }
 
-        // When viewing the scan root of a whole-drive scan, temporarily inject
-        // a synthetic "Free Space" child so the layout engine allocates a
-        // proportional block for it — matching classic SpaceMonger behavior.
-        bool injectedFreeSpace = false;
-        if (CurrentRoot == _scanRoot
-            && _session?.DriveCapacity is not null
-            && _session.DriveFreeSpace is not null
-            && _session.DriveFreeSpace.Value > 0)
-        {
-            FreeSpaceSentinel.Size = _session.DriveFreeSpace.Value;
-
-            // Temporarily adjust the root to include free space in the total.
-            CurrentRoot.Children.Add(FreeSpaceSentinel);
-            var originalSize = CurrentRoot.Size;
-            CurrentRoot.Size = _session.DriveCapacity.Value;
-            injectedFreeSpace = true;
-
-            var nodes = _layoutEngine.ComputeLayout(CurrentRoot, ViewWidth, ViewHeight, maxDepth: 8);
-
-            // Restore the original tree state.
-            CurrentRoot.Children.Remove(FreeSpaceSentinel);
-            CurrentRoot.Size = originalSize;
-
-            // Style the free space node: off-white to match the drive root color.
-            foreach (var node in nodes)
-            {
-                if (node.Entry == FreeSpaceSentinel)
-                {
-                    node.ColorHex = "#F0F0E8";
-                    node.Label = FormatSize(_session.DriveFreeSpace.Value);
-                }
-            }
-
-            Nodes = nodes;
-        }
-
-        if (!injectedFreeSpace)
-        {
-            Nodes = _layoutEngine.ComputeLayout(CurrentRoot, ViewWidth, ViewHeight, maxDepth: 8);
-        }
+        Nodes = _layoutEngine.ComputeLayout(CurrentRoot, ViewWidth, ViewHeight, maxDepth: 8);
     }
 
     private static string FormatSize(long bytes)
