@@ -125,15 +125,21 @@
                 </StackPanel>
             </StackPanel>
 
-            <!-- 底部感谢 -->
-            <TextBlock Grid.Row="2"
-                       FontSize="16
-                       "
-                       Foreground="{StaticResource VP.TextTertiaryBrush}"
-                       HorizontalAlignment="Center"
-                       Margin="0,0,0,14">
-                <Run Text="{loc:Loc DonateThankYou}" /><Run Text="❤" Foreground="#E2231A" />
-            </TextBlock>
+            <!-- 底部感谢：比心小纸人 -->
+            <StackPanel Grid.Row="2"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Margin="0,0,0,14">
+                <TextBlock Text="{loc:Loc DonateThankYou}"
+                           FontSize="16"
+                           Foreground="{StaticResource VP.TextTertiaryBrush}"
+                           VerticalAlignment="Center" />
+                <Image Source="pack://application:,,,/Assets/sendheart.png"
+                       Width="32" Height="32"
+                       Margin="6,0,0,0"
+                       VerticalAlignment="Center" />
+            </StackPanel>
             </Grid>
         </Border>
     </Grid>

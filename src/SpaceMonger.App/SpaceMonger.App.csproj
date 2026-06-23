@@ -15,6 +15,7 @@
   <ItemGroup>
     <Resource Include="Assets\QR_Alipay.jpg" />
     <Resource Include="Assets\QR_WeChat.jpg" />
+    <Resource Include="Assets\sendheart.png" />
   </ItemGroup>
 
   <PropertyGroup>
