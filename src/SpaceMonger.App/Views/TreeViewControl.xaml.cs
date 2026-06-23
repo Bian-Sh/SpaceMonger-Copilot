@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using SpaceMonger.App.Localization;
 using SpaceMonger.App.Services;
 using SpaceMonger.App.ViewModels;
@@ -30,19 +31,44 @@ public partial class TreeViewControl : UserControl
 
     private bool _syncing;
 
+    private void TreeHeaderSplitter_DragDelta(object sender, DragDeltaEventArgs e)
+    {
+        SyncHeaderToTreeScroll();
+    }
+
+    private void TreeHeaderSplitter_DragCompleted(object sender, DragCompletedEventArgs e)
+    {
+        SyncHeaderToTreeScroll();
+    }
+
     private void TreeScroll_ScrollChanged(object? sender, ScrollChangedEventArgs e)
+    {
+        if (_syncing) return;
+
+        SyncHeaderToTreeScroll();
+    }
+
+    private void SyncHeaderToTreeScroll()
     {
         if (_syncing) return;
 
         try
         {
-            if (_headerScrollViewer is null || HeaderContentGrid is null || HeaderSpacerColumn is null) return;
+            if (_headerScrollViewer is null || HeaderContentGrid is null || HeaderSpacerColumn is null || HeaderScrollbarGutterColumn is null) return;
 
             var treeSv = FindDescendant<ScrollViewer>(FileTreeView);
             if (treeSv is null) return;
 
             double treeExtent = treeSv.ExtentWidth;
             if (treeExtent <= 0) return;
+
+            double rightViewportInset = treeSv.ComputedVerticalScrollBarVisibility == Visibility.Visible
+                ? Math.Max(0, treeSv.ActualWidth - treeSv.ViewportWidth)
+                : 0;
+            if (Math.Abs(HeaderScrollbarGutterColumn.ActualWidth - rightViewportInset) > 0.1)
+            {
+                HeaderScrollbarGutterColumn.Width = new GridLength(rightViewportInset);
+            }
 
             // Sum the ActualWidth of the 9 content columns (col0–col8)
             double contentWidth = 0;
@@ -63,22 +89,8 @@ public partial class TreeViewControl : UserControl
                 {
                     if (_headerScrollViewer is null) return;
 
-                    // Use proportional mapping to handle minor extent width differences
-                    // caused by Border thickness, SharedSizeScope layout overhead, etc.
-                    double treeScrollable = treeSv.ScrollableWidth;
-                    double hdrScrollable = _headerScrollViewer.ScrollableWidth;
-
-                    // Only guard the header scroll to prevent feedback loops
                     _syncing = true;
-                    if (treeScrollable > 0 && hdrScrollable > 0)
-                    {
-                        double ratio = treeSv.HorizontalOffset / treeScrollable;
-                        _headerScrollViewer.ScrollToHorizontalOffset(ratio * hdrScrollable);
-                    }
-                    else
-                    {
-                        _headerScrollViewer.ScrollToHorizontalOffset(treeSv.HorizontalOffset);
-                    }
+                    _headerScrollViewer.ScrollToHorizontalOffset(treeSv.HorizontalOffset);
                     _syncing = false;
                 }
                 catch { _syncing = false; }

@@ -79,12 +79,12 @@
             <Setter Property="ShowsPreview" Value="True" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Cursor" Value="SizeWE" />
-            <Setter Property="Margin" Value="0,0,-2,0" />
+            <Setter Property="Margin" Value="0" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="GridSplitter">
                         <Grid Background="Transparent">
-                            <Rectangle x:Name="DividerLine" Width="1" Fill="{StaticResource VP.BorderSubtleBrush}" Opacity="0.5" HorizontalAlignment="Center" />
+                            <Rectangle x:Name="DividerLine" Width="1" Fill="{StaticResource VP.BorderSubtleBrush}" Opacity="0.5" HorizontalAlignment="Right" />
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -96,6 +96,8 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+            <EventSetter Event="DragDelta" Handler="TreeHeaderSplitter_DragDelta" />
+            <EventSetter Event="DragCompleted" Handler="TreeHeaderSplitter_DragCompleted" />
         </Style>
     </UserControl.Resources>
 
@@ -105,11 +107,17 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <ScrollViewer x:Name="HeaderScrollViewer" Grid.Row="0" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" CanContentScroll="False">
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition x:Name="HeaderScrollbarGutterColumn" Width="0" />
+            </Grid.ColumnDefinitions>
+
+            <ScrollViewer x:Name="HeaderScrollViewer" Grid.Column="0" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" CanContentScroll="False">
             <Border
                 Background="{StaticResource VP.SurfaceHoverBrush}"
                 BorderBrush="{StaticResource VP.BorderLightBrush}"
-                BorderThickness="0.5,0,0.5,0.5"
+                BorderThickness="0.5,0,0,0.5"
                 CornerRadius="0">
                 <Grid x:Name="HeaderContentGrid">
                     <Grid.ColumnDefinitions>
@@ -162,6 +170,12 @@
                 </Grid>
             </Border>
         </ScrollViewer>
+
+            <Border Grid.Column="1"
+                    Background="{StaticResource VP.SurfaceHoverBrush}"
+                    BorderBrush="{StaticResource VP.BorderLightBrush}"
+                    BorderThickness="0,0,0.5,0.5" />
+        </Grid>
 
         <Border Grid.Row="1"
                 Background="{StaticResource VP.SurfaceBrush}"
