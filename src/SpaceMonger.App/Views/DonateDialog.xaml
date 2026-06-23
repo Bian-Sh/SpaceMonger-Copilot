@@ -55,8 +55,8 @@
         </Style>
     </Window.Resources>
 
-    <Grid Background="{StaticResource VP.OverlayBrush}">
-        <Border Background="{StaticResource VP.BackgroundAltBrush}"
+    <Grid x:Name="RootGrid" Background="{StaticResource VP.OverlayBrush}" MouseLeftButtonDown="RootGrid_MouseLeftButtonDown">
+        <Border x:Name="CardBorder" Background="{StaticResource VP.BackgroundAltBrush}"
                 BorderBrush="{StaticResource VP.BorderLightBrush}"
                 BorderThickness="1"
                 CornerRadius="14"

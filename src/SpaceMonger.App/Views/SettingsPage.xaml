@@ -69,9 +69,9 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid Background="{StaticResource VP.OverlayBrush}">
+    <Grid x:Name="RootGrid" Background="{StaticResource VP.OverlayBrush}" MouseLeftButtonDown="RootGrid_MouseLeftButtonDown">
         <!-- Centered card with solid background -->
-        <Border Background="{StaticResource VP.BackgroundAltBrush}"
+        <Border x:Name="CardBorder" Background="{StaticResource VP.BackgroundAltBrush}"
                 BorderBrush="{StaticResource VP.BorderLightBrush}"
                 BorderThickness="1"
                 MaxWidth="640"

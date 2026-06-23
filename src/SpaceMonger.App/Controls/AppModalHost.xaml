@@ -4,7 +4,7 @@
              Visibility="Collapsed"
              Focusable="True"
              FontFamily="{StaticResource VP.FontFamily}">
-    <Grid Background="#60484853">
+    <Grid x:Name="RootGrid" Background="#60484853" MouseLeftButtonDown="RootGrid_MouseLeftButtonDown">
         <Border x:Name="ModalCard"
                 Style="{StaticResource VP.GlassPanelLarge}"
                 Background="{StaticResource VP.BackgroundAltBrush}"
