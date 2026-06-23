@@ -11,11 +11,19 @@
     <Grid>
         <!-- Treemap area: rounded container with clip -->
         <Border x:Name="TreemapContainer"
+                Background="{StaticResource VP.SurfaceBrush}"
                 CornerRadius="0,0,10,10"
                 ClipToBounds="True"
                 SizeChanged="TreemapContainer_SizeChanged"
-                BorderBrush="{StaticResource VP.BorderSubtleBrush}"
+                BorderBrush="{StaticResource VP.BorderLightBrush}"
                 BorderThickness="0.5,0,0.5,0.5">
+            <Border.Effect>
+                <DropShadowEffect Color="Black"
+                                  BlurRadius="12"
+                                  ShadowDepth="2"
+                                  Opacity="0.3"
+                                  Direction="270" />
+            </Border.Effect>
             <Grid>
                 <controls:TreemapControl x:Name="Treemap"
                                          NodeClicked="Treemap_NodeClicked"

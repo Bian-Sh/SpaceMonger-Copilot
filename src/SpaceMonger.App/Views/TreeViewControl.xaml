@@ -107,9 +107,9 @@
 
         <ScrollViewer x:Name="HeaderScrollViewer" Grid.Row="0" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" CanContentScroll="False">
             <Border
-                Background="{StaticResource VP.BackgroundBrush}"
-                BorderBrush="{StaticResource VP.BorderSubtleBrush}"
-                BorderThickness="0.5,0.5,0.5,0"
+                Background="{StaticResource VP.SurfaceHoverBrush}"
+                BorderBrush="{StaticResource VP.BorderLightBrush}"
+                BorderThickness="0.5,0,0.5,0.5"
                 CornerRadius="0">
                 <Grid x:Name="HeaderContentGrid">
                     <Grid.ColumnDefinitions>
@@ -164,10 +164,17 @@
         </ScrollViewer>
 
         <Border Grid.Row="1"
-                Background="{StaticResource VP.BackgroundBrush}"
-                BorderBrush="{StaticResource VP.BorderSubtleBrush}"
+                Background="{StaticResource VP.SurfaceBrush}"
+                BorderBrush="{StaticResource VP.BorderLightBrush}"
                 BorderThickness="0.5,0,0.5,0.5"
                 CornerRadius="0,0,10,10">
+            <Border.Effect>
+                <DropShadowEffect Color="Black"
+                                  BlurRadius="12"
+                                  ShadowDepth="2"
+                                  Opacity="0.3"
+                                  Direction="270" />
+            </Border.Effect>
             <TreeView x:Name="FileTreeView"
                       ItemsSource="{Binding RootItems}"
                       Background="Transparent"

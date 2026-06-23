@@ -623,7 +623,7 @@
     <value>当前版本：{0}</value>
   </data>
   <data name="UpToDateStatus" xml:space="preserve">
-    <value>✅ 当前已是最新版本</value>
+    <value>当前已是最新版本</value>
   </data>
   <data name="UpdateAvailableTitle" xml:space="preserve">
     <value>发现新版本 {0}</value>
