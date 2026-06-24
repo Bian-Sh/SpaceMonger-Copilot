@@ -325,67 +325,62 @@
                                    Foreground="{DynamicResource VP.TextSecondaryBrush}"
                                    Margin="0,16,0,10" />
 
-                        <!-- Theme Presets -->
-                        <TextBlock Text="{loc:Loc ThemePresetsLabel}"
-                                   FontSize="12"
-                                   Foreground="{DynamicResource VP.TextTertiaryBrush}"
-                                   Margin="0,0,0,6" />
-                        <ItemsControl ItemsSource="{x:Static vm:SettingsViewModel.AvailableThemePresets}"
-                                      Margin="0,0,0,8">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <WrapPanel />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate DataType="{x:Type theme:ThemeProfile}">
-                                    <Border Style="{StaticResource ThemePresetCardStyle}"
-                                            MouseLeftButtonDown="ThemePreset_Click"
-                                            Tag="{Binding}">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding Name}"
-                                                       FontSize="13" FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource VP.TextPrimaryBrush}" />
-                                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                                <Rectangle Width="16" Height="16" RadiusX="4" RadiusY="4"
-                                                           Margin="0,0,4,0">
-                                                    <Rectangle.Fill>
-                                                        <SolidColorBrush Color="{Binding AccentColor, Converter={StaticResource HexColorConverter}}" />
-                                                    </Rectangle.Fill>
-                                                </Rectangle>
-                                                <TextBlock Text="{Binding AccentColor}"
-                                                           FontSize="10"
-                                                           Foreground="{DynamicResource VP.TextTertiaryBrush}"
-                                                           VerticalAlignment="Center" />
-                                            </StackPanel>
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-
-                        <!-- Custom Theme Controls -->
                         <Border x:Name="ThemeSection" Background="{DynamicResource VP.SettingsCardBrush}"
                                 BorderBrush="{DynamicResource VP.BorderSubtleBrush}"
                                 BorderThickness="1" CornerRadius="10">
                             <StackPanel>
-                                <!-- Accent Color -->
+                                <!-- Theme Color Picker + Presets inline -->
                                 <Grid Margin="14,12">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="170" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{loc:Loc ThemeAccentColorLabel}"
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0"
+                                               Text="{loc:Loc ThemeAccentColorLabel}"
                                                Style="{StaticResource SettingsLabelStyle}"
-                                               ToolTip="{loc:Loc ThemeAccentColorHint}" />
-                                    <StackPanel Grid.Column="1">
-                                        <controls:ColorPickerControl x:Name="AccentColorPicker"
-                                            SelectedColor="{Binding AccentColor, Mode=TwoWay}" />
-                                        <Button Content="{loc:Loc ThemeApplyButton}"
-                                                Style="{DynamicResource VP.AccentButton}"
-                                                Margin="0,8,0,0"
-                                                Command="{Binding ApplyCustomThemeCommand}" />
-                                    </StackPanel>
+                                               ToolTip="{loc:Loc ThemeAccentColorHint}"
+                                               Margin="0,0,0,8" />
+
+                                    <!-- Presets row -->
+                                    <ItemsControl Grid.Row="0" Grid.Column="1"
+                                                  ItemsSource="{x:Static vm:SettingsViewModel.AvailableThemePresets}"
+                                                  Margin="0,0,0,8">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type theme:ThemeProfile}">
+                                                <Border Style="{StaticResource ThemePresetCardStyle}"
+                                                        MouseLeftButtonDown="ThemePreset_Click"
+                                                        Tag="{Binding}"
+                                                        Width="Auto" Margin="0,0,6,0" Padding="10,6">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Ellipse Width="14" Height="14" Margin="0,0,6,0">
+                                                            <Ellipse.Fill>
+                                                                <SolidColorBrush Color="{Binding BackgroundColor, Converter={StaticResource HexColorConverter}}" />
+                                                            </Ellipse.Fill>
+                                                        </Ellipse>
+                                                        <TextBlock Text="{Binding Name}"
+                                                                   FontSize="12" FontWeight="Medium"
+                                                                   Foreground="{DynamicResource VP.TextPrimaryBrush}"
+                                                                   VerticalAlignment="Center" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <!-- Color Picker -->
+                                    <controls:ColorPickerControl x:Name="AccentColorPicker"
+                                        Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                        SelectedColor="{Binding AccentColor, Mode=TwoWay}" />
                                 </Grid>
 
                                 <!-- Glass / Frosted Glass Toggle -->
@@ -401,8 +396,7 @@
                                     <CheckBox Grid.Column="1"
                                               Style="{DynamicResource VP.CheckBox}"
                                               IsChecked="{Binding GlassEnabled}"
-                                              Content="{loc:Loc ThemeGlassOption}"
-                                              Click="AutoSaveOnChanged" />
+                                              Content="{loc:Loc ThemeGlassOption}" />
                                 </Grid>
 
                                 <!-- Glass Backdrop Type -->
@@ -417,8 +411,7 @@
                                                ToolTip="{loc:Loc ThemeBackdropTypeHint}" />
                                     <ComboBox Grid.Column="1"
                                               Style="{DynamicResource VP.ComboBox}"
-                                              SelectedIndex="{Binding GlassBackdropType, UpdateSourceTrigger=PropertyChanged}"
-                                              SelectionChanged="AutoSaveOnChanged">
+                                              SelectedIndex="{Binding GlassBackdropType, UpdateSourceTrigger=PropertyChanged}">
                                         <ComboBox.Items>
                                             <TextBlock Text="{loc:Loc ThemeBackdropNone}" />
                                             <TextBlock Text="Mica" />
@@ -491,8 +484,7 @@
                                     <CheckBox Grid.Column="1"
                                               Style="{DynamicResource VP.CheckBox}"
                                               IsChecked="{Binding AutoTextContrast}"
-                                              Content="{loc:Loc ThemeAutoContrastOption}"
-                                              Click="AutoSaveOnChanged" />
+                                              Content="{loc:Loc ThemeAutoContrastOption}" />
                                 </Grid>
                             </StackPanel>
                         </Border>

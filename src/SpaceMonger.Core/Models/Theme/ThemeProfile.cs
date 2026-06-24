@@ -75,7 +75,7 @@ public class ThemeProfile
 
     public static ThemeProfile VisionProDark { get; } = new()
     {
-        Name = "Vision Pro Dark",
+        Name = "深色",
         IsBuiltIn = true,
         AccentColor = "#FF2562A7",
         AccentHoverColor = "#FF2E73C2",
@@ -93,7 +93,7 @@ public class ThemeProfile
 
     public static ThemeProfile VisionProLight { get; } = new()
     {
-        Name = "Vision Pro Light",
+        Name = "浅色",
         IsBuiltIn = true,
         AccentColor = "#FF0071E3",
         AccentHoverColor = "#FF2890F5",
@@ -119,7 +119,7 @@ public class ThemeProfile
 
     public static ThemeProfile FrostedGlass { get; } = new()
     {
-        Name = "Frosted Glass",
+        Name = "毛玻璃",
         IsBuiltIn = true,
         AccentColor = "#FF4A90D9",
         AccentHoverColor = "#FF5DA3E8",

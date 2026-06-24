@@ -78,6 +78,8 @@ public partial class SettingsViewModel : ObservableObject
     partial void OnAccentColorChanged(Color value)
     {
         AccentColorHex = $"#{value.A:X2}{value.R:X2}{value.G:X2}{value.B:X2}";
+        if (!_isLoadingSettings)
+            SyncAndSaveTheme();
     }
 
     partial void OnAccentColorHexChanged(string value)
@@ -99,17 +101,42 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private bool _glassEnabled;
 
+    partial void OnGlassEnabledChanged(bool value)
+    {
+        if (!_isLoadingSettings) SyncAndSaveTheme();
+    }
+
     [ObservableProperty]
     private int _glassBackdropType;
+
+    partial void OnGlassBackdropTypeChanged(int value)
+    {
+        if (!_isLoadingSettings) SyncAndSaveTheme();
+    }
 
     [ObservableProperty]
     private double _blurRadius;
 
+    partial void OnBlurRadiusChanged(double value)
+    {
+        if (!_isLoadingSettings) SyncAndSaveTheme();
+    }
+
     [ObservableProperty]
     private double _glassOpacity = 0.85;
 
+    partial void OnGlassOpacityChanged(double value)
+    {
+        if (!_isLoadingSettings) SyncAndSaveTheme();
+    }
+
     [ObservableProperty]
     private bool _autoTextContrast;
+
+    partial void OnAutoTextContrastChanged(bool value)
+    {
+        if (!_isLoadingSettings) SyncAndSaveTheme();
+    }
 
     public static IReadOnlyList<ThemeProfile> AvailableThemePresets { get; } = ThemeProfile.BuiltInPresets;
 
@@ -318,6 +345,12 @@ public partial class SettingsViewModel : ObservableObject
             OverlayAlpha = current.OverlayAlpha,
         };
         _themeManager.ApplyTheme(profile);
+    }
+
+    private void SyncAndSaveTheme()
+    {
+        SyncThemeToManager();
+        _themeManager.Persist();
     }
 
     public void SaveWithToast(string? message = null)
