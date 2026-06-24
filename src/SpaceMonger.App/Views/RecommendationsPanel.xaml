@@ -26,9 +26,16 @@
         </Grid.RowDefinitions>
 
         <!-- Row 0: Filter Bar (hidden when no recommendations) -->
-        <DockPanel x:Name="FilterBar" Grid.Row="0" Margin="8,2,8,2" LastChildFill="True">
-            <DockPanel.Style>
-                <Style TargetType="DockPanel">
+        <Border x:Name="FilterBar"
+                Grid.Row="0"
+                Margin="0,2,0,4"
+                Padding="20,2,10,2"
+                Background="{StaticResource VP.SurfaceBrush}"
+                BorderBrush="{StaticResource VP.BorderSubtleBrush}"
+                BorderThickness="0.5"
+                >
+            <Border.Style>
+                <Style TargetType="Border">
                     <Setter Property="Visibility" Value="Visible" />
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding HasRecommendations}" Value="False">
@@ -36,57 +43,75 @@
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
-            </DockPanel.Style>
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="{loc:Loc FilterByLabel}"
-                           Foreground="{StaticResource VP.TextSecondaryBrush}"
-                           FontSize="12"
-                           VerticalAlignment="Center"
-                           Margin="0,0,6,0" />
+            </Border.Style>
 
-                <ComboBox Width="140"
-                          Margin="0,0,4,0"
-                          Style="{StaticResource VP.ComboBox}"
-                          SelectedItem="{Binding SelectedCategoryFilter, Mode=TwoWay}">
-                    <ComboBox.Items>
-                        <ComboBoxItem Content="{loc:Loc AllCategoriesOption}" Tag="" IsSelected="True" />
-                        <enums:RecommendationCategory>TemporaryFiles</enums:RecommendationCategory>
-                        <enums:RecommendationCategory>BuildCache</enums:RecommendationCategory>
-                        <enums:RecommendationCategory>PackageManagerCache</enums:RecommendationCategory>
-                        <enums:RecommendationCategory>OldDownloads</enums:RecommendationCategory>
-                        <enums:RecommendationCategory>LogFiles</enums:RecommendationCategory>
-                        <enums:RecommendationCategory>DuplicateFiles</enums:RecommendationCategory>
-                        <enums:RecommendationCategory>BrowserCache</enums:RecommendationCategory>
-                        <enums:RecommendationCategory>SystemCache</enums:RecommendationCategory>
-                        <enums:RecommendationCategory>Other</enums:RecommendationCategory>
-                    </ComboBox.Items>
-                </ComboBox>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
 
-                <ComboBox Width="130"
-                          Margin="0,0,6,0"
-                          Style="{StaticResource VP.ComboBox}"
-                          SelectedItem="{Binding SelectedSafetyFilter, Mode=TwoWay}">
-                    <ComboBox.Items>
-                        <ComboBoxItem Content="{loc:Loc AllRatingsOption}" Tag="" IsSelected="True" />
-                        <enums:SafetyRating>Safe</enums:SafetyRating>
-                        <enums:SafetyRating>ReviewFirst</enums:SafetyRating>
-                        <enums:SafetyRating>Caution</enums:SafetyRating>
-                    </ComboBox.Items>
-                </ComboBox>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <CheckBox Style="{StaticResource VP.CheckBox}"
+                              IsThreeState="True"
+                              IsChecked="{Binding AllRecommendationsSelectionState, Mode=OneWay}"
+                              Command="{Binding ToggleAllRecommendationsCommand}"
+                              VerticalAlignment="Center" />
 
-                <Button Content="{loc:Loc SelectAllSafeButton}"
-                        Style="{StaticResource VP.Button}"
-                        Padding="8,4"
-                        Margin="0,0,4,0"
-                        Command="{Binding SelectAllSafeCommand}" />
+                    <Button Content="{loc:Loc SelectAllSafeButton}"
+                            Style="{StaticResource VP.Button}"
+                            Padding="8,4"
+                            Margin="0,0,4,0"
+                            Command="{Binding SelectAllSafeCommand}" />
 
-                <Button Content="{loc:Loc DeselectAllCautionButton}"
-                        Style="{StaticResource VP.Button}"
-                        Padding="8,4"
-                        Margin="0,0,4,0"
-                        Command="{Binding DeselectAllCautionCommand}" />
-            </StackPanel>
-        </DockPanel>
+                    <Button Content="{loc:Loc DeselectAllCautionButton}"
+                            Style="{StaticResource VP.Button}"
+                            Padding="8,4"
+                            Margin="0,0,4,0"
+                            Command="{Binding DeselectAllCautionCommand}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center">
+                    <TextBlock Text="{loc:Loc FilterByLabel}"
+                               Foreground="{StaticResource VP.TextSecondaryBrush}"
+                               FontSize="12"
+                               VerticalAlignment="Center"
+                               Margin="0,0,6,0" />
+
+                    <ComboBox Width="140"
+                              Margin="0,0,4,0"
+                              Style="{StaticResource VP.ComboBox}"
+                              SelectedItem="{Binding SelectedCategoryFilter, Mode=TwoWay}">
+                        <ComboBox.Items>
+                            <ComboBoxItem Content="{loc:Loc AllCategoriesOption}" Tag="" IsSelected="True" />
+                            <enums:RecommendationCategory>TemporaryFiles</enums:RecommendationCategory>
+                            <enums:RecommendationCategory>BuildCache</enums:RecommendationCategory>
+                            <enums:RecommendationCategory>PackageManagerCache</enums:RecommendationCategory>
+                            <enums:RecommendationCategory>OldDownloads</enums:RecommendationCategory>
+                            <enums:RecommendationCategory>LogFiles</enums:RecommendationCategory>
+                            <enums:RecommendationCategory>DuplicateFiles</enums:RecommendationCategory>
+                            <enums:RecommendationCategory>BrowserCache</enums:RecommendationCategory>
+                            <enums:RecommendationCategory>SystemCache</enums:RecommendationCategory>
+                            <enums:RecommendationCategory>Other</enums:RecommendationCategory>
+                        </ComboBox.Items>
+                    </ComboBox>
+
+                    <ComboBox Width="130"
+                              Style="{StaticResource VP.ComboBox}"
+                              SelectedItem="{Binding SelectedSafetyFilter, Mode=TwoWay}">
+                        <ComboBox.Items>
+                            <ComboBoxItem Content="{loc:Loc AllRatingsOption}" Tag="" IsSelected="True" />
+                            <enums:SafetyRating>Safe</enums:SafetyRating>
+                            <enums:SafetyRating>ReviewFirst</enums:SafetyRating>
+                            <enums:SafetyRating>Caution</enums:SafetyRating>
+                        </ComboBox.Items>
+                    </ComboBox>
+                </StackPanel>
+            </Grid>
+        </Border>
 
         <!-- Analyzing overlay -->
         <Border Grid.Row="1"
@@ -204,7 +229,9 @@
                   MouseDoubleClick="RecommendationsList_MouseDoubleClick"
                   ScrollViewer.HorizontalScrollBarVisibility="Disabled">
             <ListView.ItemContainerStyle>
-                <Style TargetType="ListViewItem" BasedOn="{StaticResource VP.ListViewItem}" />
+                <Style TargetType="ListViewItem" BasedOn="{StaticResource VP.ListViewItem}">
+                    <EventSetter Event="RequestBringIntoView" Handler="RecommendationItem_RequestBringIntoView" />
+                </Style>
             </ListView.ItemContainerStyle>
             <ListView.ItemTemplate>
                 <DataTemplate>

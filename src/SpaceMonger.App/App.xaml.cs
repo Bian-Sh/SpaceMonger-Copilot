@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using SpaceMonger.App.Diagnostics;
 using SpaceMonger.App.Localization;
@@ -39,6 +39,9 @@ public partial class App : Application
             client.Timeout = TimeSpan.FromSeconds(120);
         });
 
+        // Theme manager (singleton, initialized early)
+        services.AddSingleton<ThemeManager>();
+
         // US1 services
         services.AddSingleton<FileScanner>();
         services.AddSingleton<IFileScanner, IncrementalFileScanner>();
@@ -77,6 +80,11 @@ public partial class App : Application
 
         Services = services.BuildServiceProvider();
 
+        // Initialize theme manager early
+        var themeManager = Services.GetRequiredService<ThemeManager>();
+        themeManager.Initialize();
+        themeManager.Refresh();
+
         var settingsService = Services.GetRequiredService<ISettingsService>();
         L.SetLanguage(settingsService.LoadSettings().Language);
 
@@ -92,6 +100,9 @@ public partial class App : Application
         {
             DataContext = mainViewModel
         };
+
+        // Register the main window for backdrop effects
+        themeManager.RegisterMainWindow(mainWindow);
 
         mainWindow.TreemapView.SetViewModel(treemapViewModel);
         mainWindow.SetTreemapViewModel(treemapViewModel);
@@ -130,4 +141,3 @@ public partial class App : Application
         });
     }
 }
-

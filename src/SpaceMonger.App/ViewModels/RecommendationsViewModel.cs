@@ -42,6 +42,9 @@ public partial class RecommendationsViewModel : ObservableObject
     private int _totalItemCount;
 
     [ObservableProperty]
+    private bool? _allRecommendationsSelectionState = false;
+
+    [ObservableProperty]
     private bool _isAnalyzing;
 
     [ObservableProperty]
@@ -155,6 +158,19 @@ public partial class RecommendationsViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void ToggleAllRecommendations()
+    {
+        var shouldSelectAll = TotalItemCount == 0 || TotalSelectedCount < TotalItemCount;
+
+        foreach (var rec in Recommendations)
+        {
+            rec.IsAccepted = shouldSelectAll;
+        }
+
+        UpdateTotals();
+    }
+
+    [RelayCommand]
     private void SelectAllInCategory(RecommendationCategory category)
     {
         foreach (var rec in Recommendations.Where(r => r.Category == category))
@@ -215,6 +231,10 @@ public partial class RecommendationsViewModel : ObservableObject
         TotalItemCount = Recommendations.Count;
         TotalRecoverableSpace = FileSizeConverter.FormatSize(
             Recommendations.Where(r => r.IsAccepted).Sum(r => r.Size));
+        AllRecommendationsSelectionState = TotalSelectedCount == 0
+            ? false
+            : TotalSelectedCount == TotalItemCount
+                ? true
+                : null;
     }
 }
-

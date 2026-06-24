@@ -1,4 +1,5 @@
-using SpaceMonger.Core.Enums;
+﻿using SpaceMonger.Core.Enums;
+using SpaceMonger.Core.Models.Theme;
 
 namespace SpaceMonger.Core.Models;
 
@@ -13,4 +14,7 @@ public class AppSettings
     public string? ChatModelName { get; set; }
     public bool EnableThinking { get; set; } = false;
     public string Language { get; set; } = "zh-CN";
+
+    /// <summary>Serialized theme profile (or null = use default).</summary>
+    public ThemeProfile? ThemeProfile { get; set; }
 }
