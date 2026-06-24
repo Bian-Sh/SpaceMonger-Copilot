@@ -118,10 +118,10 @@
     <value>设置</value>
   </data>
   <data name="AnthropicApiKeyHeader" xml:space="preserve">
-    <value>Anthropic API Key</value>
+    <value>AI 设置</value>
   </data>
   <data name="ApiKeyToolTip" xml:space="preserve">
-    <value>输入 Anthropic API key。该密钥会加密保存。</value>
+    <value>Enter your Anthropic API key. The key will be encrypted at rest.</value>
   </data>
   <data name="ValidateButton" xml:space="preserve">
     <value>验证</value>
@@ -139,19 +139,19 @@
     <value>保存</value>
   </data>
   <data name="ApiKeyEmptyMessage" xml:space="preserve">
-    <value>API key 不能为空。</value>
+    <value>请先输入 API Key。</value>
   </data>
   <data name="ApiKeyInvalidMessage" xml:space="preserve">
-    <value>API key 无效。</value>
+    <value>API Key 无效。</value>
   </data>
   <data name="ValidationFailedMessage" xml:space="preserve">
     <value>验证失败：{0}</value>
   </data>
   <data name="SettingsSavedToast" xml:space="preserve">
-    <value>设置已保存</value>
+    <value>Settings saved</value>
   </data>
   <data name="UpButton" xml:space="preserve">
-    <value>← 上一级</value>
+    <value>Up</value>
   </data>
   <data name="NavigateUpToolTip" xml:space="preserve">
     <value>向上导航一级</value>
@@ -169,25 +169,25 @@
     <value>属性 - {0}</value>
   </data>
   <data name="PropertiesPath" xml:space="preserve">
-    <value>路径：</value>
+    <value>Path:</value>
   </data>
   <data name="PropertiesType" xml:space="preserve">
-    <value>类型：</value>
+    <value>Type:</value>
   </data>
   <data name="PropertiesSize" xml:space="preserve">
-    <value>大小：</value>
+    <value>Size:</value>
   </data>
   <data name="PropertiesFiles" xml:space="preserve">
-    <value>文件：</value>
+    <value>Files:</value>
   </data>
   <data name="PropertiesFolders" xml:space="preserve">
-    <value>文件夹：</value>
+    <value>Folders:</value>
   </data>
   <data name="PropertiesCreated" xml:space="preserve">
-    <value>创建时间：</value>
+    <value>Created:</value>
   </data>
   <data name="PropertiesModified" xml:space="preserve">
-    <value>修改时间：</value>
+    <value>Modified:</value>
   </data>
   <data name="PropertiesUnknown" xml:space="preserve">
     <value>未知</value>
@@ -205,7 +205,7 @@
     <value>无法显示属性：{0}</value>
   </data>
   <data name="ChatConfigureApiKey" xml:space="preserve">
-    <value>请在设置中配置 API key 后使用聊天</value>
+    <value>Configure your API key in Settings to use the chat</value>
   </data>
   <data name="OpenSettingsButton" xml:space="preserve">
     <value>打开设置</value>
@@ -223,7 +223,7 @@
     <value>清理推荐</value>
   </data>
   <data name="RecommendationsEmpty" xml:space="preserve">
-    <value>暂无清理推荐。运行分析以获取建议。</value>
+    <value>No cleanup recommendations yet. Run analysis to get suggestions.</value>
   </data>
   <data name="SelectAllButton" xml:space="preserve">
     <value>全选</value>
@@ -256,7 +256,7 @@
     <value>未选择项目</value>
   </data>
   <data name="NoItemsSelectedForCleanupToolTip" xml:space="preserve">
-    <value>未选中待清理项</value>
+    <value>未选择要清理的项目</value>
   </data>
   <data name="CleanupFailedMessage" xml:space="preserve">
     <value>清理失败：{0}</value>
@@ -265,13 +265,13 @@
     <value>清理错误</value>
   </data>
   <data name="OpenInExplorerMenu" xml:space="preserve">
-    <value>在资源管理器中打开</value>
+    <value>Open in Explorer</value>
   </data>
   <data name="CopyPathMenu" xml:space="preserve">
-    <value>复制路径</value>
+    <value>Copy Path</value>
   </data>
   <data name="PropertiesMenu" xml:space="preserve">
-    <value>属性</value>
+    <value>Properties</value>
   </data>
   <data name="OpenExplorerFailedMessage" xml:space="preserve">
     <value>无法打开资源管理器：
@@ -282,13 +282,13 @@
 {0}</value>
   </data>
   <data name="FolderType" xml:space="preserve">
-    <value>文件夹</value>
+    <value>Folder</value>
   </data>
   <data name="FileType" xml:space="preserve">
-    <value>文件</value>
+    <value>File</value>
   </data>
   <data name="FileTypeFormat" xml:space="preserve">
-    <value>{0} 文件</value>
+    <value>{0} File</value>
   </data>
   <data name="CloseRecommendationsToolTip" xml:space="preserve">
     <value>关闭推荐面板</value>
@@ -333,13 +333,13 @@
     <value>删除模式</value>
   </data>
   <data name="MoveToRecycleBinOption" xml:space="preserve">
-    <value>移到回收站</value>
+    <value>Move to Recycle Bin</value>
   </data>
   <data name="PermanentlyDeleteOption" xml:space="preserve">
-    <value>永久删除</value>
+    <value>Permanently Delete</value>
   </data>
   <data name="PermanentDeleteWarning" xml:space="preserve">
-    <value>警告：文件将无法恢复！</value>
+    <value>Warning: Files cannot be recovered!</value>
   </data>
   <data name="ConfirmButton" xml:space="preserve">
     <value>确认</value>
@@ -357,21 +357,21 @@
     <value>原因</value>
   </data>
   <data name="TooltipSize" xml:space="preserve">
-    <value>大小：{0}</value>
+    <value>Size: {0}</value>
   </data>
   <data name="TooltipType" xml:space="preserve">
-    <value>类型：{0}</value>
+    <value>Type: {0}</value>
   </data>
   <data name="TooltipModified" xml:space="preserve">
-    <value>修改时间：{0}</value>
+    <value>Modified: {0}</value>
   </data>
   <data name="AccessDenied" xml:space="preserve">
-    <value>访问被拒绝</value>
+    <value>Access Denied</value>
   </data>
   <data name="ChatErrorAppend" xml:space="preserve">
     <value>
 
-[错误：{0}]</value>
+[Error: {0}]</value>
   </data>
   <data name="ScanningStatus" xml:space="preserve">
     <value>正在扫描...</value>
@@ -383,10 +383,10 @@
     <value>扫描已取消。</value>
   </data>
   <data name="ItemsToRemove" xml:space="preserve">
-    <value>要移除的项目：{0}</value>
+    <value>Items to remove: {0}</value>
   </data>
   <data name="SpaceToFree" xml:space="preserve">
-    <value>可释放空间：{0}</value>
+    <value>Space to free: {0}</value>
   </data>
   <data name="CleanupSummarySuccess" xml:space="preserve">
     <value>已移除 {0} 项（释放 {1}）</value>
@@ -401,16 +401,16 @@
     <value>总释放空间：{0}</value>
   </data>
   <data name="PropertiesName" xml:space="preserve">
-    <value>名称：</value>
+    <value>Name:</value>
   </data>
   <data name="AnthropicBaseUrlHeader" xml:space="preserve">
-    <value>Anthropic Base URL</value>
+    <value>Anthropic 接口地址</value>
   </data>
   <data name="AnthropicBaseUrlToolTip" xml:space="preserve">
     <value>可选。留空则使用内置 Anthropic endpoint。</value>
   </data>
   <data name="AnthropicBaseUrlHint" xml:space="preserve">
-    <value>留空使用内置 endpoint；填写绝对 http(s) URL 可覆盖内置地址。</value>
+    <value>Leave empty to use the built-in endpoint. Enter an absolute http(s) URL to override it.</value>
   </data>
   <data name="OpenConsoleToolTip" xml:space="preserve">
     <value>打开控制台</value>
@@ -461,10 +461,10 @@
     <value>返回应用</value>
   </data>
   <data name="SettingsSearchPlaceholder" xml:space="preserve">
-    <value>搜索设置...</value>
+    <value>Search settings...</value>
   </data>
   <data name="SettingsPersonalGroup" xml:space="preserve">
-    <value>个人</value>
+    <value>Personal</value>
   </data>
   <data name="SettingsGeneralNav" xml:space="preserve">
     <value>常规</value>
@@ -473,28 +473,28 @@
     <value>AI</value>
   </data>
   <data name="SettingsModelInterfaceNav" xml:space="preserve">
-    <value>模型与接口</value>
+    <value>Models &amp; API</value>
   </data>
   <data name="SettingsCleanupPolicyNav" xml:space="preserve">
     <value>清理策略</value>
   </data>
   <data name="SettingsAiApiSection" xml:space="preserve">
-    <value>AI 接口</value>
+    <value>AI API</value>
   </data>
   <data name="SettingsApiKeyEncryptedHint" xml:space="preserve">
-    <value>密钥会加密保存在本机</value>
+    <value>The key is encrypted and stored on this device</value>
   </data>
   <data name="SettingsBaseUrlExample" xml:space="preserve">
-    <value>例如 https://api.example.com/anthropic</value>
+    <value>Example: https://api.example.com/anthropic</value>
   </data>
   <data name="SettingsModelsSection" xml:space="preserve">
-    <value>模型</value>
+    <value>Models</value>
   </data>
   <data name="SettingsAnalysisModelLabel" xml:space="preserve">
     <value>分析模型</value>
   </data>
   <data name="SettingsAnalysisModelHint" xml:space="preserve">
-    <value>推荐清理分析使用的模型</value>
+    <value>清理推荐分析使用的模型</value>
   </data>
   <data name="SettingsChatModelLabel" xml:space="preserve">
     <value>聊天模型</value>
@@ -506,7 +506,7 @@
     <value>启用思考</value>
   </data>
   <data name="SettingsThinkingHint" xml:space="preserve">
-    <value>关闭时请求模型不输出思考过程，减少 JSON 截断</value>
+    <value>关闭后请求模型跳过思考输出，降低 JSON 截断概率</value>
   </data>
   <data name="SettingsAllowThinkingOption" xml:space="preserve">
     <value>允许模型思考</value>
@@ -515,22 +515,22 @@
     <value>语言</value>
   </data>
   <data name="SettingsLanguageHint" xml:space="preserve">
-    <value>Prompt 会要求说明文字与 App 当前语言一致</value>
+    <value>应用与 AI 提示使用的语言</value>
   </data>
   <data name="SettingsLanguageSimplifiedChinese" xml:space="preserve">
-    <value>简体中文</value>
+    <value>Simplified Chinese</value>
   </data>
   <data name="SettingsLanguageEnglish" xml:space="preserve">
     <value>English</value>
   </data>
   <data name="SettingsLanguageAuto" xml:space="preserve">
-    <value>自动检测</value>
+    <value>Auto detect</value>
   </data>
   <data name="SettingsDefaultCleanupModeLabel" xml:space="preserve">
-    <value>默认清理模式</value>
+    <value>默认清理方式</value>
   </data>
   <data name="SettingsDefaultCleanupModeHint" xml:space="preserve">
-    <value>选择清理时如何移除文件</value>
+    <value>选择清理文件时使用的移除方式</value>
   </data>
   <data name="SettingsValidationValidating" xml:space="preserve">
     <value>验证中...</value>
@@ -539,7 +539,7 @@
     <value>✓ 有效</value>
   </data>
   <data name="SettingsValidationInvalid" xml:space="preserve">
-    <value>✗ 无效</value>
+    <value>✕ 无效</value>
   </data>
   <data name="CloseAppTitle" xml:space="preserve">
     <value>关闭 SpaceMonger？</value>
@@ -674,13 +674,13 @@
     <value>主题</value>
   </data>
   <data name="ThemePresetsLabel" xml:space="preserve">
-    <value>预设主题</value>
+    <value>预设</value>
   </data>
   <data name="ThemeAccentColorLabel" xml:space="preserve">
     <value>强调色</value>
   </data>
   <data name="ThemeAccentColorHint" xml:space="preserve">
-    <value>输入十六进制颜色值（如 #FF2562A7）</value>
+    <value>输入十六进制颜色值（例如 #FF2562A7）</value>
   </data>
   <data name="ThemeApplyButton" xml:space="preserve">
     <value>应用</value>
@@ -689,16 +689,16 @@
     <value>主题已应用</value>
   </data>
   <data name="ThemeGlassLabel" xml:space="preserve">
-    <value>磨砂玻璃</value>
+    <value>毛玻璃</value>
   </data>
   <data name="ThemeGlassHint" xml:space="preserve">
-    <value>启用窗口磨砂/亚克力半透明效果</value>
+    <value>启用窗口毛玻璃 / 亚克力效果</value>
   </data>
   <data name="ThemeGlassOption" xml:space="preserve">
-    <value>启用磨砂玻璃效果</value>
+    <value>启用毛玻璃效果</value>
   </data>
   <data name="ThemeBackdropTypeLabel" xml:space="preserve">
-    <value>玻璃类型</value>
+    <value>背景材质</value>
   </data>
   <data name="ThemeBackdropTypeHint" xml:space="preserve">
     <value>选择背景材质类型：无、Mica 或 Acrylic</value>
@@ -710,21 +710,30 @@
     <value>高斯模糊</value>
   </data>
   <data name="ThemeBlurHint" xml:space="preserve">
-    <value>玻璃面板模糊半径（0=关闭，最大60）</value>
+    <value>毛玻璃面板模糊半径（0 = 关闭，最大 = 60）</value>
   </data>
   <data name="ThemeOpacityLabel" xml:space="preserve">
-    <value>透明度</value>
+    <value>不透明度</value>
   </data>
   <data name="ThemeOpacityHint" xml:space="preserve">
-    <value>玻璃面板不透明度（0.1 几乎透明，1.0 完全不透明）</value>
+    <value>毛玻璃面板不透明度（0.1 几乎透明，1.0 完全不透明）</value>
   </data>
   <data name="ThemeAutoContrastLabel" xml:space="preserve">
-    <value>自动撞色</value>
+    <value>自动对比</value>
   </data>
   <data name="ThemeAutoContrastHint" xml:space="preserve">
-    <value>根据背景亮度自动计算文字颜色以保证可读性</value>
+    <value>根据背景亮度自动计算文字颜色，保证可读性</value>
   </data>
   <data name="ThemeAutoContrastOption" xml:space="preserve">
     <value>自动调整文字对比度</value>
+  </data>
+  <data name="SettingsBaseUrlLabel" xml:space="preserve">
+    <value>接口地址</value>
+  </data>
+  <data name="SettingsBaseUrlHint" xml:space="preserve">
+    <value>可选。留空时使用内置接口；填写绝对 http(s) URL 可覆盖。</value>
+  </data>
+  <data name="ValidateButtonLabel" xml:space="preserve">
+    <value>验证</value>
   </data>
 </root>

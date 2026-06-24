@@ -118,7 +118,7 @@
     <value>Settings</value>
   </data>
   <data name="AnthropicApiKeyHeader" xml:space="preserve">
-    <value>Anthropic API Key</value>
+    <value>AI Settings</value>
   </data>
   <data name="ApiKeyToolTip" xml:space="preserve">
     <value>Enter your Anthropic API key. The key will be encrypted at rest.</value>
@@ -309,7 +309,7 @@
     <value>Select All Safe</value>
   </data>
   <data name="DeselectAllCautionButton" xml:space="preserve">
-    <value>Deselect All Caution</value>
+    <value>Exclude Risk Items</value>
   </data>
   <data name="AnalyzingFilesText" xml:space="preserve">
     <value>Analyzing files...</value>
@@ -327,7 +327,7 @@
     <value>Confirm Cleanup</value>
   </data>
   <data name="ConfirmCleanupPrompt" xml:space="preserve">
-    <value>鈿?Are you sure you want to proceed?</value>
+    <value>⚠ Are you sure you want to proceed?</value>
   </data>
   <data name="ConfirmCleanupMessage" xml:space="preserve">
     <value>Clean up {0} selected item(s), freeing about {1}. Deletion mode: {2}. Continue?</value>
@@ -542,7 +542,7 @@
     <value>✓ Valid</value>
   </data>
   <data name="SettingsValidationInvalid" xml:space="preserve">
-    <value>✗ Invalid</value>
+    <value>✕ Invalid</value>
   </data>
   <data name="CloseAppTitle" xml:space="preserve">
     <value>Close SpaceMonger?</value>
@@ -729,5 +729,14 @@
   </data>
   <data name="ThemeAutoContrastOption" xml:space="preserve">
     <value>Auto-adjust text for contrast</value>
+  </data>
+  <data name="SettingsBaseUrlLabel" xml:space="preserve">
+    <value>Base URL</value>
+  </data>
+  <data name="SettingsBaseUrlHint" xml:space="preserve">
+    <value>Optional. Leave empty to use the built-in endpoint. Enter an absolute http(s) URL to override it.</value>
+  </data>
+  <data name="ValidateButtonLabel" xml:space="preserve">
+    <value>Validate</value>
   </data>
 </root>
