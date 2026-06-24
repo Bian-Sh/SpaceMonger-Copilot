@@ -378,9 +378,9 @@
                                     </ItemsControl>
 
                                     <!-- Color Picker -->
-                                    <controls:ColorPickerControl x:Name="AccentColorPicker"
+                                    <controls:ColorPickerControl x:Name="ThemeColorPicker"
                                         Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                                        SelectedColor="{Binding AccentColor, Mode=TwoWay}" />
+                                        SelectedColor="{Binding ThemeBackgroundColor, Mode=TwoWay}" />
                                 </Grid>
 
                                 <!-- Glass / Frosted Glass Toggle -->

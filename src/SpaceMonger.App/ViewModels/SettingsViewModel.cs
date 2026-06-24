@@ -70,32 +70,12 @@ public partial class SettingsViewModel : ObservableObject
     private ThemeProfile _selectedThemeProfile = ThemeProfile.VisionProDark;
 
     [ObservableProperty]
-    private string _accentColorHex = "#FF2562A7";
+    private Color _themeBackgroundColor = Color.FromArgb(255, 52, 52, 64);
 
-    [ObservableProperty]
-    private Color _accentColor = Color.FromArgb(255, 37, 98, 167);
-
-    partial void OnAccentColorChanged(Color value)
+    partial void OnThemeBackgroundColorChanged(Color value)
     {
-        AccentColorHex = $"#{value.A:X2}{value.R:X2}{value.G:X2}{value.B:X2}";
         if (!_isLoadingSettings)
             SyncAndSaveTheme();
-    }
-
-    partial void OnAccentColorHexChanged(string value)
-    {
-        try
-        {
-            if (!string.IsNullOrWhiteSpace(value))
-            {
-                var hex = value.Trim();
-                if (!hex.StartsWith("#")) hex = "#" + hex;
-                var c = (Color)ColorConverter.ConvertFromString(hex);
-                if (c != AccentColor)
-                    AccentColor = c;
-            }
-        }
-        catch { }
     }
 
     [ObservableProperty]
@@ -204,30 +184,11 @@ public partial class SettingsViewModel : ObservableObject
         LoadThemeFromCurrent();
     }
 
-    [RelayCommand]
-    private void ApplyCustomTheme()
-    {
-        var profile = new ThemeProfile
-        {
-            Name = "Custom",
-            IsBuiltIn = false,
-            AccentColor = AccentColorHex,
-            GlassEnabled = GlassEnabled,
-            GlassBackdropType = GlassBackdropType,
-            BlurRadius = BlurRadius,
-            GlassOpacity = GlassOpacity,
-            AutoTextContrast = AutoTextContrast,
-        };
-        _themeManager.ApplyTheme(profile);
-        LoadThemeFromCurrent();
-        SaveWithToast(L.Text("ThemeAppliedToast"));
-    }
-
     private void LoadThemeFromCurrent()
     {
         var p = _themeManager.CurrentProfile;
         SelectedThemeProfile = p;
-        AccentColorHex = p.AccentColor;
+        ThemeBackgroundColor = ThemeManager.ParseColor(p.BackgroundColor);
         GlassEnabled = p.GlassEnabled;
         GlassBackdropType = p.GlassBackdropType;
         BlurRadius = p.BlurRadius;
@@ -308,43 +269,123 @@ public partial class SettingsViewModel : ObservableObject
 
     private void SyncThemeToManager()
     {
-        var current = _themeManager.CurrentProfile;
-        var accentColor = ThemeManager.ParseColor(AccentColorHex);
-        var hoverColor = Color.FromArgb(accentColor.A,
-            (byte)Math.Min(255, accentColor.R + 20),
-            (byte)Math.Min(255, accentColor.G + 20),
-            (byte)Math.Min(255, accentColor.B + 20));
+        var bgHex = ThemeManager.ToHex(ThemeBackgroundColor);
+        var bgAlt = ComputeBgAlt(ThemeBackgroundColor);
+        var textColors = ComputeTextColors(ThemeBackgroundColor);
+        var accent = ComputeHarmoniousAccent(ThemeBackgroundColor);
+        var accentHover = Lighten(accent, 20);
 
         var profile = new ThemeProfile
         {
             Name = "Custom",
             IsBuiltIn = false,
-            AccentColor = AccentColorHex,
-            AccentHoverColor = ThemeManager.ToHex(hoverColor),
-            BackgroundColor = current.BackgroundColor,
-            BackgroundAltColor = current.BackgroundAltColor,
-            TextPrimaryColor = current.TextPrimaryColor,
-            TextSecondaryColor = current.TextSecondaryColor,
-            TextTertiaryColor = current.TextTertiaryColor,
-            DangerColor = current.DangerColor,
-            DangerPressedColor = current.DangerPressedColor,
-            SuccessColor = current.SuccessColor,
-            WarningColor = current.WarningColor,
+            AccentColor = ThemeManager.ToHex(accent),
+            AccentHoverColor = ThemeManager.ToHex(accentHover),
+            BackgroundColor = bgHex,
+            BackgroundAltColor = ThemeManager.ToHex(bgAlt),
+            TextPrimaryColor = textColors.primary,
+            TextSecondaryColor = textColors.secondary,
+            TextTertiaryColor = textColors.tertiary,
+            DangerColor = "#FFFF453A",
+            DangerPressedColor = "#FFCC1A1A",
+            SuccessColor = "#FF30D158",
+            WarningColor = "#FFFFD60A",
             GlassEnabled = GlassEnabled,
             GlassBackdropType = GlassBackdropType,
             BlurRadius = BlurRadius,
             GlassOpacity = GlassOpacity,
             AutoTextContrast = AutoTextContrast,
-            SurfaceAlpha = current.SurfaceAlpha,
-            SurfaceHoverAlpha = current.SurfaceHoverAlpha,
-            SurfaceActiveAlpha = current.SurfaceActiveAlpha,
-            SettingsCardAlpha = current.SettingsCardAlpha,
-            CardAlpha = current.CardAlpha,
-            BorderLightAlpha = current.BorderLightAlpha,
-            BorderSubtleAlpha = current.BorderSubtleAlpha,
-            OverlayAlpha = current.OverlayAlpha,
+            SurfaceAlpha = _themeManager.CurrentProfile.SurfaceAlpha,
+            SurfaceHoverAlpha = _themeManager.CurrentProfile.SurfaceHoverAlpha,
+            SurfaceActiveAlpha = _themeManager.CurrentProfile.SurfaceActiveAlpha,
+            SettingsCardAlpha = _themeManager.CurrentProfile.SettingsCardAlpha,
+            CardAlpha = _themeManager.CurrentProfile.CardAlpha,
+            BorderLightAlpha = _themeManager.CurrentProfile.BorderLightAlpha,
+            BorderSubtleAlpha = _themeManager.CurrentProfile.BorderSubtleAlpha,
+            OverlayAlpha = _themeManager.CurrentProfile.OverlayAlpha,
         };
         _themeManager.ApplyTheme(profile);
+    }
+
+    private static Color ComputeHarmoniousAccent(Color bg)
+    {
+        ColorToHSL(bg, out _, out var s, out var l);
+        // Pick a vivid accent with good contrast against the background
+        double accentL = l > 0.5 ? 0.45 : 0.55;
+        double accentS = Math.Max(s, 0.5);
+        // Shift hue by ~200 degrees for a complementary accent
+        ColorToHSL(bg, out var h, out _, out _);
+        double accentH = (h + 200) % 360;
+        return HSLToColor(accentH, accentS, accentL);
+    }
+
+    private static Color ComputeBgAlt(Color bg)
+    {
+        ColorToHSL(bg, out var h, out var s, out var l);
+        // Slightly lighter or darker than background
+        double altL = l > 0.5 ? Math.Min(1, l + 0.05) : Math.Max(0, l + 0.06);
+        return HSLToColor(h, s, altL);
+    }
+
+    private static (string primary, string secondary, string tertiary) ComputeTextColors(Color bg)
+    {
+        double luminance = (0.299 * bg.R + 0.587 * bg.G + 0.114 * bg.B) / 255.0;
+        if (luminance > 0.5)
+        {
+            return ("#FF1C1C1E", "#FF6E6E73", "#FF8E8E93");
+        }
+        else
+        {
+            return ("#FFFFFFFF", "#FFC7C7CC", "#FFAEAEB2");
+        }
+    }
+
+    private static Color Lighten(Color c, int amount)
+    {
+        return Color.FromArgb(c.A,
+            (byte)Math.Min(255, c.R + amount),
+            (byte)Math.Min(255, c.G + amount),
+            (byte)Math.Min(255, c.B + amount));
+    }
+
+    private static void ColorToHSL(Color c, out double h, out double s, out double l)
+    {
+        double r = c.R / 255.0, g = c.G / 255.0, b = c.B / 255.0;
+        double max = Math.Max(r, Math.Max(g, b));
+        double min = Math.Min(r, Math.Min(g, b));
+        double delta = max - min;
+
+        h = 0;
+        if (delta > 0)
+        {
+            if (max == r) h = 60 * (((g - b) / delta) % 6);
+            else if (max == g) h = 60 * ((b - r) / delta + 2);
+            else h = 60 * ((r - g) / delta + 4);
+        }
+        if (h < 0) h += 360;
+
+        l = (max + min) / 2;
+        s = delta > 0 ? delta / (1 - Math.Abs(2 * l - 1)) : 0;
+    }
+
+    private static Color HSLToColor(double h, double s, double l)
+    {
+        double c = (1 - Math.Abs(2 * l - 1)) * s;
+        double x = c * (1 - Math.Abs((h / 60) % 2 - 1));
+        double m = l - c / 2;
+
+        double r, g, b;
+        if (h < 60) { r = c; g = x; b = 0; }
+        else if (h < 120) { r = x; g = c; b = 0; }
+        else if (h < 180) { r = 0; g = c; b = x; }
+        else if (h < 240) { r = 0; g = x; b = c; }
+        else if (h < 300) { r = x; g = 0; b = c; }
+        else { r = c; g = 0; b = x; }
+
+        return Color.FromArgb(255,
+            (byte)Math.Clamp((r + m) * 255, 0, 255),
+            (byte)Math.Clamp((g + m) * 255, 0, 255),
+            (byte)Math.Clamp((b + m) * 255, 0, 255));
     }
 
     private void SyncAndSaveTheme()
