@@ -10,7 +10,7 @@
     <Border Background="#1A1A1E"
             CornerRadius="10"
             Padding="0"
-            BorderBrush="{StaticResource VP.BorderLightBrush}"
+            BorderBrush="{DynamicResource VP.BorderLightBrush}"
             BorderThickness="1">
         <Grid>
             <Grid.RowDefinitions>
@@ -20,7 +20,7 @@
 
             <!-- Header bar with language label and Copy button -->
             <Border Grid.Row="0"
-                    Background="{StaticResource VP.SurfaceHoverBrush}"
+                    Background="{DynamicResource VP.SurfaceHoverBrush}"
                     CornerRadius="10,10,0,0"
                     Padding="12,7">
                 <Grid>
@@ -31,14 +31,14 @@
 
                     <TextBlock Grid.Column="0"
                                Text="{Binding Language, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                               Foreground="{StaticResource VP.TextTertiaryBrush}"
+                               Foreground="{DynamicResource VP.TextTertiaryBrush}"
                                FontSize="11"
                                VerticalAlignment="Center" />
 
                     <Button Grid.Column="1"
                             x:Name="CopyButton"
                             Content="{loc:Loc CopyButton}"
-                            Style="{StaticResource VP.Button}"
+                            Style="{DynamicResource VP.Button}"
                             Click="CopyButton_Click"
                             Padding="10,3"
                             FontSize="11"
@@ -50,7 +50,7 @@
             <!-- Code content -->
             <TextBlock Grid.Row="1"
                        Text="{Binding CodeText, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                       Foreground="{StaticResource VP.TextPrimaryBrush}"
+                       Foreground="{DynamicResource VP.TextPrimaryBrush}"
                        FontFamily="Cascadia Code, Consolas"
                        FontSize="13"
                        TextWrapping="Wrap"

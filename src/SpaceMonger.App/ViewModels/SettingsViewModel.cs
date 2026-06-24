@@ -1,4 +1,5 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using System.Windows.Media;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SpaceMonger.App.Localization;
 using SpaceMonger.App.Services;
@@ -70,6 +71,30 @@ public partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private string _accentColorHex = "#FF2562A7";
+
+    [ObservableProperty]
+    private Color _accentColor = Color.FromArgb(255, 37, 98, 167);
+
+    partial void OnAccentColorChanged(Color value)
+    {
+        AccentColorHex = $"#{value.A:X2}{value.R:X2}{value.G:X2}{value.B:X2}";
+    }
+
+    partial void OnAccentColorHexChanged(string value)
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                var hex = value.Trim();
+                if (!hex.StartsWith("#")) hex = "#" + hex;
+                var c = (Color)ColorConverter.ConvertFromString(hex);
+                if (c != AccentColor)
+                    AccentColor = c;
+            }
+        }
+        catch { }
+    }
 
     [ObservableProperty]
     private bool _glassEnabled;
@@ -249,9 +274,50 @@ public partial class SettingsViewModel : ObservableObject
         settings.Language = string.IsNullOrWhiteSpace(Language) ? "zh-CN" : Language.Trim();
         L.SetLanguage(settings.Language);
 
-        _themeManager.Persist();
+        SyncThemeToManager();
 
         _settingsService.SaveSettings(settings);
+    }
+
+    private void SyncThemeToManager()
+    {
+        var current = _themeManager.CurrentProfile;
+        var accentColor = ThemeManager.ParseColor(AccentColorHex);
+        var hoverColor = Color.FromArgb(accentColor.A,
+            (byte)Math.Min(255, accentColor.R + 20),
+            (byte)Math.Min(255, accentColor.G + 20),
+            (byte)Math.Min(255, accentColor.B + 20));
+
+        var profile = new ThemeProfile
+        {
+            Name = "Custom",
+            IsBuiltIn = false,
+            AccentColor = AccentColorHex,
+            AccentHoverColor = ThemeManager.ToHex(hoverColor),
+            BackgroundColor = current.BackgroundColor,
+            BackgroundAltColor = current.BackgroundAltColor,
+            TextPrimaryColor = current.TextPrimaryColor,
+            TextSecondaryColor = current.TextSecondaryColor,
+            TextTertiaryColor = current.TextTertiaryColor,
+            DangerColor = current.DangerColor,
+            DangerPressedColor = current.DangerPressedColor,
+            SuccessColor = current.SuccessColor,
+            WarningColor = current.WarningColor,
+            GlassEnabled = GlassEnabled,
+            GlassBackdropType = GlassBackdropType,
+            BlurRadius = BlurRadius,
+            GlassOpacity = GlassOpacity,
+            AutoTextContrast = AutoTextContrast,
+            SurfaceAlpha = current.SurfaceAlpha,
+            SurfaceHoverAlpha = current.SurfaceHoverAlpha,
+            SurfaceActiveAlpha = current.SurfaceActiveAlpha,
+            SettingsCardAlpha = current.SettingsCardAlpha,
+            CardAlpha = current.CardAlpha,
+            BorderLightAlpha = current.BorderLightAlpha,
+            BorderSubtleAlpha = current.BorderSubtleAlpha,
+            OverlayAlpha = current.OverlayAlpha,
+        };
+        _themeManager.ApplyTheme(profile);
     }
 
     public void SaveWithToast(string? message = null)

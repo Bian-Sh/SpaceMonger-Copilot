@@ -101,6 +101,32 @@ public static class AcrylicHelper
     }
 
     /// <summary>
+    /// Disables the system backdrop (resets to default / no material).
+    /// </summary>
+    public static void DisableBackdrop(Window window)
+    {
+        var hwnd = new WindowInteropHelper(window).EnsureHandle();
+        DisableBackdrop(hwnd);
+    }
+
+    public static void DisableBackdrop(IntPtr hwnd)
+    {
+        if (!IsWindows11_22H2OrLater())
+            return;
+
+        try
+        {
+            int value = 0; // DWMSBT_AUTO / none
+            DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE,
+                ref value, Marshal.SizeOf<int>());
+        }
+        catch
+        {
+            // Silently fail
+        }
+    }
+
+    /// <summary>
     /// Returns true if running on Windows 11 22H2 or later (build 22621+),
     /// which is required for DWMWA_SYSTEMBACKDROP_TYPE support.
     /// </summary>

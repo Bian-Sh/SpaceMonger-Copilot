@@ -91,7 +91,6 @@ public class ThemeManager
 
         void SetBrush(string key, Color color)
         {
-            // Always replace — XAML-defined brushes may be frozen (read-only)
             app.Resources[key] = new SolidColorBrush(color);
         }
 
@@ -112,6 +111,13 @@ public class ThemeManager
         var success = ParseColor(profile.SuccessColor);
         var warning = ParseColor(profile.WarningColor);
 
+        // Determine overlay tint: dark themes use white overlays, light themes use black overlays
+        double bgLuminance = (0.299 * bg.R + 0.587 * bg.G + 0.114 * bg.B) / 255.0;
+        bool isLightTheme = bgLuminance > 0.5;
+        byte overlayR = isLightTheme ? (byte)0 : (byte)255;
+        byte overlayG = isLightTheme ? (byte)0 : (byte)255;
+        byte overlayB = isLightTheme ? (byte)0 : (byte)255;
+
         SetColor("VP.Background", bg);
         SetColor("VP.BackgroundAlt", bgAlt);
         SetColor("VP.Accent", accent);
@@ -124,24 +130,29 @@ public class ThemeManager
         SetColor("VP.Success", success);
         SetColor("VP.Warning", warning);
 
-        SetColor("VP.Surface", Color.FromArgb((byte)profile.SurfaceAlpha, 255, 255, 255));
-        SetColor("VP.SurfaceHover", Color.FromArgb((byte)profile.SurfaceHoverAlpha, 255, 255, 255));
-        SetColor("VP.SurfaceActive", Color.FromArgb((byte)profile.SurfaceActiveAlpha, 255, 255, 255));
-        SetColor("VP.SettingsCard", Color.FromArgb((byte)profile.SettingsCardAlpha, 255, 255, 255));
-        SetColor("VP.Card", Color.FromArgb((byte)profile.CardAlpha, 255, 255, 255));
-        SetColor("VP.BorderLight", Color.FromArgb((byte)profile.BorderLightAlpha, 255, 255, 255));
-        SetColor("VP.BorderSubtle", Color.FromArgb((byte)profile.BorderSubtleAlpha, 255, 255, 255));
+        SetColor("VP.Surface", Color.FromArgb((byte)profile.SurfaceAlpha, overlayR, overlayG, overlayB));
+        SetColor("VP.SurfaceHover", Color.FromArgb((byte)profile.SurfaceHoverAlpha, overlayR, overlayG, overlayB));
+        SetColor("VP.SurfaceActive", Color.FromArgb((byte)profile.SurfaceActiveAlpha, overlayR, overlayG, overlayB));
+        SetColor("VP.SettingsCard", Color.FromArgb((byte)profile.SettingsCardAlpha, overlayR, overlayG, overlayB));
+        SetColor("VP.Card", Color.FromArgb((byte)profile.CardAlpha, overlayR, overlayG, overlayB));
+        SetColor("VP.BorderLight", Color.FromArgb((byte)profile.BorderLightAlpha, overlayR, overlayG, overlayB));
+        SetColor("VP.BorderSubtle", Color.FromArgb((byte)profile.BorderSubtleAlpha, overlayR, overlayG, overlayB));
         SetColor("VP.Overlay", Color.FromArgb((byte)profile.OverlayAlpha, bgAlt.R, bgAlt.G, bgAlt.B));
 
-        SetBrush("VP.BackgroundBrush", bg);
-        SetBrush("VP.BackgroundAltBrush", bgAlt);
-        SetBrush("VP.SurfaceBrush", Color.FromArgb((byte)profile.SurfaceAlpha, 255, 255, 255));
-        SetBrush("VP.SurfaceHoverBrush", Color.FromArgb((byte)profile.SurfaceHoverAlpha, 255, 255, 255));
-        SetBrush("VP.SurfaceActiveBrush", Color.FromArgb((byte)profile.SurfaceActiveAlpha, 255, 255, 255));
-        SetBrush("VP.SettingsCardBrush", Color.FromArgb((byte)profile.SettingsCardAlpha, 255, 255, 255));
-        SetBrush("VP.CardBrush", Color.FromArgb((byte)profile.CardAlpha, 255, 255, 255));
-        SetBrush("VP.BorderLightBrush", Color.FromArgb((byte)profile.BorderLightAlpha, 255, 255, 255));
-        SetBrush("VP.BorderSubtleBrush", Color.FromArgb((byte)profile.BorderSubtleAlpha, 255, 255, 255));
+        // When glass is enabled, make backgrounds semi-transparent so the system backdrop shows through
+        var bgOpacity = profile.GlassEnabled ? profile.GlassOpacity : 1.0;
+        var bgWithOpacity = Color.FromArgb((byte)(bg.A * bgOpacity), bg.R, bg.G, bg.B);
+        var bgAltWithOpacity = Color.FromArgb((byte)(bgAlt.A * bgOpacity), bgAlt.R, bgAlt.G, bgAlt.B);
+
+        SetBrush("VP.BackgroundBrush", bgWithOpacity);
+        SetBrush("VP.BackgroundAltBrush", bgAltWithOpacity);
+        SetBrush("VP.SurfaceBrush", Color.FromArgb((byte)profile.SurfaceAlpha, overlayR, overlayG, overlayB));
+        SetBrush("VP.SurfaceHoverBrush", Color.FromArgb((byte)profile.SurfaceHoverAlpha, overlayR, overlayG, overlayB));
+        SetBrush("VP.SurfaceActiveBrush", Color.FromArgb((byte)profile.SurfaceActiveAlpha, overlayR, overlayG, overlayB));
+        SetBrush("VP.SettingsCardBrush", Color.FromArgb((byte)profile.SettingsCardAlpha, overlayR, overlayG, overlayB));
+        SetBrush("VP.CardBrush", Color.FromArgb((byte)profile.CardAlpha, overlayR, overlayG, overlayB));
+        SetBrush("VP.BorderLightBrush", Color.FromArgb((byte)profile.BorderLightAlpha, overlayR, overlayG, overlayB));
+        SetBrush("VP.BorderSubtleBrush", Color.FromArgb((byte)profile.BorderSubtleAlpha, overlayR, overlayG, overlayB));
         SetBrush("VP.TextPrimaryBrush", tPrimary);
         SetBrush("VP.TextSecondaryBrush", tSecondary);
         SetBrush("VP.TextTertiaryBrush", tTertiary);
@@ -181,7 +192,12 @@ public class ThemeManager
     {
         if (_mainWindow == null) return;
         var profile = _currentProfile;
-        if (!profile.GlassEnabled || profile.GlassBackdropType == 0) return;
+
+        if (!profile.GlassEnabled || profile.GlassBackdropType == 0)
+        {
+            Helpers.AcrylicHelper.DisableBackdrop(_mainWindow);
+            return;
+        }
 
         switch (profile.GlassBackdropType)
         {

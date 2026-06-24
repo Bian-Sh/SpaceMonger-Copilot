@@ -11,7 +11,7 @@
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:RecommendationsViewModel, IsDesignTimeCreatable=False}"
              d:DesignHeight="600" d:DesignWidth="800"
-             FontFamily="{StaticResource VP.FontFamily}">
+             FontFamily="{DynamicResource VP.FontFamily}">
 
     <UserControl.Resources>
         <converters:FileSizeConverter x:Key="FileSizeConverter" />
@@ -30,8 +30,8 @@
                 Grid.Row="0"
                 Margin="0,2,0,4"
                 Padding="20,2,10,2"
-                Background="{StaticResource VP.SurfaceBrush}"
-                BorderBrush="{StaticResource VP.BorderSubtleBrush}"
+                Background="{DynamicResource VP.SurfaceBrush}"
+                BorderBrush="{DynamicResource VP.BorderSubtleBrush}"
                 BorderThickness="0.5"
                 >
             <Border.Style>
@@ -52,20 +52,20 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <CheckBox Style="{StaticResource VP.CheckBox}"
+                    <CheckBox Style="{DynamicResource VP.CheckBox}"
                               IsThreeState="True"
                               IsChecked="{Binding AllRecommendationsSelectionState, Mode=OneWay}"
                               Command="{Binding ToggleAllRecommendationsCommand}"
                               VerticalAlignment="Center" />
 
                     <Button Content="{loc:Loc SelectAllSafeButton}"
-                            Style="{StaticResource VP.Button}"
+                            Style="{DynamicResource VP.Button}"
                             Padding="8,4"
                             Margin="0,0,4,0"
                             Command="{Binding SelectAllSafeCommand}" />
 
                     <Button Content="{loc:Loc DeselectAllCautionButton}"
-                            Style="{StaticResource VP.Button}"
+                            Style="{DynamicResource VP.Button}"
                             Padding="8,4"
                             Margin="0,0,4,0"
                             Command="{Binding DeselectAllCautionCommand}" />
@@ -76,14 +76,14 @@
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center">
                     <TextBlock Text="{loc:Loc FilterByLabel}"
-                               Foreground="{StaticResource VP.TextSecondaryBrush}"
+                               Foreground="{DynamicResource VP.TextSecondaryBrush}"
                                FontSize="12"
                                VerticalAlignment="Center"
                                Margin="0,0,6,0" />
 
                     <ComboBox Width="140"
                               Margin="0,0,4,0"
-                              Style="{StaticResource VP.ComboBox}"
+                              Style="{DynamicResource VP.ComboBox}"
                               SelectedItem="{Binding SelectedCategoryFilter, Mode=TwoWay}">
                         <ComboBox.Items>
                             <ComboBoxItem Content="{loc:Loc AllCategoriesOption}" Tag="" IsSelected="True" />
@@ -100,7 +100,7 @@
                     </ComboBox>
 
                     <ComboBox Width="130"
-                              Style="{StaticResource VP.ComboBox}"
+                              Style="{DynamicResource VP.ComboBox}"
                               SelectedItem="{Binding SelectedSafetyFilter, Mode=TwoWay}">
                         <ComboBox.Items>
                             <ComboBoxItem Content="{loc:Loc AllRatingsOption}" Tag="" IsSelected="True" />
@@ -130,15 +130,15 @@
             </Border.Style>
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                 <ProgressBar IsIndeterminate="True" Width="180" Height="3" Margin="0,0,0,12"
-                             Foreground="{StaticResource VP.AccentBrush}"
-                             Background="{StaticResource VP.SurfaceBrush}" />
+                             Foreground="{DynamicResource VP.AccentBrush}"
+                             Background="{DynamicResource VP.SurfaceBrush}" />
                 <TextBlock Text="{loc:Loc AnalyzingFilesText}"
                            FontSize="14"
-                           Foreground="{StaticResource VP.TextPrimaryBrush}"
+                           Foreground="{DynamicResource VP.TextPrimaryBrush}"
                            HorizontalAlignment="Center" />
                 <TextBlock Text="{loc:Loc AnalysisMayTakeText}"
                            FontSize="11"
-                           Foreground="{StaticResource VP.TextSecondaryBrush}"
+                           Foreground="{DynamicResource VP.TextSecondaryBrush}"
                            HorizontalAlignment="Center"
                            Margin="0,6,0,0" />
             </StackPanel>
@@ -166,7 +166,7 @@
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="520">
                 <TextBlock Text="{Binding AnalysisError}"
                            TextWrapping="Wrap"
-                           Foreground="{StaticResource VP.DangerBrush}"
+                           Foreground="{DynamicResource VP.DangerBrush}"
                            FontSize="13"
                            HorizontalAlignment="Center"
                            TextAlignment="Center">
@@ -184,7 +184,7 @@
                 <TextBlock Text="{loc:Loc RecommendationsEmptyTitle}"
                            FontSize="15"
                            FontWeight="SemiBold"
-                           Foreground="{StaticResource VP.TextPrimaryBrush}"
+                           Foreground="{DynamicResource VP.TextPrimaryBrush}"
                            HorizontalAlignment="Center"
                            TextAlignment="Center"
                            Margin="0,0,0,6">
@@ -201,7 +201,7 @@
                 </TextBlock>
                 <TextBlock Text="{loc:Loc RecommendationsEmptyDescription}"
                            TextWrapping="Wrap"
-                           Foreground="{StaticResource VP.TextSecondaryBrush}"
+                           Foreground="{DynamicResource VP.TextSecondaryBrush}"
                            FontSize="13"
                            HorizontalAlignment="Center"
                            TextAlignment="Center">
@@ -222,7 +222,7 @@
         <!-- Row 1: Recommendations List -->
         <ListView x:Name="RecommendationsList"
                   Grid.Row="1"
-                  Style="{StaticResource VP.ListView}"
+                  Style="{DynamicResource VP.ListView}"
                   ItemsSource="{Binding FilteredRecommendations}"
                   Margin="4,0,4,4"
                   Padding="0"
@@ -235,8 +235,8 @@
             </ListView.ItemContainerStyle>
             <ListView.ItemTemplate>
                 <DataTemplate>
-                    <Border Background="{StaticResource VP.CardBrush}"
-                            BorderBrush="{StaticResource VP.BorderSubtleBrush}"
+                    <Border Background="{DynamicResource VP.CardBrush}"
+                            BorderBrush="{DynamicResource VP.BorderSubtleBrush}"
                             BorderThickness="0.5"
                             CornerRadius="6"
                             Padding="10,6"
@@ -255,7 +255,7 @@
 
                             <!-- CheckBox -->
                             <CheckBox Grid.Row="0" Grid.Column="0"
-                                      Style="{StaticResource VP.CheckBox}"
+                                      Style="{DynamicResource VP.CheckBox}"
                                       IsChecked="{Binding IsAccepted, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                       Checked="RecommendationSelectionChanged"
                                       Unchecked="RecommendationSelectionChanged"
@@ -272,7 +272,7 @@
                                     Background="Transparent"
                                     BorderThickness="0"
                                     Cursor="Hand"
-                                    Foreground="{StaticResource VP.TextPrimaryBrush}"
+                                    Foreground="{DynamicResource VP.TextPrimaryBrush}"
                                     Click="RecommendationPath_Click"
                                     ToolTip="{Binding TargetPath}">
                                 <TextBlock Text="{Binding TargetPath}"
@@ -287,7 +287,7 @@
                                        Margin="0,0,8,0"
                                        FontSize="12"
                                        FontWeight="SemiBold"
-                                       Foreground="{StaticResource VP.TextPrimaryBrush}" />
+                                       Foreground="{DynamicResource VP.TextPrimaryBrush}" />
 
                             <!-- Safety Badge -->
                             <Border Grid.Row="0" Grid.Column="3"
@@ -307,13 +307,13 @@
                                         Margin="0,3,0,0">
                                 <TextBlock Text="{Binding Category}"
                                            FontSize="11"
-                                           Foreground="{StaticResource VP.TextTertiaryBrush}"
+                                           Foreground="{DynamicResource VP.TextTertiaryBrush}"
                                            Margin="0,0,8,0"
                                            VerticalAlignment="Center" />
                                 <TextBlock Text="{Binding Explanation}"
                                            TextWrapping="Wrap"
                                            FontSize="11"
-                                           Foreground="{StaticResource VP.TextTertiaryBrush}" />
+                                           Foreground="{DynamicResource VP.TextTertiaryBrush}" />
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -323,8 +323,8 @@
 
         <!-- Row 2: Summary Bar -->
         <Border Grid.Row="2"
-                Background="{StaticResource VP.SurfaceBrush}"
-                BorderBrush="{StaticResource VP.BorderSubtleBrush}"
+                Background="{DynamicResource VP.SurfaceBrush}"
+                BorderBrush="{DynamicResource VP.BorderSubtleBrush}"
                 BorderThickness="0,1,0,0"
                 CornerRadius="0,0,10,10"
                 Padding="10,5">
@@ -368,26 +368,26 @@
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Foreground="{StaticResource VP.TextSecondaryBrush}"
+                    <TextBlock Foreground="{DynamicResource VP.TextSecondaryBrush}"
                                FontSize="12"
                                Margin="0,0,16,0"
                                VerticalAlignment="Center">
                         <Run Text="{loc:Loc SelectedLabel}" />
-                        <Run Text="{Binding TotalSelectedCount, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource VP.TextPrimaryBrush}" />
+                        <Run Text="{Binding TotalSelectedCount, Mode=OneWay}" FontWeight="SemiBold" Foreground="{DynamicResource VP.TextPrimaryBrush}" />
                         <Run Text="/" />
-                        <Run Text="{Binding TotalItemCount, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource VP.TextPrimaryBrush}" />
+                        <Run Text="{Binding TotalItemCount, Mode=OneWay}" FontWeight="SemiBold" Foreground="{DynamicResource VP.TextPrimaryBrush}" />
                         <Run Text="{loc:Loc ItemsLabel}" />
                     </TextBlock>
 
                     <Rectangle Width="1" Height="12" Margin="0,0,16,0"
-                               Fill="{StaticResource VP.BorderSubtleBrush}"
+                               Fill="{DynamicResource VP.BorderSubtleBrush}"
                                VerticalAlignment="Center" />
 
-                    <TextBlock Foreground="{StaticResource VP.TextSecondaryBrush}"
+                    <TextBlock Foreground="{DynamicResource VP.TextSecondaryBrush}"
                                FontSize="12"
                                VerticalAlignment="Center">
                         <Run Text="{loc:Loc RecoverableLabel}" />
-                        <Run Text="{Binding TotalRecoverableSpace, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource VP.TextPrimaryBrush}" />
+                        <Run Text="{Binding TotalRecoverableSpace, Mode=OneWay}" FontWeight="SemiBold" Foreground="{DynamicResource VP.TextPrimaryBrush}" />
                     </TextBlock>
                 </StackPanel>
             </DockPanel>

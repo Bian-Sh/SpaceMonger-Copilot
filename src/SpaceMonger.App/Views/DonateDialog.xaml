@@ -9,16 +9,16 @@
         Background="Transparent"
         ResizeMode="NoResize"
         ShowInTaskbar="False"
-        FontFamily="{StaticResource VP.FontFamily}">
+        FontFamily="{DynamicResource VP.FontFamily}">
 
     <Window.Resources>
         <Style x:Key="DonateCloseButtonStyle" TargetType="Button">
-            <Setter Property="FontFamily" Value="{StaticResource VP.FontFamily}" />
+            <Setter Property="FontFamily" Value="{DynamicResource VP.FontFamily}" />
             <Setter Property="FontSize" Value="16" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{StaticResource VP.TextSecondaryBrush}" />
-            <Setter Property="Background" Value="{StaticResource VP.SurfaceHoverBrush}" />
-            <Setter Property="BorderBrush" Value="{StaticResource VP.BorderLightBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource VP.TextSecondaryBrush}" />
+            <Setter Property="Background" Value="{DynamicResource VP.SurfaceHoverBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource VP.BorderLightBrush}" />
             <Setter Property="BorderThickness" Value="0.5" />
             <Setter Property="Width" Value="32" />
             <Setter Property="Height" Value="32" />
@@ -40,12 +40,12 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Bd" Property="Background"
-                                        Value="{StaticResource VP.DangerBrush}" />
+                                        Value="{DynamicResource VP.DangerBrush}" />
                                 <Setter Property="Foreground" Value="White" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="Bd" Property="Background"
-                                        Value="{StaticResource VP.DangerPressedBrush}" />
+                                        Value="{DynamicResource VP.DangerPressedBrush}" />
                                 <Setter Property="Foreground" Value="White" />
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -55,9 +55,9 @@
         </Style>
     </Window.Resources>
 
-    <Grid x:Name="RootGrid" Background="{StaticResource VP.OverlayBrush}" MouseLeftButtonDown="RootGrid_MouseLeftButtonDown">
-        <Border x:Name="CardBorder" Background="{StaticResource VP.BackgroundAltBrush}"
-                BorderBrush="{StaticResource VP.BorderLightBrush}"
+    <Grid x:Name="RootGrid" Background="{DynamicResource VP.OverlayBrush}" MouseLeftButtonDown="RootGrid_MouseLeftButtonDown">
+        <Border x:Name="CardBorder" Background="{DynamicResource VP.BackgroundAltBrush}"
+                BorderBrush="{DynamicResource VP.BorderLightBrush}"
                 BorderThickness="1"
                 CornerRadius="14"
                 HorizontalAlignment="Center"
@@ -77,7 +77,7 @@
             <!-- 标题栏：title居中，关闭按钮独立定位右上角 -->
             <Grid Grid.Row="0">
                 <TextBlock FontSize="18" FontWeight="SemiBold"
-                           Foreground="{StaticResource VP.TextPrimaryBrush}"
+                           Foreground="{DynamicResource VP.TextPrimaryBrush}"
                            VerticalAlignment="Center"
                            HorizontalAlignment="Center"
                            Margin="0,16,0,0">
@@ -108,7 +108,7 @@
                            Margin="0,0,0,6" />
                     <TextBlock Text="{loc:Loc DonateAlipayLabel}"
                                FontSize="13"
-                               Foreground="{StaticResource VP.TextSecondaryBrush}"
+                               Foreground="{DynamicResource VP.TextSecondaryBrush}"
                                HorizontalAlignment="Center" />
                 </StackPanel>
                 <StackPanel Margin="6,0">
@@ -120,7 +120,7 @@
                            Margin="0,0,0,6" />
                     <TextBlock Text="{loc:Loc DonateWeChatLabel}"
                                FontSize="13"
-                               Foreground="{StaticResource VP.TextSecondaryBrush}"
+                               Foreground="{DynamicResource VP.TextSecondaryBrush}"
                                HorizontalAlignment="Center" />
                 </StackPanel>
             </StackPanel>
@@ -133,7 +133,7 @@
                         Margin="0,0,0,14">
                 <TextBlock Text="{loc:Loc DonateThankYou}"
                            FontSize="16"
-                           Foreground="{StaticResource VP.TextTertiaryBrush}"
+                           Foreground="{DynamicResource VP.TextTertiaryBrush}"
                            VerticalAlignment="Center" />
                 <Image Source="pack://application:,,,/Assets/sendheart.png"
                        Width="32" Height="32"

@@ -21,7 +21,7 @@
         PreviewMouseLeftButtonDown="Window_PreviewMouseLeftButtonDown"
         TextOptions.TextFormattingMode="Display"
         TextOptions.TextRenderingMode="ClearType"
-        FontFamily="{StaticResource VP.FontFamily}">
+        FontFamily="{DynamicResource VP.FontFamily}">
 
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="0"
@@ -31,7 +31,7 @@
                       UseAeroCaptionButtons="False" />
     </WindowChrome.WindowChrome>
 
-    <Grid x:Name="RootGrid" Background="{StaticResource VP.BackgroundBrush}">
+    <Grid x:Name="RootGrid" Background="{DynamicResource VP.BackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="36" />  <!-- Title bar -->
             <RowDefinition Height="*" />   <!-- Content -->
@@ -58,7 +58,7 @@
             </Grid.ColumnDefinitions>
 
             <!-- 鈺愨晲鈺?Toolbar (aligned with treemap, not chat panel) 鈺愨晲鈺?-->
-            <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource VP.GlassPanel}" Padding="8,6">
+            <Border Grid.Row="0" Grid.Column="0" Style="{DynamicResource VP.GlassPanel}" Padding="8,6">
                 <DockPanel LastChildFill="True">
 
                     <!-- Left: navigation buttons (transparent, hover glow) -->
@@ -67,7 +67,7 @@
                                 VerticalAlignment="Center">
                         <Button x:Name="BackButton"
                                 Width="32" Height="32"
-                                Style="{StaticResource VP.ButtonIcon}"
+                                Style="{DynamicResource VP.ButtonIcon}"
                                 Click="BackButton_Click"
                                 ToolTip="{loc:Loc NavigateBackToolTip}">
                             <TextBlock Text="&#xE72B;"
@@ -76,7 +76,7 @@
                         </Button>
                         <Button x:Name="ForwardButton"
                                 Width="32" Height="32"
-                                Style="{StaticResource VP.ButtonIcon}"
+                                Style="{DynamicResource VP.ButtonIcon}"
                                 Click="ForwardButton_Click"
                                 IsEnabled="False"
                                 ToolTip="{loc:Loc NavigateForwardToolTip}">
@@ -87,7 +87,7 @@
                         <Button x:Name="UpButton"
                                 Width="32" Height="32"
                                 Margin="2,0,6,0"
-                                Style="{StaticResource VP.ButtonIcon}"
+                                Style="{DynamicResource VP.ButtonIcon}"
                                 Click="UpButton_Click"
                                 IsEnabled="False"
                                 ToolTip="{loc:Loc NavigateUpToolTip}">
@@ -101,7 +101,7 @@
                     <Button x:Name="ScanButton"
                             DockPanel.Dock="Right"
                             Content="{loc:Loc ScanButton}"
-                            Style="{StaticResource VP.AccentButton}"
+                            Style="{DynamicResource VP.AccentButton}"
                             Padding="16,5"
                             FontSize="12"
                             Margin="0,0,4,0"
@@ -113,8 +113,8 @@
                     <!-- Address bar: LAST child fills remaining space between nav and action buttons -->
                     <Border x:Name="AddressBarBorder"
                             DockPanel.Dock="Left"
-                            Background="{StaticResource VP.SurfaceBrush}"
-                            BorderBrush="{StaticResource VP.BorderLightBrush}"
+                            Background="{DynamicResource VP.SurfaceBrush}"
+                            BorderBrush="{DynamicResource VP.BorderLightBrush}"
                             BorderThickness="0.5"
                             CornerRadius="6"
                             Padding="0"
@@ -140,12 +140,12 @@
                             <TextBox x:Name="PathEditTextBox"
                                      Grid.Column="0"
                                      Background="Transparent"
-                                     Foreground="{StaticResource VP.TextPrimaryBrush}"
-                                     CaretBrush="{StaticResource VP.TextPrimaryBrush}"
+                                     Foreground="{DynamicResource VP.TextPrimaryBrush}"
+                                     CaretBrush="{DynamicResource VP.TextPrimaryBrush}"
                                      BorderThickness="0"
                                      Padding="8,5"
                                      FontSize="13"
-                                     FontFamily="{StaticResource VP.FontFamily}"
+                                     FontFamily="{DynamicResource VP.FontFamily}"
                                      KeyDown="PathEditTextBox_KeyDown"
                                      LostFocus="PathEditTextBox_LostFocus"
                                      Visibility="Collapsed"
@@ -168,18 +168,18 @@
                                                        Text="&#xE838;"
                                                        FontFamily="Segoe MDL2 Assets"
                                                        FontSize="14"
-                                                       Foreground="{StaticResource VP.TextSecondaryBrush}"
+                                                       Foreground="{DynamicResource VP.TextSecondaryBrush}"
                                                        HorizontalAlignment="Center"
                                                        VerticalAlignment="Center" />
                                         </Border>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
                                                 <Setter TargetName="Ico" Property="Foreground"
-                                                        Value="{StaticResource VP.TextPrimaryBrush}" />
+                                                        Value="{DynamicResource VP.TextPrimaryBrush}" />
                                             </Trigger>
                                             <Trigger Property="IsPressed" Value="True">
                                                 <Setter TargetName="Ico" Property="Foreground"
-                                                        Value="{StaticResource VP.AccentBrush}" />
+                                                        Value="{DynamicResource VP.AccentBrush}" />
                                             </Trigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
@@ -200,24 +200,24 @@
 
                     <!-- View mode tab bar (Treemap / TreeView) -->
                     <Border Grid.Row="0"
-                            Background="{StaticResource VP.SurfaceBrush}"
+                            Background="{DynamicResource VP.SurfaceBrush}"
                             CornerRadius="10,10,0,0"
                             Margin="0,0,0,-0.5">
                         <StackPanel Orientation="Horizontal">
                             <RadioButton x:Name="TreemapTabBtn"
                                          Content="{loc:Loc TreemapTabHeader}"
-                                         Style="{StaticResource VP.TabButton}"
+                                         Style="{DynamicResource VP.TabButton}"
                                          IsChecked="True"
                                          Checked="TreemapTab_Checked"
                                          GroupName="ViewModeTabs" />
                             <RadioButton x:Name="TreeViewTabBtn"
                                          Content="{loc:Loc TreeViewTabHeader}"
-                                         Style="{StaticResource VP.TabButton}"
+                                         Style="{DynamicResource VP.TabButton}"
                                          Checked="TreeViewTab_Checked"
                                          GroupName="ViewModeTabs" />
                             <RadioButton x:Name="AboutTabBtn"
                                          Content="{loc:Loc AboutTabHeader}"
-                                         Style="{StaticResource VP.TabButton}"
+                                         Style="{DynamicResource VP.TabButton}"
                                          Checked="AboutTab_Checked"
                                          GroupName="ViewModeTabs" />
                         </StackPanel>
@@ -235,7 +235,7 @@
                     <!-- Subtle splitter -->
                     <GridSplitter x:Name="RecommendationsSplitter"
                                   Grid.Row="2"
-                                  Style="{StaticResource VP.GridSplitterH}"
+                                  Style="{DynamicResource VP.GridSplitterH}"
                                   Margin="8,4"
                                   Visibility="Visible" />
 
@@ -248,7 +248,7 @@
 
                         <!-- Tab bar (outside container border, Chrome-style) -->
                         <Border Grid.Row="0"
-                                Background="{StaticResource VP.SurfaceBrush}"
+                                Background="{DynamicResource VP.SurfaceBrush}"
                                 CornerRadius="10,10,0,0"
                                 Margin="0,0,0,-0.5">
                         <DockPanel>
@@ -263,7 +263,7 @@
                                     Margin="4,0"
                                     Visibility="Collapsed"
                                     ToolTip="{loc:Loc ConsoleFilterToolTip}"
-                                    Foreground="{StaticResource VP.TextSecondaryBrush}"
+                                    Foreground="{DynamicResource VP.TextSecondaryBrush}"
                                     Background="Transparent"
                                     BorderThickness="0"
                                     Click="ConsoleFilterButton_Click">
@@ -277,9 +277,9 @@
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
                                                 <Setter TargetName="Bd" Property="Background"
-                                                        Value="{StaticResource VP.SurfaceHoverBrush}" />
+                                                        Value="{DynamicResource VP.SurfaceHoverBrush}" />
                                                 <Setter Property="Foreground"
-                                                        Value="{StaticResource VP.TextPrimaryBrush}" />
+                                                        Value="{DynamicResource VP.TextPrimaryBrush}" />
                                             </Trigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
@@ -304,13 +304,13 @@
                             <StackPanel Orientation="Horizontal">
                                 <RadioButton x:Name="RecommendationsTabBtn"
                                              Content="{loc:Loc RecommendationsTabHeader}"
-                                             Style="{StaticResource VP.TabButton}"
+                                             Style="{DynamicResource VP.TabButton}"
                                              IsChecked="True"
                                              Checked="RecommendationsTab_Checked"
                                              GroupName="BottomTabs" />
                                 <RadioButton x:Name="ConsoleTabBtn"
                                              Content="{loc:Loc ConsoleTabHeader}"
-                                             Style="{StaticResource VP.TabButton}"
+                                             Style="{DynamicResource VP.TabButton}"
                                              Checked="ConsoleTab_Checked"
                                              GroupName="BottomTabs" />
                             </StackPanel>
@@ -319,8 +319,8 @@
 
                         <!-- Content area (border connects to active tab) -->
                         <Border Grid.Row="1"
-                                Background="{StaticResource VP.SurfaceBrush}"
-                                BorderBrush="{StaticResource VP.BorderLightBrush}"
+                                Background="{DynamicResource VP.SurfaceBrush}"
+                                BorderBrush="{DynamicResource VP.BorderLightBrush}"
                                 BorderThickness="0.5,0,0.5,0.5"
                                 CornerRadius="0,0,10,10"
                                 Margin="0,0,0,0">
@@ -365,7 +365,7 @@
                 <GridSplitter x:Name="ChatSplitter"
                               Grid.RowSpan="3"
                               Grid.Column="1"
-                              Style="{StaticResource VP.GridSplitterV}"
+                              Style="{DynamicResource VP.GridSplitterV}"
                               Width="12"
                               Margin="0"
                               Background="Transparent">
@@ -374,7 +374,7 @@
                             <Grid Background="{TemplateBinding Background}">
                                 <Border Width="2"
                                         HorizontalAlignment="Center"
-                                        Background="{StaticResource VP.BorderSubtleBrush}" />
+                                        Background="{DynamicResource VP.BorderSubtleBrush}" />
                             </Grid>
                         </ControlTemplate>
                     </GridSplitter.Template>
@@ -403,7 +403,7 @@
                 <DockPanel Grid.Column="0" LastChildFill="False">
                     <DockPanel.Resources>
                         <Style TargetType="TextBlock">
-                            <Setter Property="Foreground" Value="{StaticResource VP.TextSecondaryBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource VP.TextSecondaryBrush}" />
                             <Setter Property="FontSize" Value="11.5" />
                             <Setter Property="VerticalAlignment" Value="Center" />
                         </Style>
@@ -414,28 +414,28 @@
                         <Run Text="{Binding DriveCapacity, Mode=OneWay}" />
                     </TextBlock>
                     <Rectangle Width="1" Height="12" Margin="10,0"
-                               Fill="{StaticResource VP.BorderSubtleBrush}"
+                               Fill="{DynamicResource VP.BorderSubtleBrush}"
                                VerticalAlignment="Center" />
                     <TextBlock>
                         <Run Text="{loc:Loc UsedLabel}" FontWeight="SemiBold" />
                         <Run Text="{Binding UsedSpace, Mode=OneWay}" />
                     </TextBlock>
                     <Rectangle Width="1" Height="12" Margin="10,0"
-                               Fill="{StaticResource VP.BorderSubtleBrush}"
+                               Fill="{DynamicResource VP.BorderSubtleBrush}"
                                VerticalAlignment="Center" />
                     <TextBlock>
                         <Run Text="{loc:Loc FreeLabel}" FontWeight="SemiBold" />
                         <Run Text="{Binding FreeSpace, Mode=OneWay}" />
                     </TextBlock>
                     <Rectangle Width="1" Height="12" Margin="10,0"
-                               Fill="{StaticResource VP.BorderSubtleBrush}"
+                               Fill="{DynamicResource VP.BorderSubtleBrush}"
                                VerticalAlignment="Center" />
                     <TextBlock>
                         <Run Text="{loc:Loc FilesLabel}" FontWeight="SemiBold" />
                         <Run Text="{Binding FileCount, Mode=OneWay}" />
                     </TextBlock>
                     <Rectangle Width="1" Height="12" Margin="10,0"
-                               Fill="{StaticResource VP.BorderSubtleBrush}"
+                               Fill="{DynamicResource VP.BorderSubtleBrush}"
                                VerticalAlignment="Center" />
                     <TextBlock>
                         <Run Text="{loc:Loc FoldersLabel}" FontWeight="SemiBold" />
@@ -456,13 +456,13 @@
                            MouseLeftButtonDown="VersionDisplay_Click">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-                            <Setter Property="Foreground" Value="{StaticResource VP.TextSecondaryBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource VP.TextSecondaryBrush}" />
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding UpdateVM.UpdateAvailable}" Value="True">
-                                    <Setter Property="Foreground" Value="{StaticResource VP.SuccessBrush}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource VP.SuccessBrush}" />
                                 </DataTrigger>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Foreground" Value="{StaticResource VP.AccentBrush}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource VP.AccentBrush}" />
                                     <Setter Property="TextDecorations" Value="Underline" />
                                 </Trigger>
                             </Style.Triggers>

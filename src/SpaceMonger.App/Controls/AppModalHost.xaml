@@ -3,12 +3,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Visibility="Collapsed"
              Focusable="True"
-             FontFamily="{StaticResource VP.FontFamily}">
+             FontFamily="{DynamicResource VP.FontFamily}">
     <Grid x:Name="RootGrid" Background="#60484853" MouseLeftButtonDown="RootGrid_MouseLeftButtonDown">
         <Border x:Name="ModalCard"
-                Style="{StaticResource VP.GlassPanelLarge}"
-                Background="{StaticResource VP.BackgroundAltBrush}"
-                BorderBrush="{StaticResource VP.BorderLightBrush}"
+                Style="{DynamicResource VP.GlassPanelLarge}"
+                Background="{DynamicResource VP.BackgroundAltBrush}"
+                BorderBrush="{DynamicResource VP.BorderLightBrush}"
                 BorderThickness="1"
                 CornerRadius="22"
                 Padding="0"

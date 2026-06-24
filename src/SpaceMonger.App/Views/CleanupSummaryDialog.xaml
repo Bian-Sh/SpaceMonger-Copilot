@@ -5,7 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:loc="clr-namespace:SpaceMonger.App.Localization"
              mc:Ignorable="d"
-             FontFamily="{StaticResource VP.FontFamily}">
+             FontFamily="{DynamicResource VP.FontFamily}">
     <Grid MinWidth="420" MaxHeight="560">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -18,7 +18,7 @@
                    Text="{loc:Loc CleanupSummaryTitle}"
                    FontSize="18"
                    FontWeight="SemiBold"
-                   Foreground="{StaticResource VP.TextPrimaryBrush}"
+                   Foreground="{DynamicResource VP.TextPrimaryBrush}"
                    TextWrapping="Wrap"
                    Margin="24,22,24,12" />
 
@@ -29,19 +29,19 @@
             <TextBlock x:Name="SuccessSummary"
                        FontSize="17"
                        FontWeight="SemiBold"
-                       Foreground="{StaticResource VP.SuccessBrush}"
+                       Foreground="{DynamicResource VP.SuccessBrush}"
                        TextWrapping="Wrap"
                        Margin="0,0,0,12" />
 
             <TextBlock x:Name="AlreadyRemovedText"
-                       Foreground="{StaticResource VP.TextSecondaryBrush}"
+                       Foreground="{DynamicResource VP.TextSecondaryBrush}"
                        FontSize="13"
                        TextWrapping="Wrap"
                        Margin="0,0,0,8" />
 
             <Border x:Name="SkippedGroup"
-                    Background="{StaticResource VP.SurfaceHoverBrush}"
-                    BorderBrush="{StaticResource VP.BorderSubtleBrush}"
+                    Background="{DynamicResource VP.SurfaceHoverBrush}"
+                    BorderBrush="{DynamicResource VP.BorderSubtleBrush}"
                     BorderThickness="1"
                     CornerRadius="10"
                     Padding="14,10"
@@ -53,14 +53,14 @@
                     </Grid.RowDefinitions>
                     <TextBlock x:Name="SkippedGroupHeader"
                                Grid.Row="0"
-                               Foreground="{StaticResource VP.TextSecondaryBrush}"
+                               Foreground="{DynamicResource VP.TextSecondaryBrush}"
                                FontSize="12"
                                FontWeight="Medium"
                                Margin="0,0,0,6" />
                     <ListView x:Name="SkippedItemsList"
                               Grid.Row="1"
                               MaxHeight="280"
-                              Style="{StaticResource VP.ListView}">
+                              Style="{DynamicResource VP.ListView}">
                         <ListView.View>
                             <GridView>
                                 <GridViewColumn Header="{loc:Loc PathColumn}" Width="240"
@@ -75,7 +75,7 @@
 
             <TextBlock x:Name="TotalRecovered"
                        FontWeight="SemiBold"
-                       Foreground="{StaticResource VP.TextPrimaryBrush}"
+                       Foreground="{DynamicResource VP.TextPrimaryBrush}"
                        FontSize="13"
                        TextWrapping="Wrap"
                        Margin="0,4,0,0" />
@@ -88,7 +88,7 @@
                     VerticalAlignment="Center"
                     Margin="24,0,24,22">
             <Button Content="{loc:Loc OkButton}"
-                    Style="{StaticResource VP.AccentButton}"
+                    Style="{DynamicResource VP.AccentButton}"
                     Width="84" Height="32"
                     VerticalAlignment="Center"
                     IsDefault="True"

@@ -11,11 +11,11 @@
     <Grid>
         <!-- Treemap area: rounded container with clip -->
         <Border x:Name="TreemapContainer"
-                Background="{StaticResource VP.SurfaceBrush}"
+                Background="{DynamicResource VP.SurfaceBrush}"
                 CornerRadius="0,0,10,10"
                 ClipToBounds="True"
                 SizeChanged="TreemapContainer_SizeChanged"
-                BorderBrush="{StaticResource VP.BorderLightBrush}"
+                BorderBrush="{DynamicResource VP.BorderLightBrush}"
                 BorderThickness="0.5,0,0.5,0.5">
             <Border.Effect>
                 <DropShadowEffect Color="Black"
@@ -39,41 +39,41 @@
                     <TextBlock Text="&#xE946;"
                                FontFamily="Segoe MDL2 Assets"
                                FontSize="40"
-                               Foreground="{StaticResource VP.TextTertiaryBrush}"
+                               Foreground="{DynamicResource VP.TextTertiaryBrush}"
                                HorizontalAlignment="Center"
                                Margin="0,0,0,14" />
                     <TextBlock x:Name="EmptyStateTitle"
                                Text="{loc:Loc TreemapEmptyTitle}"
                                FontSize="16"
                                FontWeight="SemiBold"
-                               Foreground="{StaticResource VP.TextSecondaryBrush}"
+                               Foreground="{DynamicResource VP.TextSecondaryBrush}"
                                HorizontalAlignment="Center" />
                     <TextBlock x:Name="EmptyStateHint"
                                Text="{loc:Loc TreemapEmptyHint}"
                                FontSize="13"
-                               Foreground="{StaticResource VP.TextTertiaryBrush}"
+                               Foreground="{DynamicResource VP.TextTertiaryBrush}"
                                HorizontalAlignment="Center"
                                Margin="0,6,0,0" Visibility="Collapsed" />
                 </StackPanel>
 
                 <!-- Scanning overlay -->
                 <Border x:Name="ScanningOverlay"
-                        Background="{StaticResource VP.OverlayBrush}"
+                        Background="{DynamicResource VP.OverlayBrush}"
                         CornerRadius="0,0,10,10"
                         Visibility="Collapsed">
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                         <TextBlock Text="{loc:Loc ScanningStatus}"
                                    FontSize="24"
                                    FontWeight="Light"
-                                   Foreground="{StaticResource VP.TextPrimaryBrush}"
+                                   Foreground="{DynamicResource VP.TextPrimaryBrush}"
                                    HorizontalAlignment="Center" />
                         <TextBlock x:Name="ScanProgressText"
                                    FontSize="14"
-                                   Foreground="{StaticResource VP.TextSecondaryBrush}"
+                                   Foreground="{DynamicResource VP.TextSecondaryBrush}"
                                    HorizontalAlignment="Center"
                                    Margin="0,8,0,0" />
                         <Button Content="{loc:Loc CancelButton}"
-                                Style="{StaticResource VP.Button}"
+                                Style="{DynamicResource VP.Button}"
                                 Padding="20,8"
                                 Margin="0,16,0,0"
                                 HorizontalAlignment="Center"

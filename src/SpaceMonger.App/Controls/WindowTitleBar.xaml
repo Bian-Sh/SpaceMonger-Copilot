@@ -25,8 +25,8 @@
                        VerticalAlignment="Center"
                        Margin="0,0,8,0" />
             <TextBlock Text="SpaceMonger Next"
-                       Foreground="{StaticResource VP.TextPrimaryBrush}"
-                       FontFamily="{StaticResource VP.FontFamily}"
+                       Foreground="{DynamicResource VP.TextPrimaryBrush}"
+                       FontFamily="{DynamicResource VP.FontFamily}"
                        FontSize="13"
                        FontWeight="SemiBold"
                        VerticalAlignment="Center" />
@@ -39,45 +39,45 @@
             <Button x:Name="SettingsButton"
                     Content="&#xE713;"
                     FontSize="18"
-                    Style="{StaticResource VP.TitleBarButton}"
+                    Style="{DynamicResource VP.TitleBarButton}"
                     Click="SettingsButton_Click"
                     ToolTip="{loc:Loc SettingsButtonToolTip}" />
             <Button x:Name="CollapseChatButton"
-                    Style="{StaticResource VP.TitleBarButton}"
+                    Style="{DynamicResource VP.TitleBarButton}"
                     Click="CollapseChatButton_Click"
                     ToolTip="{loc:Loc CollapseChatPanelToolTip}">
                 <Button.Content>
                     <Grid Width="16" Height="20">
                         <!-- Chat open: rectangle with divider slightly right (right panel = chat) -->
                         <Grid x:Name="PanelOpenIcon">
-                            <Border BorderBrush="{StaticResource VP.TextSecondaryBrush}"
+                            <Border BorderBrush="{DynamicResource VP.TextSecondaryBrush}"
                                     BorderThickness="1" CornerRadius="2" />
                             <Line X1="9.5" Y1="0" X2="9.5" Y2="20"
-                                  Stroke="{StaticResource VP.TextSecondaryBrush}" StrokeThickness="1" />
+                                  Stroke="{DynamicResource VP.TextSecondaryBrush}" StrokeThickness="1" />
                         </Grid>
                         <!-- Chat collapsed: rectangle with divider slightly left (left panel = chat) -->
                         <Grid x:Name="PanelClosedIcon" Visibility="Collapsed">
-                            <Border BorderBrush="{StaticResource VP.TextSecondaryBrush}"
+                            <Border BorderBrush="{DynamicResource VP.TextSecondaryBrush}"
                                     BorderThickness="1" CornerRadius="2" />
                             <Line X1="6.5" Y1="0" X2="6.5" Y2="20"
-                                  Stroke="{StaticResource VP.TextSecondaryBrush}" StrokeThickness="1" />
+                                  Stroke="{DynamicResource VP.TextSecondaryBrush}" StrokeThickness="1" />
                         </Grid>
                     </Grid>
                 </Button.Content>
             </Button>
             <Button x:Name="MinimizeButton"
                     Content="&#xE921;"
-                    Style="{StaticResource VP.TitleBarButton}"
+                    Style="{DynamicResource VP.TitleBarButton}"
                     Click="MinimizeButton_Click"
                     ToolTip="{loc:Loc MinimizeToolTip}" />
             <Button x:Name="MaximizeButton"
                     Content="&#xE922;"
-                    Style="{StaticResource VP.TitleBarButton}"
+                    Style="{DynamicResource VP.TitleBarButton}"
                     Click="MaximizeButton_Click"
                     ToolTip="{loc:Loc MaximizeToolTip}" />
             <Button x:Name="CloseButton"
                     Content="&#xE8BB;"
-                    Style="{StaticResource VP.TitleBarCloseButton}"
+                    Style="{DynamicResource VP.TitleBarCloseButton}"
                     Click="CloseButton_Click"
                     ToolTip="{loc:Loc CloseToolTip}" />
         </StackPanel>

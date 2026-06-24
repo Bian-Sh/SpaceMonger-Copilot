@@ -29,7 +29,7 @@
             </Setter>
         </Style>
         <Style x:Key="TreeHeaderText" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource VP.TextSecondaryBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource VP.TextSecondaryBrush}" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="VerticalAlignment" Value="Center" />
@@ -38,7 +38,7 @@
         </Style>
 
         <Style x:Key="TreeCellText" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource VP.TextPrimaryBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource VP.TextPrimaryBrush}" />
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
@@ -66,7 +66,7 @@
         </Style>
 
         <Style x:Key="TreeColumnBorder" TargetType="Border">
-            <Setter Property="BorderBrush" Value="{StaticResource VP.BorderSubtleBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource VP.BorderSubtleBrush}" />
             <Setter Property="BorderThickness" Value="0,0,0.5,0" />
         </Style>
 
@@ -84,13 +84,13 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="GridSplitter">
                         <Grid Background="Transparent">
-                            <Rectangle x:Name="DividerLine" Width="1" Fill="{StaticResource VP.BorderSubtleBrush}" Opacity="0.5" HorizontalAlignment="Right" />
+                            <Rectangle x:Name="DividerLine" Width="1" Fill="{DynamicResource VP.BorderSubtleBrush}" Opacity="0.5" HorizontalAlignment="Right" />
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="DividerLine" Property="Width" Value="2" />
                                 <Setter TargetName="DividerLine" Property="Opacity" Value="0.8" />
-                                <Setter TargetName="DividerLine" Property="Fill" Value="{StaticResource VP.TextSecondaryBrush}" />
+                                <Setter TargetName="DividerLine" Property="Fill" Value="{DynamicResource VP.TextSecondaryBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -115,8 +115,8 @@
 
             <ScrollViewer x:Name="HeaderScrollViewer" Grid.Column="0" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" CanContentScroll="False">
             <Border
-                Background="{StaticResource VP.SurfaceHoverBrush}"
-                BorderBrush="{StaticResource VP.BorderLightBrush}"
+                Background="{DynamicResource VP.SurfaceHoverBrush}"
+                BorderBrush="{DynamicResource VP.BorderLightBrush}"
                 BorderThickness="0.5,0,0,0.5"
                 CornerRadius="0">
                 <Grid x:Name="HeaderContentGrid">
@@ -172,14 +172,14 @@
         </ScrollViewer>
 
             <Border Grid.Column="1"
-                    Background="{StaticResource VP.SurfaceHoverBrush}"
-                    BorderBrush="{StaticResource VP.BorderLightBrush}"
+                    Background="{DynamicResource VP.SurfaceHoverBrush}"
+                    BorderBrush="{DynamicResource VP.BorderLightBrush}"
                     BorderThickness="0,0,0.5,0.5" />
         </Grid>
 
         <Border Grid.Row="1"
-                Background="{StaticResource VP.SurfaceBrush}"
-                BorderBrush="{StaticResource VP.BorderLightBrush}"
+                Background="{DynamicResource VP.SurfaceBrush}"
+                BorderBrush="{DynamicResource VP.BorderLightBrush}"
                 BorderThickness="0.5,0,0.5,0.5"
                 CornerRadius="0,0,10,10">
             <Border.Effect>
@@ -199,7 +199,7 @@
                       TreeViewItem.Selected="TreeViewItem_Selected">
                 <TreeView.ItemContainerStyle>
                     <Style TargetType="TreeViewItem">
-                        <Setter Property="Foreground" Value="{StaticResource VP.TextPrimaryBrush}" />
+                        <Setter Property="Foreground" Value="{DynamicResource VP.TextPrimaryBrush}" />
                         <Setter Property="FontSize" Value="13" />
                         <Setter Property="Padding" Value="0" />
                         <Setter Property="Margin" Value="0" />
@@ -216,7 +216,7 @@
                                                               ContentSource="Header"
                                                               HorizontalAlignment="Stretch" />
                                         </Border>
-                                        <Border Height="0" BorderBrush="{StaticResource VP.BorderSubtleBrush}" BorderThickness="0,0,0,0.5" Opacity="0.35" />
+                                        <Border Height="0" BorderBrush="{DynamicResource VP.BorderSubtleBrush}" BorderThickness="0,0,0,0.5" Opacity="0.35" />
                                         <ItemsPresenter x:Name="ItemsHost" Visibility="Collapsed" />
                                     </StackPanel>
                                     <ControlTemplate.Triggers>
@@ -301,10 +301,10 @@
                                                                 </Setter>
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ToggleButton}}" Value="True">
-                                                                <Setter Property="Foreground" Value="{StaticResource VP.TextPrimaryBrush}" />
+                                                                <Setter Property="Foreground" Value="{DynamicResource VP.TextPrimaryBrush}" />
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding IsPressed, RelativeSource={RelativeSource AncestorType=ToggleButton}}" Value="True">
-                                                                <Setter Property="Foreground" Value="{StaticResource VP.AccentBrush}" />
+                                                                <Setter Property="Foreground" Value="{DynamicResource VP.AccentBrush}" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
@@ -319,7 +319,7 @@
                                             <TextBlock Text="{Binding IconGlyph}"
                                                        FontFamily="Segoe MDL2 Assets"
                                                        FontSize="14"
-                                                       Foreground="{StaticResource VP.TextSecondaryBrush}"
+                                                       Foreground="{DynamicResource VP.TextSecondaryBrush}"
                                                        Margin="0,0,6,0"
                                                        VerticalAlignment="Center" />
                                             <TextBlock Text="{Binding Name}"
@@ -332,9 +332,9 @@
 
                             <Border Grid.Column="1" Style="{StaticResource TreeColumnBorder}" Padding="4,2">
                                 <Grid>
-                                    <Border Height="18" BorderBrush="{StaticResource VP.BorderSubtleBrush}" BorderThickness="0.5" Background="#102C4A" />
-                                    <Border Height="18" HorizontalAlignment="Left" Width="{Binding ParentPercentBarWidth}" Background="#6F86FF" Opacity="0.9" />
-                                    <TextBlock Text="{Binding ParentPercentText}" Style="{StaticResource TreeNumericText}" Foreground="{StaticResource VP.TextPrimaryBrush}" />
+                                    <Border Height="18" BorderBrush="{DynamicResource VP.BorderSubtleBrush}" BorderThickness="0.5" Background="{DynamicResource VP.SurfaceBrush}" />
+                                    <Border Height="18" HorizontalAlignment="Left" Width="{Binding ParentPercentBarWidth}" Background="{DynamicResource VP.AccentBrush}" Opacity="0.9" />
+                                    <TextBlock Text="{Binding ParentPercentText}" Style="{StaticResource TreeNumericText}" Foreground="White" />
                                 </Grid>
                             </Border>
 

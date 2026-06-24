@@ -10,7 +10,7 @@
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:ChatViewModel, IsDesignTimeCreatable=False}"
              d:DesignHeight="600" d:DesignWidth="380"
-             FontFamily="{StaticResource VP.FontFamily}">
+             FontFamily="{DynamicResource VP.FontFamily}">
 
     <UserControl.Resources>
         <converters:MarkdownToFlowDocumentConverter x:Key="MarkdownConverter" />
@@ -18,7 +18,7 @@
         <converters:SubtractConverter x:Key="SubtractConverter" Subtrahend="50" />
     </UserControl.Resources>
 
-    <Border Style="{StaticResource VP.GlassPanelLarge}" Margin="0" Padding="0">
+    <Border Style="{DynamicResource VP.GlassPanelLarge}" Margin="0" Padding="0">
         <DockPanel>
 
             <!-- 1. API Key Warning (top, conditional) -->
@@ -47,7 +47,7 @@
                                Margin="0,0,0,8" />
                     <Button x:Name="OpenSettingsButton"
                             Content="{loc:Loc OpenSettingsButton}"
-                            Style="{StaticResource VP.Button}"
+                            Style="{DynamicResource VP.Button}"
                             HorizontalAlignment="Center"
                             Padding="14,6"
                             FontSize="11"
@@ -57,8 +57,8 @@
 
             <!-- 4. Input Area (bottom) -->
             <Border DockPanel.Dock="Bottom"
-                    Background="{StaticResource VP.SurfaceBrush}"
-                    BorderBrush="{StaticResource VP.BorderSubtleBrush}"
+                    Background="{DynamicResource VP.SurfaceBrush}"
+                    BorderBrush="{DynamicResource VP.BorderSubtleBrush}"
                     BorderThickness="0,1,0,0"
                     CornerRadius="0,0,10,10"
                     Padding="10">
@@ -126,11 +126,11 @@
                             ToolTip="{loc:Loc ClearContextToolTip}"
                             Background="Transparent"
                             BorderThickness="0"
-                            Foreground="{StaticResource VP.TextSecondaryBrush}"
+                            Foreground="{DynamicResource VP.TextSecondaryBrush}"
                             Cursor="Hand" />
                     <TextBlock VerticalAlignment="Center"
                                FontSize="11"
-                               Foreground="{StaticResource VP.SuccessBrush}"
+                               Foreground="{DynamicResource VP.SuccessBrush}"
                                TextTrimming="CharacterEllipsis">
                         <Run Text="{loc:Loc ChatContextLabel}" FontWeight="SemiBold" />
                         <Run Text="{Binding LinkedItemPath, Mode=OneWay}" />
@@ -160,12 +160,12 @@
                         <TextBlock Text="{loc:Loc ChatEmptyTitle}"
                                    FontSize="17"
                                    FontWeight="SemiBold"
-                                   Foreground="{StaticResource VP.TextPrimaryBrush}"
+                                   Foreground="{DynamicResource VP.TextPrimaryBrush}"
                                    HorizontalAlignment="Center" />
                         <TextBlock Text="{loc:Loc ChatEmptyDescription}"
                                    TextWrapping="Wrap"
                                    TextAlignment="Center"
-                                   Foreground="{StaticResource VP.TextSecondaryBrush}"
+                                   Foreground="{DynamicResource VP.TextSecondaryBrush}"
                                    FontSize="12"
                                    Margin="0,8,0,0" />
                     </StackPanel>
@@ -191,7 +191,7 @@
                                             x:Name="BubbleBorder">
                                         <Border.Style>
                                             <Style TargetType="Border">
-                                                <Setter Property="Background" Value="{StaticResource VP.SurfaceHoverBrush}" />
+                                                <Setter Property="Background" Value="{DynamicResource VP.SurfaceHoverBrush}" />
                                                 <Setter Property="HorizontalAlignment" Value="Left" />
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding Sender}" Value="{x:Static enums:ChatSender.User}">
@@ -295,7 +295,7 @@
                                                 <!-- Thinking indicator -->
                                                 <TextBlock Text="{loc:Loc ThinkingText}"
                                                            FontStyle="Italic"
-                                                           Foreground="{StaticResource VP.TextTertiaryBrush}"
+                                                           Foreground="{DynamicResource VP.TextTertiaryBrush}"
                                                            FontSize="13">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
@@ -319,7 +319,7 @@
                                                                           VerticalScrollBarVisibility="Disabled"
                                                                           HorizontalScrollBarVisibility="Disabled"
                                                                           FontSize="13"
-                                                                          Foreground="{StaticResource VP.TextPrimaryBrush}"
+                                                                          Foreground="{DynamicResource VP.TextPrimaryBrush}"
                                                                           Background="Transparent"
                                                                           IsSelectionEnabled="True"
                                                                           IsToolBarVisible="False"
@@ -337,7 +337,7 @@
                                                                     <Setter Property="Visibility" Value="Collapsed" />
                                                                 </MultiDataTrigger>
                                                                 <DataTrigger Binding="{Binding IsError}" Value="True">
-                                                                    <Setter Property="Foreground" Value="{StaticResource VP.DangerBrush}" />
+                                                                    <Setter Property="Foreground" Value="{DynamicResource VP.DangerBrush}" />
                                                                 </DataTrigger>
                                                             </Style.Triggers>
                                                         </Style>
@@ -347,7 +347,7 @@
                                                 <!-- Streaming cursor -->
                                                 <TextBlock Text=" &#x2588;"
                                                            FontSize="13"
-                                                           Foreground="{StaticResource VP.TextTertiaryBrush}"
+                                                           Foreground="{DynamicResource VP.TextTertiaryBrush}"
                                                            Margin="0,-4,0,0">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">

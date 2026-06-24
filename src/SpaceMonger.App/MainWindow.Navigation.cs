@@ -264,7 +264,7 @@ public partial class MainWindow
                     },
                     Background = Brushes.Transparent,
                     BorderThickness = new Thickness(0),
-                    Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xE0, 0xE0, 0xE0)),
+                    Foreground = (SolidColorBrush)FindResource("VP.TextPrimaryBrush"),
                     Padding = new Thickness(4, 2, 2, 2),
                     Style = (Style)FindResource("VP.BreadcrumbButton"),
                     Cursor = Cursors.Hand,
