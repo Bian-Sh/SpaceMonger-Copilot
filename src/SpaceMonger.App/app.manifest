@@ -5,7 +5,7 @@
     <security>
       <requestedPrivileges xmlns="urn:schemas-microsoft-com:asm.v3">
         <!-- FR-027: Require administrator elevation for raw disk access -->
-        <requestedExecutionLevel level="asInvoker" uiAccess="false" />
+        <requestedExecutionLevel level="requireAdministrator" uiAccess="false" />
       </requestedPrivileges>
     </security>
   </trustInfo>
