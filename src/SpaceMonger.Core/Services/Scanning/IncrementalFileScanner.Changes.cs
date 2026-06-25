@@ -239,11 +239,15 @@ public partial class IncrementalFileScanner
         else
         {
             long size = 0;
+            long allocatedSize = 0;
             try
             {
                 var fi = new FileInfo(fullPath);
                 if (fi.Exists)
+                {
                     size = fi.Length;
+                    allocatedSize = FileScanner.GetAllocatedSize(fullPath, size);
+                }
             }
             catch
             {
@@ -257,6 +261,8 @@ public partial class IncrementalFileScanner
                 IsDirectory = false,
                 Extension = Path.GetExtension(change.FileName)?.ToLowerInvariant(),
                 Size = size,
+                AllocatedSize = allocatedSize,
+                HasAllocatedSize = true,
                 Depth = parentDir.Depth + 1,
                 Parent = parentDir
             };
@@ -283,6 +289,8 @@ public partial class IncrementalFileScanner
             if (fi.Exists)
             {
                 child.Size = fi.Length;
+                child.AllocatedSize = FileScanner.GetAllocatedSize(child.Path, child.Size);
+                child.HasAllocatedSize = true;
                 child.LastModified = fi.LastWriteTime;
                 parentDir.RecalculateSize();
             }

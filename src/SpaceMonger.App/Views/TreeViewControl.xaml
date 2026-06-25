@@ -134,34 +134,314 @@
                     </Grid.ColumnDefinitions>
 
                     <Button Grid.Column="0" Style="{StaticResource TreeHeaderButton}" Command="{Binding SortByNameCommand}">
-                        <TextBlock Style="{StaticResource TreeHeaderText}" Text="文件夹" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="▲" FontSize="8" VerticalAlignment="Center" Margin="0,0,4,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding SortColumn}" Value="Name" />
+                                                    <Condition Binding="{Binding SortDescending}" Value="False" />
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Text="▼" FontSize="8" VerticalAlignment="Center" Margin="0,0,4,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding SortColumn}" Value="Name" />
+                                                    <Condition Binding="{Binding SortDescending}" Value="True" />
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource TreeHeaderText}" Text="文件夹" />
+                        </StackPanel>
                     </Button>
                     <GridSplitter Grid.Column="0" Style="{StaticResource TreeHeaderSplitter}" />
 
-                    <Button Grid.Column="1" Style="{StaticResource TreeHeaderButton}" Command="{Binding SortBySizeCommand}">
-                        <TextBlock Style="{StaticResource TreeHeaderText}" Text="父级百分比" />
+                    <Button Grid.Column="1" Style="{StaticResource TreeHeaderButton}" Command="{Binding SortByParentPercentCommand}">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="▲" FontSize="8" VerticalAlignment="Center" Margin="0,0,4,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding SortColumn}" Value="ParentPercent" />
+                                                    <Condition Binding="{Binding SortDescending}" Value="False" />
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Text="▼" FontSize="8" VerticalAlignment="Center" Margin="0,0,4,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding SortColumn}" Value="ParentPercent" />
+                                                    <Condition Binding="{Binding SortDescending}" Value="True" />
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource TreeHeaderText}" Text="父级百分比" />
+                        </StackPanel>
                     </Button>
                     <GridSplitter Grid.Column="1" Style="{StaticResource TreeHeaderSplitter}" />
 
                     <Button Grid.Column="2" Style="{StaticResource TreeHeaderButton}" Command="{Binding SortBySizeCommand}">
-                        <TextBlock Style="{StaticResource TreeHeaderText}" Text="大小" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="▲" FontSize="8" VerticalAlignment="Center" Margin="0,0,4,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding SortColumn}" Value="Size" />
+                                                    <Condition Binding="{Binding SortDescending}" Value="False" />
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Text="▼" FontSize="8" VerticalAlignment="Center" Margin="0,0,4,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding SortColumn}" Value="Size" />
+                                                    <Condition Binding="{Binding SortDescending}" Value="True" />
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource TreeHeaderText}" Text="大小" />
+                        </StackPanel>
                     </Button>
                     <GridSplitter Grid.Column="2" Style="{StaticResource TreeHeaderSplitter}" />
 
-                    <TextBlock Grid.Column="3" Style="{StaticResource TreeHeaderText}" Text="分配" Margin="0,0,8,0" />
+                    <Button Grid.Column="3" Style="{StaticResource TreeHeaderButton}" Command="{Binding SortByAllocatedCommand}">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="▲" FontSize="8" VerticalAlignment="Center" Margin="0,0,4,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding SortColumn}" Value="Allocated" />
+                                                    <Condition Binding="{Binding SortDescending}" Value="False" />
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Text="▼" FontSize="8" VerticalAlignment="Center" Margin="0,0,4,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding SortColumn}" Value="Allocated" />
+                                                    <Condition Binding="{Binding SortDescending}" Value="True" />
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource TreeHeaderText}" Text="分配" />
+                        </StackPanel>
+                    </Button>
                     <GridSplitter Grid.Column="3" Style="{StaticResource TreeHeaderSplitter}" />
 
-                    <TextBlock Grid.Column="4" Style="{StaticResource TreeHeaderText}" Text="项目" Margin="0,0,8,0" />
+                    <Button Grid.Column="4" Style="{StaticResource TreeHeaderButton}" Command="{Binding SortByItemCountCommand}">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="▲" FontSize="8" VerticalAlignment="Center" Margin="0,0,4,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding SortColumn}" Value="ItemCount" />
+                                                    <Condition Binding="{Binding SortDescending}" Value="False" />
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Text="▼" FontSize="8" VerticalAlignment="Center" Margin="0,0,4,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding SortColumn}" Value="ItemCount" />
+                                                    <Condition Binding="{Binding SortDescending}" Value="True" />
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource TreeHeaderText}" Text="项目" />
+                        </StackPanel>
+                    </Button>
                     <GridSplitter Grid.Column="4" Style="{StaticResource TreeHeaderSplitter}" />
 
-                    <TextBlock Grid.Column="5" Style="{StaticResource TreeHeaderText}" Text="文件" Margin="0,0,8,0" />
+                    <Button Grid.Column="5" Style="{StaticResource TreeHeaderButton}" Command="{Binding SortByFileCountCommand}">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="▲" FontSize="8" VerticalAlignment="Center" Margin="0,0,4,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding SortColumn}" Value="FileCount" />
+                                                    <Condition Binding="{Binding SortDescending}" Value="False" />
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Text="▼" FontSize="8" VerticalAlignment="Center" Margin="0,0,4,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding SortColumn}" Value="FileCount" />
+                                                    <Condition Binding="{Binding SortDescending}" Value="True" />
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource TreeHeaderText}" Text="文件" />
+                        </StackPanel>
+                    </Button>
                     <GridSplitter Grid.Column="5" Style="{StaticResource TreeHeaderSplitter}" />
 
-                    <TextBlock Grid.Column="6" Style="{StaticResource TreeHeaderText}" Text="文件夹" Margin="0,0,8,0" />
+                    <Button Grid.Column="6" Style="{StaticResource TreeHeaderButton}" Command="{Binding SortByFolderCountCommand}">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="▲" FontSize="8" VerticalAlignment="Center" Margin="0,0,4,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding SortColumn}" Value="FolderCount" />
+                                                    <Condition Binding="{Binding SortDescending}" Value="False" />
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Text="▼" FontSize="8" VerticalAlignment="Center" Margin="0,0,4,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding SortColumn}" Value="FolderCount" />
+                                                    <Condition Binding="{Binding SortDescending}" Value="True" />
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource TreeHeaderText}" Text="文件夹" />
+                        </StackPanel>
+                    </Button>
                     <GridSplitter Grid.Column="6" Style="{StaticResource TreeHeaderSplitter}" />
 
                     <Button Grid.Column="7" Style="{StaticResource TreeHeaderButton}" Command="{Binding SortByModifiedCommand}">
-                        <TextBlock Style="{StaticResource TreeHeaderText}" Text="修改时间" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="▲" FontSize="8" VerticalAlignment="Center" Margin="0,0,4,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding SortColumn}" Value="Modified" />
+                                                    <Condition Binding="{Binding SortDescending}" Value="False" />
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Text="▼" FontSize="8" VerticalAlignment="Center" Margin="0,0,4,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding SortColumn}" Value="Modified" />
+                                                    <Condition Binding="{Binding SortDescending}" Value="True" />
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource TreeHeaderText}" Text="修改时间" />
+                        </StackPanel>
                     </Button>
                     <GridSplitter Grid.Column="7" Style="{StaticResource TreeHeaderSplitter}" />
 

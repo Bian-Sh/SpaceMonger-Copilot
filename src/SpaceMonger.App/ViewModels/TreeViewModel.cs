@@ -26,6 +26,9 @@ public partial class TreeViewModel : ObservableObject
     private bool _sortDescending = true;
 
     [ObservableProperty]
+    private string _sortColumn = "";
+
+    [ObservableProperty]
     private long _totalSize;
 
     [ObservableProperty]
@@ -46,47 +49,112 @@ public partial class TreeViewModel : ObservableObject
     [RelayCommand]
     private void SortBySize()
     {
+        if (SortColumn == "Size")
+            SortDescending = !SortDescending;
+        else
+        {
+            SortColumn = "Size";
+            SortDescending = true;
+        }
         SortBy = "Size";
-        SortDescending = true;
         RebuildTree();
     }
 
     [RelayCommand]
     private void SortByName()
     {
-        if (SortBy == "Name")
+        if (SortColumn == "Name")
             SortDescending = !SortDescending;
         else
         {
-            SortBy = "Name";
+            SortColumn = "Name";
             SortDescending = false;
         }
+        SortBy = "Name";
         RebuildTree();
     }
 
     [RelayCommand]
-    private void SortByType()
+    private void SortByParentPercent()
     {
-        if (SortBy == "Type")
+        if (SortColumn == "ParentPercent")
             SortDescending = !SortDescending;
         else
         {
-            SortBy = "Type";
-            SortDescending = false;
+            SortColumn = "ParentPercent";
+            SortDescending = true;
         }
+        SortBy = "ParentPercent";
+        RebuildTree();
+    }
+
+    [RelayCommand]
+    private void SortByAllocated()
+    {
+        if (SortColumn == "Allocated")
+            SortDescending = !SortDescending;
+        else
+        {
+            SortColumn = "Allocated";
+            SortDescending = true;
+        }
+        SortBy = "Allocated";
+        RebuildTree();
+    }
+
+    [RelayCommand]
+    private void SortByItemCount()
+    {
+        if (SortColumn == "ItemCount")
+            SortDescending = !SortDescending;
+        else
+        {
+            SortColumn = "ItemCount";
+            SortDescending = true;
+        }
+        SortBy = "ItemCount";
+        RebuildTree();
+    }
+
+    [RelayCommand]
+    private void SortByFileCount()
+    {
+        if (SortColumn == "FileCount")
+            SortDescending = !SortDescending;
+        else
+        {
+            SortColumn = "FileCount";
+            SortDescending = true;
+        }
+        SortBy = "FileCount";
+        RebuildTree();
+    }
+
+    [RelayCommand]
+    private void SortByFolderCount()
+    {
+        if (SortColumn == "FolderCount")
+            SortDescending = !SortDescending;
+        else
+        {
+            SortColumn = "FolderCount";
+            SortDescending = true;
+        }
+        SortBy = "FolderCount";
         RebuildTree();
     }
 
     [RelayCommand]
     private void SortByModified()
     {
-        if (SortBy == "Modified")
+        if (SortColumn == "Modified")
             SortDescending = !SortDescending;
         else
         {
-            SortBy = "Modified";
+            SortColumn = "Modified";
             SortDescending = true;
         }
+        SortBy = "Modified";
         RebuildTree();
     }
 
@@ -203,7 +271,7 @@ public partial class TreeViewItemViewModel : ObservableObject
     public IReadOnlyList<TreeGuideSegment> TreeGuideSegments { get; }
 
     public string SizeText => FormatSize(Entry.Size);
-    public string AllocatedText => FormatSize(Entry.Size);
+    public string AllocatedText => FormatSize(Entry.HasAllocatedSize ? Entry.AllocatedSize : Entry.Size);
     public string TypeText => Entry.IsDirectory ? "File folder" : (Entry.Extension?.TrimStart('.')?.ToUpperInvariant() ?? "File");
     public string ModifiedText => Entry.LastModified == default ? string.Empty : Entry.LastModified.ToString("yyyy-MM-dd HH:mm:ss");
     public string AttributeText { get; }
@@ -288,9 +356,34 @@ public partial class TreeViewItemViewModel : ObservableObject
             return stats;
         }
 
-        stats = new TreeEntryStats(1, entry.IsDirectory ? 0 : 1, entry.IsDirectory ? 1 : 0);
+        stats = CreateStats(entry);
         _statsCache[entry] = stats;
         return stats;
+    }
+
+    private static TreeEntryStats CreateStats(FileEntry entry)
+    {
+        if (entry.SubtreeItemCount > 0 || entry.SubtreeFileCount > 0 || entry.SubtreeFolderCount > 0)
+        {
+            return new TreeEntryStats(entry.SubtreeItemCount, entry.SubtreeFileCount, entry.SubtreeFolderCount);
+        }
+
+        if (!entry.IsDirectory)
+        {
+            return new TreeEntryStats(1, 1, 0);
+        }
+
+        var fileCount = 0;
+        var folderCount = 1;
+
+        foreach (var child in entry.Children)
+        {
+            var childStats = CreateStats(child);
+            fileCount += childStats.FileCount;
+            folderCount += childStats.FolderCount;
+        }
+
+        return new TreeEntryStats(fileCount + folderCount, fileCount, folderCount);
     }
 
     private static List<FileEntry> GetSortedChildren(List<FileEntry> children, string sortBy, bool descending)
@@ -306,13 +399,30 @@ public partial class TreeViewItemViewModel : ObservableObject
             "Modified" => descending
                 ? children.OrderByDescending(c => c.LastModified).ToList()
                 : children.OrderBy(c => c.LastModified).ToList(),
+            "ParentPercent" => descending
+                ? children.OrderByDescending(c => c.Size).ToList()
+                : children.OrderBy(c => c.Size).ToList(),
+            "Allocated" => descending
+                ? children.OrderByDescending(GetAllocatedSortSize).ToList()
+                : children.OrderBy(GetAllocatedSortSize).ToList(),
+            "ItemCount" => descending
+                ? children.OrderByDescending(c => c.SubtreeItemCount).ToList()
+                : children.OrderBy(c => c.SubtreeItemCount).ToList(),
+            "FileCount" => descending
+                ? children.OrderByDescending(c => c.SubtreeFileCount).ToList()
+                : children.OrderBy(c => c.SubtreeFileCount).ToList(),
+            "FolderCount" => descending
+                ? children.OrderByDescending(c => c.SubtreeFolderCount).ToList()
+                : children.OrderBy(c => c.SubtreeFolderCount).ToList(),
             _ => descending
                 ? children.OrderByDescending(c => c.Size).ToList()
                 : children.OrderBy(c => c.Size).ToList()
         };
 
-        return sorted.OrderByDescending(c => c.IsDirectory).ThenByDescending(c => descending ? c.Size : -c.Size).ToList();
+        return sorted.OrderByDescending(c => c.IsDirectory).ToList();
     }
+
+    private static long GetAllocatedSortSize(FileEntry entry) => entry.HasAllocatedSize ? entry.AllocatedSize : entry.Size;
 
     private static string BuildAttributeText(FileEntry entry)
     {

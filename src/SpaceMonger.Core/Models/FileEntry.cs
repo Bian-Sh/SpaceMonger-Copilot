@@ -7,6 +7,8 @@ public class FileEntry
     public string Path { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public long Size { get; set; }
+    public long AllocatedSize { get; set; }
+    public bool HasAllocatedSize { get; set; }
     public string? Extension { get; set; }
     public DateTime LastModified { get; set; }
     public bool IsDirectory { get; set; }
@@ -28,6 +30,8 @@ public class FileEntry
         if (IsDirectory)
         {
             Size = Children.Sum(c => c.Size);
+            AllocatedSize = Children.Sum(c => c.HasAllocatedSize ? c.AllocatedSize : c.Size);
+            HasAllocatedSize = true;
             SubtreeFileCount = Children.Sum(c => c.SubtreeFileCount > 0 ? c.SubtreeFileCount : c.IsDirectory ? 0 : 1);
             SubtreeFolderCount = 1 + Children.Sum(c => c.SubtreeFolderCount > 0 ? c.SubtreeFolderCount : c.IsDirectory ? 1 : 0);
             SubtreeItemCount = SubtreeFileCount + SubtreeFolderCount;
@@ -37,6 +41,11 @@ public class FileEntry
             SubtreeFileCount = 1;
             SubtreeFolderCount = 0;
             SubtreeItemCount = 1;
+            if (AllocatedSize == 0 && Size > 0)
+            {
+                AllocatedSize = Size;
+                HasAllocatedSize = true;
+            }
         }
 
         Parent?.RecalculateSize();

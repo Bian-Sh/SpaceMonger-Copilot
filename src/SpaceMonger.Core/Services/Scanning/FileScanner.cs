@@ -1,4 +1,5 @@
 using System.IO.Enumeration;
+using System.Runtime.InteropServices;
 using SpaceMonger.Core.Models;
 
 namespace SpaceMonger.Core.Services.Scanning;
@@ -123,6 +124,8 @@ public class FileScanner : IFileScanner
                                 // Length comes straight from WIN32_FIND_DATA 鈥?no extra syscall.
                                 // Cloud placeholders report 0 to avoid triggering downloads.
                                 Size = isCloudPlaceholder ? 0 : item.Length,
+                                AllocatedSize = GetAllocatedSize(item.FullPath, item.Length, isCloudPlaceholder),
+                                HasAllocatedSize = true,
                                 Depth = current.Depth + 1,
                                 Parent = current
                             };
@@ -242,6 +245,8 @@ public class FileScanner : IFileScanner
             if (entry.IsDirectory)
             {
                 entry.Size = entry.Children.Sum(c => c.Size);
+                entry.AllocatedSize = entry.Children.Sum(c => c.HasAllocatedSize ? c.AllocatedSize : c.Size);
+                entry.HasAllocatedSize = true;
                 entry.SubtreeFileCount = entry.Children.Sum(c => c.SubtreeFileCount > 0 ? c.SubtreeFileCount : c.IsDirectory ? 0 : 1);
                 entry.SubtreeFolderCount = 1 + entry.Children.Sum(c => c.SubtreeFolderCount > 0 ? c.SubtreeFolderCount : c.IsDirectory ? 1 : 0);
                 entry.SubtreeItemCount = entry.SubtreeFileCount + entry.SubtreeFolderCount;
@@ -251,8 +256,44 @@ public class FileScanner : IFileScanner
                 entry.SubtreeFileCount = 1;
                 entry.SubtreeFolderCount = 0;
                 entry.SubtreeItemCount = 1;
+                if (entry.AllocatedSize == 0 && entry.Size > 0)
+                {
+                    entry.AllocatedSize = entry.Size;
+                    entry.HasAllocatedSize = true;
+                }
             }
         }
     }
+
+    internal static long GetAllocatedSize(string path, long logicalSize, bool isCloudPlaceholder = false)
+    {
+        if (isCloudPlaceholder || logicalSize == 0)
+        {
+            return 0;
+        }
+
+        if (!OperatingSystem.IsWindows())
+        {
+            return logicalSize;
+        }
+
+        try
+        {
+            var low = GetCompressedFileSize(path, out var high);
+            if (low == uint.MaxValue && Marshal.GetLastWin32Error() != 0)
+            {
+                return logicalSize;
+            }
+
+            return ((long)high << 32) + low;
+        }
+        catch
+        {
+            return logicalSize;
+        }
+    }
+
+    [DllImport("kernel32.dll", EntryPoint = "GetCompressedFileSizeW", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern uint GetCompressedFileSize(string fileName, out uint fileSizeHigh);
 }
 

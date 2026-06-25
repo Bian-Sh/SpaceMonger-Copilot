@@ -63,9 +63,10 @@ internal static class ParallelSizeCollector
                     foreach (var child in dir.Children)
                         childByName.TryAdd(child.Name, child);
 
-                    var enumerable = new FileSystemEnumerable<(string Name, FileAttributes Attributes, long Length, DateTime LastWrite, bool IsDir)>(
+                    var enumerable = new FileSystemEnumerable<(string FullPath, string Name, FileAttributes Attributes, long Length, DateTime LastWrite, bool IsDir)>(
                         dir.Path,
                         (ref FileSystemEntry entry) => (
+                            entry.ToFullPath(),
                             entry.FileName.ToString(),
                             entry.Attributes,
                             entry.Length,
@@ -93,6 +94,8 @@ internal static class ParallelSizeCollector
                             var isCloudPlaceholder = (item.Attributes & CloudPlaceholderMask) != 0;
                             child.IsCloudPlaceholder = isCloudPlaceholder;
                             child.Size = isCloudPlaceholder ? 0 : item.Length;
+                            child.AllocatedSize = FileScanner.GetAllocatedSize(item.FullPath, item.Length, isCloudPlaceholder);
+                            child.HasAllocatedSize = true;
                             child.Extension = Path.GetExtension(item.Name)?.ToLowerInvariant();
                             Interlocked.Increment(ref fileCount);
                         }
