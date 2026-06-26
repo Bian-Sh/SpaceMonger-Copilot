@@ -22,6 +22,9 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
+    <AssemblyTitle>SpaceMonger Copilot</AssemblyTitle>
+    <Product>SpaceMonger Copilot</Product>
+    <Description>Disk space management Copilot</Description>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -31,3 +34,4 @@
   </PropertyGroup>
 
 </Project>
+

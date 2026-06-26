@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -555,7 +555,7 @@ public class AnthropicClient : ILlmClient
     {
         var directory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "SpaceMonger.Next",
+            "SpaceMonger Copilot",
             "logs",
             directoryName);
         Directory.CreateDirectory(directory);
@@ -582,4 +582,5 @@ public class AnthropicClient : ILlmClient
         return TimeSpan.FromSeconds(5);
     }
 }
+
 

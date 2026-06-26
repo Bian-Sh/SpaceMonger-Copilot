@@ -33,7 +33,7 @@
 
             <!-- 标题行：标题居中，投喂入口靠右，互不影响 -->
             <Grid HorizontalAlignment="Stretch" Margin="0,0,0,0">
-                <TextBlock Text="SpaceMonger Next"
+                <TextBlock Text="SpaceMonger Copilot"
                            FontSize="26" FontWeight="Bold"
                            Foreground="{DynamicResource VP.TextPrimaryBrush}"
                            HorizontalAlignment="Center"
@@ -73,11 +73,11 @@
                        FontSize="13">
                 <Run Text="{loc:Loc GithubLabel}" Foreground="{DynamicResource VP.TextSecondaryBrush}" />
                 <Run Text=": " Foreground="{DynamicResource VP.TextSecondaryBrush}" />
-                <Hyperlink NavigateUri="https://github.com/Bian-Sh/spacemonger-next"
+                <Hyperlink NavigateUri="https://github.com/Bian-Sh/SpaceMonger-Copilot"
                            Foreground="{DynamicResource VP.AccentBrush}"
                            TextDecorations="None"
                            RequestNavigate="Hyperlink_RequestNavigate">
-                    <Run Text="github.com/Bian-Sh/spacemonger-next" />
+                    <Run Text="github.com/Bian-Sh/SpaceMonger-Copilot" />
                 </Hyperlink>
             </TextBlock>
 

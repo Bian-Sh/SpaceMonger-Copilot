@@ -191,11 +191,11 @@ public partial class TreemapView : UserControl
     {
         if (ShowMessageAsync is not null)
         {
-            await ShowMessageAsync(message, "SpaceMonger.Next", MessageBoxButton.OK, MessageBoxImage.Error);
+            await ShowMessageAsync(message, "SpaceMonger Copilot", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
 
-        await Dispatcher.InvokeAsync(() => MessageBox.Show(Window.GetWindow(this), message, "SpaceMonger.Next", MessageBoxButton.OK, MessageBoxImage.Error));
+        await Dispatcher.InvokeAsync(() => MessageBox.Show(Window.GetWindow(this), message, "SpaceMonger Copilot", MessageBoxButton.OK, MessageBoxImage.Error));
     }
     private void TreemapContainer_SizeChanged(object sender, SizeChangedEventArgs e)
     {
@@ -229,6 +229,7 @@ public partial class TreemapView : UserControl
         _viewModel?.UpdateSize((float)e.NewSize.Width, (float)e.NewSize.Height);
     }
 }
+
 
 
 

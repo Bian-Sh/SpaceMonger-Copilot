@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -12,7 +12,7 @@ internal static class CrashDiagnostics
 
     public static string DiagnosticsDirectory { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "SpaceMonger.Next",
+        "SpaceMonger Copilot",
         "Diagnostics");
 
     public static string LogDirectory { get; } = Path.Combine(DiagnosticsDirectory, "logs");

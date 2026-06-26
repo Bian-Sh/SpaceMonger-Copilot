@@ -220,9 +220,10 @@ public partial class TreeViewControl : UserControl
 
     private async Task ShowErrorAsync(string message)
     {
-        await Dispatcher.InvokeAsync(() => MessageBox.Show(Window.GetWindow(this), message, "SpaceMonger.Next", MessageBoxButton.OK, MessageBoxImage.Error));
+        await Dispatcher.InvokeAsync(() => MessageBox.Show(Window.GetWindow(this), message, "SpaceMonger Copilot", MessageBoxButton.OK, MessageBoxImage.Error));
     }
 }
+
 
 
 

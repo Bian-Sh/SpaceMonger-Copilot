@@ -11,11 +11,11 @@ namespace SpaceMonger.App.Services;
 public class UpdateService
 {
     private const string RepoOwner = "Bian-Sh";
-    private const string RepoName = "spacemonger-next";
+    private const string RepoName = "SpaceMonger-Copilot";
     private const int CheckTimeoutSeconds = 10;
     private static readonly string CacheDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "SpaceMonger.Next", "updates");
+        "SpaceMonger Copilot", "updates");
     private static readonly string CacheMetaPath = Path.Combine(CacheDir, "update-cache.json");
 
     private readonly HttpClient _httpClient;
@@ -23,7 +23,7 @@ public class UpdateService
     public UpdateService()
     {
         _httpClient = new HttpClient();
-        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("SpaceMongerNext-UpdateChecker");
+        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("SpaceMongerCopilot-UpdateChecker");
         _httpClient.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
     }
 

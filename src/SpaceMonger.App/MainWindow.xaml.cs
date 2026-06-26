@@ -40,7 +40,7 @@ public partial class MainWindow : Window
     private readonly StringBuilder _consoleLog = new();
     private readonly string _consoleLogPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "SpaceMonger.Next",
+        "SpaceMonger Copilot",
         "logs",
         $"console-{DateTime.Now:yyyyMMdd-HHmmss}.log");
     private ConsoleLogLevel _visibleConsoleLevels = ConsoleLogLevel.Info | ConsoleLogLevel.Warning | ConsoleLogLevel.Error;
@@ -138,5 +138,6 @@ public partial class MainWindow : Window
     }
 
 }
+
 
 

@@ -192,7 +192,7 @@ public partial class RecommendationEngine
         {
             var directory = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "SpaceMonger.Next",
+                "SpaceMonger Copilot",
                 "logs",
                 "analysis-responses");
             Directory.CreateDirectory(directory);
@@ -300,3 +300,4 @@ public partial class RecommendationEngine
     }
 
 }
+
