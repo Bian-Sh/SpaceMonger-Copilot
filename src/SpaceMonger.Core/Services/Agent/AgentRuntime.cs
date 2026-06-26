@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
 using SpaceMonger.Core.Models;
+using SpaceMonger.Core.Services.Copilot;
 using SpaceMonger.Core.Services.Llm;
 
 namespace SpaceMonger.Core.Services.Agent;
@@ -24,6 +25,7 @@ public sealed class AgentRuntime : IAgentRuntime
         AgentContext context,
         IReadOnlyList<(string Role, string Content)> conversationHistory,
         string userMessage,
+        IReadOnlyList<AiSkill> activeSkills,
         string apiKey,
         string? baseUrl,
         CancellationToken cancellationToken)
@@ -31,7 +33,7 @@ public sealed class AgentRuntime : IAgentRuntime
         var messages = conversationHistory.ToList();
         messages.Add(("user", BuildUserMessage(context, userMessage)));
 
-        var systemPrompt = BuildSystemPrompt();
+        var systemPrompt = BuildSystemPrompt(activeSkills);
         var allToolResults = new List<AgentToolResult>();
         var seededResults = await ExecuteHeuristicToolsAsync(context, userMessage, cancellationToken).ConfigureAwait(false);
         if (seededResults.Count > 0)
@@ -208,7 +210,7 @@ public sealed class AgentRuntime : IAgentRuntime
         }
     }
 
-    private string BuildSystemPrompt()
+    private string BuildSystemPrompt(IReadOnlyList<AiSkill> activeSkills)
     {
         var builder = new StringBuilder();
         builder.AppendLine("You are a disk space analysis assistant with read-only access to the already scanned file tree.");
@@ -221,6 +223,16 @@ public sealed class AgentRuntime : IAgentRuntime
         builder.AppendLine("  {\"tool_calls\":[{\"id\":\"call_1\",\"name\":\"tool_name\",\"arguments\":{}}]}");
         builder.AppendLine("- After observations are provided, answer normally in the user's language.");
         builder.AppendLine();
+        if (activeSkills.Count > 0)
+        {
+            builder.AppendLine("Active disk-management skills for this turn:");
+            foreach (var skill in activeSkills)
+            {
+                builder.AppendLine($"- {skill.Id}: {skill.Prompt}");
+            }
+            builder.AppendLine();
+        }
+
         builder.AppendLine("Available tools:");
 
         foreach (var tool in _tools.Values.OrderBy(tool => tool.Name))
@@ -399,4 +411,6 @@ public sealed class AgentRuntime : IAgentRuntime
         }, AgentJson.Options);
     }
 }
+
+
 

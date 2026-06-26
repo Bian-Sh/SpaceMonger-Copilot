@@ -16,6 +16,7 @@
         <converters:MarkdownToFlowDocumentConverter x:Key="MarkdownConverter" />
         <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
         <converters:SubtractConverter x:Key="SubtractConverter" Subtrahend="50" />
+        <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
     </UserControl.Resources>
 
     <Border Style="{DynamicResource VP.GlassPanelLarge}" Margin="0" Padding="0">
@@ -364,6 +365,55 @@
                                                         </Style>
                                                     </TextBlock.Style>
                                                 </TextBlock>
+                                                <!-- AI interaction card -->
+                                                <Border Margin="0,8,0,0"
+                                                        Padding="10"
+                                                        CornerRadius="10"
+                                                        Background="#182A3A4A"
+                                                        BorderBrush="{DynamicResource VP.BorderLightBrush}"
+                                                        BorderThickness="0.5"
+                                                        Visibility="{Binding InteractionCard, Converter={StaticResource NullToVisibilityConverter}}">
+                                                    <StackPanel DataContext="{Binding InteractionCard}">
+                                                        <TextBlock Text="{Binding Title}"
+                                                                   FontSize="13"
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource VP.TextPrimaryBrush}"
+                                                                   TextWrapping="Wrap" />
+                                                        <TextBlock Text="{Binding Description}"
+                                                                   Margin="0,5,0,0"
+                                                                   FontSize="12"
+                                                                   Foreground="{DynamicResource VP.TextSecondaryBrush}"
+                                                                   TextWrapping="Wrap" />
+                                                        <TextBlock Text="{Binding Impact}"
+                                                                   Margin="0,5,0,0"
+                                                                   FontSize="12"
+                                                                   Foreground="{DynamicResource VP.TextTertiaryBrush}"
+                                                                   TextWrapping="Wrap" />
+                                                        <TextBlock Text="{Binding StatusText}"
+                                                                   Margin="0,8,0,0"
+                                                                   FontSize="12"
+                                                                   Foreground="{DynamicResource VP.AccentBrush}"
+                                                                   TextWrapping="Wrap"
+                                                                   Visibility="{Binding HasStatusText, Converter={StaticResource BoolToVis}}" />
+                                                        <StackPanel Orientation="Horizontal"
+                                                                    HorizontalAlignment="Right"
+                                                                    Margin="0,10,0,0"
+                                                                    Visibility="{Binding IsPending, Converter={StaticResource BoolToVis}}">
+                                                            <Button Content="{Binding CancelText}"
+                                                                    Padding="12,5"
+                                                                    Margin="0,0,8,0"
+                                                                    Style="{DynamicResource VP.Button}"
+                                                                    Command="{Binding DataContext.CancelInteractionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                    CommandParameter="{Binding}" />
+                                                            <Button Content="{Binding ConfirmText}"
+                                                                    Padding="12,5"
+                                                                    Style="{DynamicResource VP.AccentButton}"
+                                                                    Command="{Binding DataContext.ConfirmInteractionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                    CommandParameter="{Binding}" />
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                </Border>
+
                                             </StackPanel>
 
                                             <!-- Copy button for AI messages (bottom-left) -->
@@ -455,4 +505,6 @@
         </DockPanel>
     </Border>
 </UserControl>
+
+
 

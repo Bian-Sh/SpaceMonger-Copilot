@@ -1,4 +1,6 @@
-﻿namespace SpaceMonger.Core.Services.Agent;
+﻿using SpaceMonger.Core.Services.Copilot;
+
+namespace SpaceMonger.Core.Services.Agent;
 
 public interface IAgentRuntime
 {
@@ -6,6 +8,7 @@ public interface IAgentRuntime
         AgentContext context,
         IReadOnlyList<(string Role, string Content)> conversationHistory,
         string userMessage,
+        IReadOnlyList<AiSkill> activeSkills,
         string apiKey,
         string? baseUrl,
         CancellationToken cancellationToken);

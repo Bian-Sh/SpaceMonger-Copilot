@@ -225,6 +225,12 @@ public partial class RecommendationsViewModel : ObservableObject
         UpdateTotals();
     }
 
+    public void RefreshFilteredRecommendations()
+    {
+        ApplyFilters();
+        UpdateTotals();
+    }
+
     public void UpdateTotals()
     {
         TotalSelectedCount = Recommendations.Count(r => r.IsAccepted);
@@ -238,3 +244,4 @@ public partial class RecommendationsViewModel : ObservableObject
                 : null;
     }
 }
+

@@ -1,6 +1,7 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using SpaceMonger.Core.Enums;
+using SpaceMonger.Core.Services.Copilot;
 
 namespace SpaceMonger.Core.Models;
 
@@ -39,6 +40,8 @@ public class ChatMessage : INotifyPropertyChanged
 
     public CleanupRecommendation? LinkedRecommendation { get; set; }
 
+    public AiInteractionCard? InteractionCard { get; set; }
+
     public bool IsError
     {
         get => _isError;
@@ -68,3 +71,5 @@ public class ChatMessage : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 }
+
+

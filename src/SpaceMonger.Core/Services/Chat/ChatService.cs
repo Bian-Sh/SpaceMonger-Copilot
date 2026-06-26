@@ -1,5 +1,6 @@
 ﻿using SpaceMonger.Core.Models;
 using SpaceMonger.Core.Services.Agent;
+using SpaceMonger.Core.Services.Copilot;
 using SpaceMonger.Core.Services.Llm;
 
 namespace SpaceMonger.Core.Services.Chat;
@@ -23,6 +24,7 @@ public class ChatService : IChatService
         CleanupRecommendation? linkedRecommendation,
         FileEntry currentViewRoot,
         ScanSession session,
+        IReadOnlyList<AiSkill> activeSkills,
         string apiKey,
         string? baseUrl,
         CancellationToken cancellationToken)
@@ -31,6 +33,7 @@ public class ChatService : IChatService
             new AgentContext(session, currentViewRoot, linkedEntry, linkedRecommendation),
             _conversationHistory,
             userMessage,
+            activeSkills,
             apiKey,
             baseUrl,
             cancellationToken).ConfigureAwait(false);
@@ -45,6 +48,7 @@ public class ChatService : IChatService
         CleanupRecommendation? linkedRecommendation,
         FileEntry currentViewRoot,
         ScanSession session,
+        IReadOnlyList<AiSkill> activeSkills,
         string apiKey,
         string? baseUrl,
         Action<string> onToken,
@@ -54,6 +58,7 @@ public class ChatService : IChatService
             new AgentContext(session, currentViewRoot, linkedEntry, linkedRecommendation),
             _conversationHistory,
             userMessage,
+            activeSkills,
             apiKey,
             baseUrl,
             cancellationToken).ConfigureAwait(false);
@@ -69,6 +74,7 @@ public class ChatService : IChatService
         CleanupRecommendation? linkedRecommendation,
         FileEntry currentViewRoot,
         ScanSession session,
+        IReadOnlyList<AiSkill> activeSkills,
         string apiKey,
         string? baseUrl,
         Action<string>? onThinkingToken,
@@ -79,6 +85,7 @@ public class ChatService : IChatService
             new AgentContext(session, currentViewRoot, linkedEntry, linkedRecommendation),
             _conversationHistory,
             userMessage,
+            activeSkills,
             apiKey,
             baseUrl,
             cancellationToken).ConfigureAwait(false);
@@ -125,3 +132,5 @@ public class ChatService : IChatService
         }
     }
 }
+
+

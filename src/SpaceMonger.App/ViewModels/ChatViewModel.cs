@@ -3,9 +3,11 @@ using System.Collections.Specialized;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SpaceMonger.App.Localization;
+using SpaceMonger.App.Services.Copilot;
 using SpaceMonger.Core.Enums;
 using SpaceMonger.Core.Models;
 using SpaceMonger.Core.Services.Chat;
+using SpaceMonger.Core.Services.Copilot;
 using SpaceMonger.Core.Services.Settings;
 
 namespace SpaceMonger.App.ViewModels;
@@ -14,6 +16,8 @@ public partial class ChatViewModel : ObservableObject
 {
     private readonly IChatService _chatService;
     private readonly ISettingsService _settingsService;
+    private readonly IAiSkillRouter _skillRouter;
+    private IAiDiskActionExecutor _actionExecutor = new NullAiDiskActionExecutor();
 
     private ScanSession? _currentSession;
     private FileEntry? _currentViewRoot;
@@ -48,12 +52,18 @@ public partial class ChatViewModel : ObservableObject
     [ObservableProperty]
     private string? _linkedItemPath;
 
-    public ChatViewModel(IChatService chatService, ISettingsService settingsService)
+    public ChatViewModel(IChatService chatService, ISettingsService settingsService, IAiSkillRouter skillRouter)
     {
         _chatService = chatService;
         _settingsService = settingsService;
+        _skillRouter = skillRouter;
         Messages.CollectionChanged += Messages_CollectionChanged;
         RefreshApiKeyStatus();
+    }
+
+    public void SetActionExecutor(IAiDiskActionExecutor actionExecutor)
+    {
+        _actionExecutor = actionExecutor;
     }
 
     partial void OnMessagesChanged(ObservableCollection<ChatMessage>? oldValue, ObservableCollection<ChatMessage> newValue)
@@ -106,7 +116,7 @@ public partial class ChatViewModel : ObservableObject
     {
         RefreshApiKeyStatus();
 
-        if (string.IsNullOrWhiteSpace(InputText) || !IsApiKeyConfigured)
+        if (string.IsNullOrWhiteSpace(InputText))
         {
             return;
         }
@@ -115,6 +125,58 @@ public partial class ChatViewModel : ObservableObject
         {
             ClearConversation();
             InputText = null;
+            return;
+        }
+
+        var userInput = InputText.Trim();
+        var routing = _skillRouter.Route(userInput, LinkedEntry, _currentViewRoot, _actionExecutor.HasExistingRecommendations);
+
+        var userMessage = new ChatMessage
+        {
+            Sender = ChatSender.User,
+            Text = userInput,
+            Timestamp = DateTime.Now,
+            LinkedEntry = LinkedEntry,
+            LinkedRecommendation = LinkedRecommendation
+        };
+        Messages.Add(userMessage);
+        InputText = null;
+
+        if (routing.SuggestedAction is not null)
+        {
+            Messages.Add(new ChatMessage
+            {
+                Sender = ChatSender.Assistant,
+                Text = BuildActionIntro(routing.SuggestedAction),
+                Timestamp = DateTime.Now,
+                InteractionCard = BuildInteractionCard(routing.SuggestedAction)
+            });
+            LinkedEntry = null;
+            LinkedRecommendation = null;
+            LinkedItemPath = null;
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(routing.LocalAnswer))
+        {
+            Messages.Add(new ChatMessage
+            {
+                Sender = ChatSender.Assistant,
+                Text = routing.LocalAnswer,
+                Timestamp = DateTime.Now
+            });
+            return;
+        }
+
+        if (!IsApiKeyConfigured)
+        {
+            Messages.Add(new ChatMessage
+            {
+                Sender = ChatSender.Assistant,
+                Text = "需要先配置模型服务 API Key，才能继续进行 AI 对话或深度分析。",
+                Timestamp = DateTime.Now,
+                IsError = true
+            });
             return;
         }
 
@@ -133,17 +195,6 @@ public partial class ChatViewModel : ObservableObject
         IsSending = true;
         ErrorMessage = null;
 
-        var userMessage = new ChatMessage
-        {
-            Sender = ChatSender.User,
-            Text = InputText,
-            Timestamp = DateTime.Now,
-            LinkedEntry = LinkedEntry,
-            LinkedRecommendation = LinkedRecommendation
-        };
-        Messages.Add(userMessage);
-
-        // Add a placeholder assistant message that will be updated with streamed tokens.
         var assistantMessage = new ChatMessage
         {
             Sender = ChatSender.Assistant,
@@ -160,13 +211,13 @@ public partial class ChatViewModel : ObservableObject
             var apiKey = _settingsService.GetApiKey(settings)!;
             var baseUrl = settings.AnthropicBaseUrl;
 
-            var userInput = InputText;
             await _chatService.StreamMessageWithThinkingAsync(
                 userInput,
                 LinkedEntry,
                 LinkedRecommendation,
                 _currentViewRoot!,
                 _currentSession!,
+                routing.Skills,
                 apiKey,
                 baseUrl,
                 thinkingToken => assistantMessage.Thinking += thinkingToken,
@@ -174,8 +225,6 @@ public partial class ChatViewModel : ObservableObject
                 CancellationToken.None);
 
             assistantMessage.IsStreaming = false;
-
-            InputText = null;
             LinkedEntry = null;
             LinkedRecommendation = null;
             LinkedItemPath = null;
@@ -203,6 +252,96 @@ public partial class ChatViewModel : ObservableObject
         }
     }
 
+    [RelayCommand]
+    private async Task ConfirmInteractionAsync(AiInteractionCard? card)
+    {
+        if (card is null || !card.IsPending)
+            return;
+
+        card.IsBusy = true;
+        card.Status = AiInteractionCardStatus.Running;
+        card.StatusText = "正在执行...";
+
+        try
+        {
+            var result = await _actionExecutor.ExecuteAsync(card.Action, CancellationToken.None);
+            card.Status = result.Success ? AiInteractionCardStatus.Completed : AiInteractionCardStatus.Failed;
+            card.StatusText = result.Details is null ? result.Message : $"{result.Message}\n{result.Details}";
+        }
+        catch (Exception ex)
+        {
+            card.Status = AiInteractionCardStatus.Failed;
+            card.StatusText = ex.Message;
+        }
+        finally
+        {
+            card.IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private void CancelInteraction(AiInteractionCard? card)
+    {
+        if (card is null || !card.IsPending)
+            return;
+
+        card.Status = AiInteractionCardStatus.Cancelled;
+        card.StatusText = "已取消，未改变当前数据。";
+    }
+
+    private static string BuildActionIntro(AiActionRequest action)
+    {
+        return action.Kind switch
+        {
+            AiActionKind.StartScan => $"我可以扫描 `{action.ScopeLabel}`，完成后会刷新 TreeView、Treemap 和聊天上下文。",
+            AiActionKind.AnalyzeCleanup => "我可以基于当前扫描数据运行推荐清理分析。",
+            AiActionKind.NavigateToScannedPath => $"我可以尝试在当前扫描树中定位 `{action.ScopeLabel}`。",
+            _ => "我可以执行这个磁盘空间管理动作。"
+        };
+    }
+
+    private static AiInteractionCard BuildInteractionCard(AiActionRequest action)
+    {
+        return action.Kind switch
+        {
+            AiActionKind.StartScan => new AiInteractionCard
+            {
+                Title = "扫描指定路径",
+                Description = action.ScopeLabel ?? action.Path ?? "指定路径",
+                Impact = "会替换当前扫描结果，并刷新 TreeView、Treemap、推荐分析上下文。",
+                ConfirmText = "开始扫描",
+                CancelText = "先不扫描",
+                Action = action
+            },
+            AiActionKind.AnalyzeCleanup => new AiInteractionCard
+            {
+                Title = "运行推荐清理分析",
+                Description = action.ScopeLabel ?? "当前扫描范围",
+                Impact = action.WillOverwriteExistingData
+                    ? "已有推荐清理结果会被新的分析结果覆盖。"
+                    : "会调用模型分析当前扫描数据，生成可审查的清理建议。",
+                ConfirmText = "开始分析",
+                CancelText = "先不分析",
+                Action = action
+            },
+            AiActionKind.NavigateToScannedPath => new AiInteractionCard
+            {
+                Title = "定位扫描树路径",
+                Description = action.ScopeLabel ?? action.Path ?? "指定路径",
+                Impact = "只会在当前已扫描数据中导航，不会访问未扫描磁盘。",
+                ConfirmText = "定位路径",
+                CancelText = "取消",
+                Action = action
+            },
+            _ => new AiInteractionCard
+            {
+                Title = "确认操作",
+                Description = action.ScopeLabel ?? "磁盘空间管理动作",
+                Impact = "确认后执行。",
+                Action = action
+            }
+        };
+    }
 
     private bool IsClearConversationRequest(string text)
     {
@@ -224,13 +363,10 @@ public partial class ChatViewModel : ObservableObject
         LinkedItemPath = null;
         ErrorMessage = null;
     }
+
     [RelayCommand]
     private void ToggleThinking(ChatMessage message)
     {
         message.IsThinkingExpanded = !message.IsThinkingExpanded;
     }
 }
-
-
-
-

@@ -114,6 +114,7 @@ public partial class MainWindow
     {
         _chatViewModel = chatVm;
         ChatPanel.SetViewModel(chatVm);
+        chatVm.SetActionExecutor(this);
 
         ChatPanel.OpenSettingsRequested += () => OpenSettingsDialog();
         TreemapView.AskAiRequested += AskAiAboutEntry;
@@ -276,4 +277,5 @@ public partial class MainWindow
     // ─── Console ────────────────────────────────────────────────────
 
 }
+
 
