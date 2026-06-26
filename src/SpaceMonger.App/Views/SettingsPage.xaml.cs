@@ -4,17 +4,12 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
-using SpaceMonger.Core.Models.Theme;
 
 namespace SpaceMonger.App.Views;
 
 public partial class SettingsPage : UserControl
 {
     public event Action? BackRequested;
-    public event Action? SettingsChanged;
-    private readonly DispatcherTimer _toastTimer;
-    private bool _isLoaded;
-    private bool _suppressAutoSave;
     private bool _isShaking;
     private bool _isAnimating;
     private Button[]? _navButtons;
@@ -27,19 +22,9 @@ public partial class SettingsPage : UserControl
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                _isLoaded = true;
                 UpdateBottomScrollSpacer();
                 UpdateActiveSection();
             }), DispatcherPriority.Loaded);
-        };
-        _toastTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.8) };
-        _toastTimer.Tick += (_, _) =>
-        {
-            _toastTimer.Stop();
-            if (DataContext is ViewModels.SettingsViewModel vm)
-            {
-                vm.HideSaveToast();
-            }
         };
     }
 
@@ -76,7 +61,7 @@ public partial class SettingsPage : UserControl
         if (!SettingsScrollViewer.IsLoaded || SettingsScrollViewer.ViewportHeight <= 0)
             return;
 
-        var themeOffset = GetSectionOffset(ThemeSectionAnchor);
+        var themeOffset = GetSectionOffset(ThemeSectionControl);
         var contentHeightWithoutSpacer = SettingsContentPanel.ActualHeight - BottomScrollSpacer.ActualHeight;
         var requiredContentHeight = themeOffset + SettingsScrollViewer.ViewportHeight;
         BottomScrollSpacer.Height = Math.Max(0, requiredContentHeight - contentHeightWithoutSpacer);
@@ -92,9 +77,9 @@ public partial class SettingsPage : UserControl
     {
         const double activationOffset = 64;
         var scrollOffset = SettingsScrollViewer.VerticalOffset + activationOffset;
-        var activeSection = ApiSectionAnchor;
+        FrameworkElement activeSection = ApiSectionControl;
 
-        foreach (var section in new[] { ApiSectionAnchor, GeneralSectionAnchor, ThemeSectionAnchor })
+        foreach (var section in new FrameworkElement[] { ApiSectionControl, GeneralSectionControl, ThemeSectionControl })
         {
             if (GetSectionOffset(section) <= scrollOffset)
             {
@@ -201,80 +186,20 @@ public partial class SettingsPage : UserControl
         storyboard.Begin();
     }
 
-    public void SavePendingChanges()
-    {
-        if (DataContext is ViewModels.SettingsViewModel vm)
-        {
-            vm.SaveWithToast();
-            SettingsChanged?.Invoke();
-            _toastTimer.Stop();
-            _toastTimer.Start();
-        }
-    }
-
     public void ReloadSettingsForOpen()
     {
         if (DataContext is not ViewModels.SettingsViewModel vm)
             return;
 
-        _toastTimer.Stop();
         vm.HideSaveToast();
 
-        _suppressAutoSave = true;
         vm.LoadSettings();
-
-        Dispatcher.BeginInvoke(
-            new Action(() => _suppressAutoSave = false),
-            DispatcherPriority.Loaded);
     }
 
     private void BackButton_Click(object sender, RoutedEventArgs e)
     {
-        SavePendingChanges();
         BackRequested?.Invoke();
     }
 
-    private void AutoSaveOnLostFocus(object sender, RoutedEventArgs e)
-    {
-        if (_isLoaded && !_suppressAutoSave)
-            SavePendingChanges();
-    }
-
-    private void AutoSaveOnChanged(object sender, RoutedEventArgs e)
-    {
-        if (_isLoaded && !_suppressAutoSave)
-            SavePendingChanges();
-    }
-
-    private void ThemePreset_Click(object sender, MouseButtonEventArgs e)
-    {
-        if (sender is Border border && border.Tag is ThemeProfile preset)
-        {
-            if (DataContext is ViewModels.SettingsViewModel vm)
-            {
-                vm.ApplyThemePresetCommand.Execute(preset);
-                SavePendingChanges();
-            }
-
-            // Visual feedback: brief scale pulse
-            var scaleTransform = new ScaleTransform(1, 1);
-            border.RenderTransformOrigin = new Point(0.5, 0.5);
-            border.RenderTransform = scaleTransform;
-
-            var pulseIn = new DoubleAnimation(1, 1.05, TimeSpan.FromMilliseconds(80))
-            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
-            var pulseOut = new DoubleAnimation(1.05, 1, TimeSpan.FromMilliseconds(120))
-            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn } };
-
-            pulseIn.Completed += (_, _) =>
-            {
-                scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, pulseOut);
-                scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, pulseOut);
-            };
-            scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, pulseIn);
-            scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, pulseIn);
-        }
-    }
 }
-
 

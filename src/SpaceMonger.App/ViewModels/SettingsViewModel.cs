@@ -24,21 +24,73 @@ public partial class SettingsViewModel : ObservableObject
     private readonly ILlmClient _llmClient;
     private readonly ThemeManager _themeManager;
     private bool _isLoadingSettings;
+    private bool _suppressPersistence;
+
+    public event Action? SettingsChanged;
 
     [ObservableProperty]
     private string? _apiKey;
 
+    partial void OnApiKeyChanged(string? value)
+    {
+        if (_isLoadingSettings)
+            return;
+
+        _suppressPersistence = true;
+        try
+        {
+            IsApiKeyValid = false;
+            ValidationState = ValidationState.None;
+            ValidationMessage = null;
+        }
+        finally
+        {
+            _suppressPersistence = false;
+        }
+
+        PersistAppSettings(settings =>
+        {
+            settings.EncryptedApiKey = string.IsNullOrEmpty(value)
+                ? null
+                : _settingsService.EncryptApiKey(value);
+            settings.IsApiKeyValid = false;
+        });
+    }
+
     [ObservableProperty]
     private string? _anthropicBaseUrl;
+
+    partial void OnAnthropicBaseUrlChanged(string? value)
+    {
+        PersistAppSettings(settings =>
+            settings.AnthropicBaseUrl = string.IsNullOrWhiteSpace(value) ? null : value.Trim());
+    }
 
     [ObservableProperty]
     private string? _analysisModelName;
 
+    partial void OnAnalysisModelNameChanged(string? value)
+    {
+        PersistAppSettings(settings =>
+            settings.AnalysisModelName = string.IsNullOrWhiteSpace(value) ? null : value.Trim());
+    }
+
     [ObservableProperty]
     private string? _chatModelName;
 
+    partial void OnChatModelNameChanged(string? value)
+    {
+        PersistAppSettings(settings =>
+            settings.ChatModelName = string.IsNullOrWhiteSpace(value) ? null : value.Trim());
+    }
+
     [ObservableProperty]
     private bool _enableThinking;
+
+    partial void OnEnableThinkingChanged(bool value)
+    {
+        PersistAppSettings(settings => settings.EnableThinking = value);
+    }
 
     [ObservableProperty]
     private string _language = "zh-CN";
@@ -55,8 +107,18 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private DeletionMode _selectedDeletionMode = DeletionMode.MoveToRecycleBin;
 
+    partial void OnSelectedDeletionModeChanged(DeletionMode value)
+    {
+        PersistAppSettings(settings => settings.DeletionMode = value);
+    }
+
     [ObservableProperty]
     private bool _isApiKeyValid;
+
+    partial void OnIsApiKeyValidChanged(bool value)
+    {
+        PersistAppSettings(settings => settings.IsApiKeyValid = value);
+    }
 
     [ObservableProperty]
     private string? _validationMessage;
@@ -151,9 +213,18 @@ public partial class SettingsViewModel : ObservableObject
 
     private void SaveLanguagePreference(string language)
     {
+        PersistAppSettings(settings => settings.Language = language);
+    }
+
+    private void PersistAppSettings(Action<SpaceMonger.Core.Models.AppSettings> update)
+    {
+        if (_isLoadingSettings || _suppressPersistence)
+            return;
+
         var settings = _settingsService.LoadSettings();
-        settings.Language = language;
+        update(settings);
         _settingsService.SaveSettings(settings);
+        SettingsChanged?.Invoke();
     }
 
     private void RefreshValidationStatusText()
@@ -180,8 +251,21 @@ public partial class SettingsViewModel : ObservableObject
     private void ApplyThemePreset(ThemeProfile? preset)
     {
         if (preset == null) return;
+
         _themeManager.ApplyTheme(preset);
-        LoadThemeFromCurrent();
+        _themeManager.Persist();
+
+        _isLoadingSettings = true;
+        try
+        {
+            LoadThemeFromCurrent();
+        }
+        finally
+        {
+            _isLoadingSettings = false;
+        }
+
+        SettingsChanged?.Invoke();
     }
 
     private void LoadThemeFromCurrent()
@@ -265,6 +349,7 @@ public partial class SettingsViewModel : ObservableObject
         SyncThemeToManager();
 
         _settingsService.SaveSettings(settings);
+        SettingsChanged?.Invoke();
     }
 
     private void SyncThemeToManager()
@@ -392,15 +477,7 @@ public partial class SettingsViewModel : ObservableObject
     {
         SyncThemeToManager();
         _themeManager.Persist();
-    }
-
-    public void SaveWithToast(string? message = null)
-    {
-        Save();
-        SaveToastMessage = string.IsNullOrWhiteSpace(message)
-            ? L.Text("SettingsSavedToast")
-            : message;
-        IsSaveToastVisible = true;
+        SettingsChanged?.Invoke();
     }
 
     public void HideSaveToast()

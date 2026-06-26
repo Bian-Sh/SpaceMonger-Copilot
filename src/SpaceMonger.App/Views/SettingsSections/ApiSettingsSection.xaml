@@ -1,0 +1,129 @@
+<UserControl x:Class="SpaceMonger.App.Views.SettingsSections.ApiSettingsSection"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:loc="clr-namespace:SpaceMonger.App.Localization"
+             xmlns:vm="clr-namespace:SpaceMonger.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:SettingsViewModel, IsDesignTimeCreatable=False}"
+             FontFamily="{DynamicResource VP.FontFamily}">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="SettingsSharedResources.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <StackPanel>
+        <TextBlock x:Name="ApiSectionAnchor" Text="{loc:Loc AnthropicApiKeyHeader}"
+                   FontSize="15" FontWeight="SemiBold"
+                   Foreground="{DynamicResource VP.TextSecondaryBrush}"
+                   Margin="0,0,0,10" />
+        <Border x:Name="ApiSection" Background="{DynamicResource VP.SettingsCardBrush}"
+                BorderBrush="{DynamicResource VP.BorderSubtleBrush}"
+                BorderThickness="1" CornerRadius="10">
+            <StackPanel>
+                <Grid Margin="14,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="170" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="API Key"
+                               Style="{StaticResource SettingsLabelStyle}"
+                               ToolTip="{loc:Loc ApiKeyToolTip}" />
+                    <StackPanel Grid.Column="1">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBox Style="{DynamicResource VP.TextBox}"
+                                     Width="240"
+                                     Text="{Binding ApiKey, UpdateSourceTrigger=PropertyChanged}" />
+                            <Button Content="{loc:Loc ValidateButton}"
+                                    Style="{DynamicResource VP.AccentButton}"
+                                    Margin="8,0,0,0"
+                                    Command="{Binding ValidateCommand}" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding ValidationStatusText}"
+                                   Margin="0,6,0,0"
+                                   FontSize="12"
+                                   TextWrapping="Wrap">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                    <Setter Property="Foreground" Value="{DynamicResource VP.TextTertiaryBrush}" />
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ValidationState}"
+                                                     Value="{x:Static vm:ValidationState.Validating}">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ValidationState}"
+                                                     Value="{x:Static vm:ValidationState.Valid}">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                            <Setter Property="Foreground" Value="{DynamicResource VP.SuccessBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ValidationState}"
+                                                     Value="{x:Static vm:ValidationState.Invalid}">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                            <Setter Property="Foreground" Value="{DynamicResource VP.DangerBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                </Grid>
+                <Separator Margin="14,0" />
+                <Grid Margin="14,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="170" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{loc:Loc SettingsBaseUrlLabel}"
+                               Style="{StaticResource SettingsLabelStyle}"
+                               ToolTip="{loc:Loc SettingsBaseUrlHint}" />
+                    <TextBox Grid.Column="1" Style="{DynamicResource VP.TextBox}"
+                             Text="{Binding AnthropicBaseUrl, UpdateSourceTrigger=PropertyChanged}" />
+                </Grid>
+                <Separator Margin="14,0" />
+                <Grid Margin="14,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="170" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{loc:Loc SettingsAnalysisModelLabel}"
+                               Style="{StaticResource SettingsLabelStyle}"
+                               ToolTip="{loc:Loc SettingsAnalysisModelHint}" />
+                    <TextBox Grid.Column="1" Style="{DynamicResource VP.TextBox}"
+                             Text="{Binding AnalysisModelName, UpdateSourceTrigger=PropertyChanged}" />
+                </Grid>
+                <Separator Margin="14,0" />
+                <Grid Margin="14,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="170" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{loc:Loc SettingsChatModelLabel}"
+                               Style="{StaticResource SettingsLabelStyle}"
+                               ToolTip="{loc:Loc SettingsChatModelHint}" />
+                    <TextBox Grid.Column="1" Style="{DynamicResource VP.TextBox}"
+                             Text="{Binding ChatModelName, UpdateSourceTrigger=PropertyChanged}" />
+                </Grid>
+                <Separator Margin="14,0" />
+                <Grid Margin="14,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="170" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{loc:Loc SettingsThinkingLabel}"
+                               Style="{StaticResource SettingsLabelStyle}"
+                               ToolTip="{loc:Loc SettingsThinkingHint}" />
+                    <CheckBox Grid.Column="1"
+                              Style="{DynamicResource VP.CheckBox}"
+                              IsChecked="{Binding EnableThinking}"
+                              VerticalAlignment="Center"
+                              Content="{loc:Loc SettingsAllowThinkingOption}" />
+                </Grid>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

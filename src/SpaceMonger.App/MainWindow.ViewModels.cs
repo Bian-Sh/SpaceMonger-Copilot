@@ -56,7 +56,7 @@ public partial class MainWindow
             mainVm.RecommendationsVM = recsVm;
         SettingsPage.DataContext = settingsVm;
         SettingsPage.BackRequested += HideSettingsPage;
-        SettingsPage.SettingsChanged += OnSettingsChanged;
+        settingsVm.SettingsChanged += OnSettingsChanged;
         TitleBar.SettingsRequested += (_, _) => ShowSettingsPage();
         TitleBar.CollapseChatRequested += (_, _) => ToggleChatPanel();
         RecommendationsPanel.SetViewModel(recsVm);
