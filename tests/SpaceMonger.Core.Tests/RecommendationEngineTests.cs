@@ -92,6 +92,122 @@ public class RecommendationEngineTests
         root.GetProperty("thinking").GetProperty("type").GetString().Should().Be("disabled");
     }
 
+    [Fact]
+    public async Task AnalyzeWithDiagnosticsAsync_AllowsWindowsAdjacentPathButDowngradesSafety()
+    {
+        var targetPath = @"C:\Windows\assembly\temp";
+        var root = CreateRootWithDirectory(targetPath, "temp", 87_258_544);
+        var session = new ScanSession
+        {
+            TargetPath = @"C:\",
+            RootEntry = root,
+        };
+
+        var llmClient = Substitute.For<ILlmClient>();
+        llmClient.SendAnalysisAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
+            .Returns(CreateRecommendationResponse(targetPath, 87_258_544, "TemporaryFiles", "Safe"));
+
+        var engine = new RecommendationEngine(llmClient, Substitute.For<IDuplicateDetector>());
+
+        var result = await engine.AnalyzeWithDiagnosticsAsync(session, "api-key", null, null, false, "zh-CN", CancellationToken.None);
+
+        result.Diagnostics.ParsedRecommendationCount.Should().Be(1);
+        result.Diagnostics.ProtectedFilteredCount.Should().Be(0);
+        result.Recommendations.Should().ContainSingle().Which.Should().Match<CleanupRecommendation>(r =>
+            r.TargetPath == targetPath &&
+            r.SafetyRating == SafetyRating.ReviewFirst &&
+            r.Explanation.Contains("System-adjacent location"));
+    }
+
+    [Fact]
+    public async Task AnalyzeWithDiagnosticsAsync_AllowsUnknownWindowsSubfolderButDowngradesSafety()
+    {
+        var targetPath = @"C:\Windows\VendorApp\Cache";
+        var root = CreateRootWithDirectory(targetPath, "Cache", 512_000_000);
+        var session = new ScanSession
+        {
+            TargetPath = @"C:\",
+            RootEntry = root,
+        };
+
+        var llmClient = Substitute.For<ILlmClient>();
+        llmClient.SendAnalysisAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
+            .Returns(CreateRecommendationResponse(targetPath, 512_000_000, "Other", "Safe"));
+
+        var engine = new RecommendationEngine(llmClient, Substitute.For<IDuplicateDetector>());
+
+        var result = await engine.AnalyzeWithDiagnosticsAsync(session, "api-key", null, null, false, "zh-CN", CancellationToken.None);
+
+        result.Diagnostics.ParsedRecommendationCount.Should().Be(1);
+        result.Diagnostics.ProtectedFilteredCount.Should().Be(0);
+        result.Recommendations.Should().ContainSingle().Which.Should().Match<CleanupRecommendation>(r =>
+            r.TargetPath == targetPath &&
+            r.SafetyRating == SafetyRating.ReviewFirst &&
+            r.Explanation.Contains("System-adjacent location"));
+    }
+
+    [Fact]
+    public async Task AnalyzeWithDiagnosticsAsync_FiltersHardProtectedWindowsPathInFullDriveAnalysis()
+    {
+        var targetPath = @"C:\Windows\System32\kernel32.dll";
+        var root = CreateRootWithDirectory(targetPath, "kernel32.dll", 1_048_576);
+        var session = new ScanSession
+        {
+            TargetPath = @"C:\",
+            RootEntry = root,
+        };
+
+        var llmClient = Substitute.For<ILlmClient>();
+        llmClient.SendAnalysisAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
+            .Returns(CreateRecommendationResponse(targetPath, 1_048_576, "Other", "Safe"));
+
+        var engine = new RecommendationEngine(llmClient, Substitute.For<IDuplicateDetector>());
+
+        var result = await engine.AnalyzeWithDiagnosticsAsync(session, "api-key", null, null, false, "zh-CN", CancellationToken.None);
+
+        result.Diagnostics.ParsedRecommendationCount.Should().Be(1);
+        result.Diagnostics.ProtectedFilteredCount.Should().Be(1);
+        result.Recommendations.Should().BeEmpty();
+    }
+
+    private static FileEntry CreateRootWithDirectory(string targetPath, string name, long size)
+    {
+        return new FileEntry
+        {
+            Path = @"C:\",
+            Name = @"C:\",
+            IsDirectory = true,
+            Children =
+            [
+                new FileEntry
+                {
+                    Path = targetPath,
+                    Name = name,
+                    IsDirectory = true,
+                    Size = size,
+                }
+            ]
+        };
+    }
+
+    private static string CreateRecommendationResponse(string path, long sizeBytes, string category, string safetyRating)
+    {
+        return JsonSerializer.Serialize(new
+        {
+            recommendations = new[]
+            {
+                new
+                {
+                    path,
+                    size_bytes = sizeBytes,
+                    category,
+                    safety_rating = safetyRating,
+                    explanation = "AI recommended cleanup candidate."
+                }
+            }
+        });
+    }
+
     private sealed class CapturingHandler(string responseBody) : HttpMessageHandler
     {
         public string RequestBody { get; private set; } = string.Empty;

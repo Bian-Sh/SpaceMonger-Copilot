@@ -61,9 +61,8 @@ public partial class RecommendationEngine : IRecommendationEngine
         ".exe", ".msi",
     };
 
-    private static readonly string[] ProtectedPathSegments =
+    private static readonly string[] ProtectedProgramFolders =
     [
-        "Windows",
         "Program Files",
         "Program Files (x86)"
     ];
@@ -147,30 +146,22 @@ public partial class RecommendationEngine : IRecommendationEngine
         DebugBreakpoints.Hit("analysis-response-parsed");
         result.Diagnostics.ParsedRecommendationCount = recommendations.Count;
 
-        if (focusEntry is not null)
+        if (focusEntry is null)
         {
-            // User explicitly drilled into this folder and requested analysis -
-            // don't silently discard results. Instead, bump any "Safe" rating
-            // to "ReviewFirst" for paths under protected system directories so
-            // the user still gets a warning before deleting system-adjacent files.
-            foreach (var rec in recommendations)
-            {
-                if (IsProtectedPath(rec.TargetPath) && rec.SafetyRating == SafetyRating.Safe)
-                {
-                    rec.SafetyRating = SafetyRating.ReviewFirst;
-                    rec.Explanation += " (This item is under a system directory - review carefully before deleting.)";
-                }
-            }
-        }
-        else
-        {
-            // Full-drive analysis: filter out protected paths entirely to avoid
-            // recommending OS/system files in broad recommendations.
+            // Full-drive analysis: hide only truly critical system/user-data
+            // structures.  Known cache/temp locations under Windows should still
+            // be visible, but they are risk-adjusted below instead of shown as
+            // blindly safe cleanup targets.
             var beforeFilterCount = recommendations.Count;
             recommendations = recommendations
-                .Where(r => !IsProtectedPath(r.TargetPath))
+                .Where(r => !IsHardProtectedPath(r.TargetPath))
                 .ToList();
             result.Diagnostics.ProtectedFilteredCount = beforeFilterCount - recommendations.Count;
+        }
+
+        foreach (var rec in recommendations)
+        {
+            ApplySystemPathRiskAdjustment(rec);
         }
 
         for (int i = 0; i < recommendations.Count; i++)
