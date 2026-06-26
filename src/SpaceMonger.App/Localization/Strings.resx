@@ -811,4 +811,18 @@
   <data name="AiWhitelistHiddenPathMessage" xml:space="preserve">
     <value>This path is hidden by whitelist settings. AI chat cannot query or expose it.</value>
   </data>
-</root>
+  <data name="CopilotCardRunning" xml:space="preserve">
+    <value>Running...</value>
+  </data>
+  <data name="CopilotCardCancelled" xml:space="preserve">
+    <value>Cancelled. No data was changed.</value>
+  </data>
+  <data name="CopilotCardDefaultTitle" xml:space="preserve">
+    <value>Confirm Action</value>
+  </data>
+  <data name="CopilotCardDefaultConfirm" xml:space="preserve">
+    <value>Confirm</value>
+  </data>
+  <data name="CopilotCardDefaultCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data></root>

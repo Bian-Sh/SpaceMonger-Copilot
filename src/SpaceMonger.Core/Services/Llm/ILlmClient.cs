@@ -1,6 +1,8 @@
 namespace SpaceMonger.Core.Services.Llm;
 
-public record ChatResponse(string Text, string Thinking);
+using System.Text.Json;
+
+public record ChatResponse(string Text, string Thinking, JsonElement? Proposal = null);
 
 public interface ILlmClient
 {

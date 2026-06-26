@@ -808,4 +808,18 @@
   <data name="AiWhitelistHiddenPathMessage" xml:space="preserve">
     <value>该路径已按白名单设置隐藏，AI 对话不能查询或暴露它。</value>
   </data>
-</root>
+  <data name="CopilotCardRunning" xml:space="preserve">
+    <value>正在执行...</value>
+  </data>
+  <data name="CopilotCardCancelled" xml:space="preserve">
+    <value>已取消，未改变当前数据。</value>
+  </data>
+  <data name="CopilotCardDefaultTitle" xml:space="preserve">
+    <value>确认操作</value>
+  </data>
+  <data name="CopilotCardDefaultConfirm" xml:space="preserve">
+    <value>确认</value>
+  </data>
+  <data name="CopilotCardDefaultCancel" xml:space="preserve">
+    <value>取消</value>
+  </data></root>

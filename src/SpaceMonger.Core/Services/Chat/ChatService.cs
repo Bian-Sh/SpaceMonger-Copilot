@@ -24,16 +24,19 @@ public class ChatService : IChatService
         CleanupRecommendation? linkedRecommendation,
         FileEntry currentViewRoot,
         ScanSession session,
+        bool hasExistingRecommendations,
         IReadOnlyList<AiSkill> activeSkills,
+        string? responseLanguage,
         string apiKey,
         string? baseUrl,
         CancellationToken cancellationToken)
     {
         var response = await _agentRuntime.RunAsync(
-            new AgentContext(session, currentViewRoot, linkedEntry, linkedRecommendation),
+            new AgentContext(session, currentViewRoot, linkedEntry, linkedRecommendation, hasExistingRecommendations),
             _conversationHistory,
             userMessage,
             activeSkills,
+            responseLanguage,
             apiKey,
             baseUrl,
             cancellationToken).ConfigureAwait(false);
@@ -48,17 +51,20 @@ public class ChatService : IChatService
         CleanupRecommendation? linkedRecommendation,
         FileEntry currentViewRoot,
         ScanSession session,
+        bool hasExistingRecommendations,
         IReadOnlyList<AiSkill> activeSkills,
+        string? responseLanguage,
         string apiKey,
         string? baseUrl,
         Action<string> onToken,
         CancellationToken cancellationToken)
     {
         var response = await _agentRuntime.RunAsync(
-            new AgentContext(session, currentViewRoot, linkedEntry, linkedRecommendation),
+            new AgentContext(session, currentViewRoot, linkedEntry, linkedRecommendation, hasExistingRecommendations),
             _conversationHistory,
             userMessage,
             activeSkills,
+            responseLanguage,
             apiKey,
             baseUrl,
             cancellationToken).ConfigureAwait(false);
@@ -74,7 +80,9 @@ public class ChatService : IChatService
         CleanupRecommendation? linkedRecommendation,
         FileEntry currentViewRoot,
         ScanSession session,
+        bool hasExistingRecommendations,
         IReadOnlyList<AiSkill> activeSkills,
+        string? responseLanguage,
         string apiKey,
         string? baseUrl,
         Action<string>? onThinkingToken,
@@ -82,10 +90,11 @@ public class ChatService : IChatService
         CancellationToken cancellationToken)
     {
         var response = await _agentRuntime.RunAsync(
-            new AgentContext(session, currentViewRoot, linkedEntry, linkedRecommendation),
+            new AgentContext(session, currentViewRoot, linkedEntry, linkedRecommendation, hasExistingRecommendations),
             _conversationHistory,
             userMessage,
             activeSkills,
+            responseLanguage,
             apiKey,
             baseUrl,
             cancellationToken).ConfigureAwait(false);
@@ -98,7 +107,37 @@ public class ChatService : IChatService
 
         onTextToken?.Invoke(response.Content);
         AddTurnToHistory(userMessage, response.Content);
-        return new ChatResponse(response.Content, string.Empty);
+        return new ChatResponse(response.Content, string.Empty, response.Proposal);
+    }
+
+    public async Task<ChatResponse> StreamSkillMessageWithThinkingAsync(
+        string userMessage,
+        IReadOnlyList<AiSkill> activeSkills,
+        string? responseLanguage,
+        string apiKey,
+        string? baseUrl,
+        Action<string>? onThinkingToken,
+        Action<string>? onTextToken,
+        CancellationToken cancellationToken)
+    {
+        var response = await _agentRuntime.RunAsync(
+            null,
+            _conversationHistory,
+            userMessage,
+            activeSkills,
+            responseLanguage,
+            apiKey,
+            baseUrl,
+            cancellationToken).ConfigureAwait(false);
+
+        if (response.ToolResults.Count > 0)
+        {
+            onThinkingToken?.Invoke($"Ignored {response.ToolResults.Count} file tree tool request(s) because no scan context is available.\n");
+        }
+
+        onTextToken?.Invoke(response.Content);
+        AddTurnToHistory(userMessage, response.Content);
+        return new ChatResponse(response.Content, string.Empty, response.Proposal);
     }
 
     public void ClearHistory()
@@ -132,5 +171,3 @@ public class ChatService : IChatService
         }
     }
 }
-
-

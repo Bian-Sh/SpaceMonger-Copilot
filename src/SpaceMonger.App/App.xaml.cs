@@ -45,6 +45,8 @@ public partial class App : Application
         services.AddSingleton<ThemeManager>();
 
         services.AddSingleton<IPathWhitelistMatcher, PathWhitelistMatcher>();
+        services.AddSingleton<ISkillPromptProvider, FileSkillPromptProvider>();
+        services.AddSingleton<IAiSkillRouter, AiSkillRouter>();
 
         // US1 services
         services.AddSingleton<FileScanner>();
@@ -71,9 +73,10 @@ public partial class App : Application
         services.AddSingleton<IAgentTool, ListChildrenTool>();
         services.AddSingleton<IAgentTool, SummarizeSubtreeTool>();
         services.AddSingleton<IAgentTool, FindLargeFilesTool>();
+        services.AddSingleton<IAgentTool, GetCopilotContextTool>();
+        services.AddSingleton<IAgentTool, ProposeCopilotActionTool>();
         services.AddSingleton<IAgentRuntime, AgentRuntime>();
         services.AddSingleton<IChatService, ChatService>();
-        services.AddSingleton<IAiSkillRouter, AiSkillRouter>();
         services.AddTransient<ChatViewModel>();
 
         // TreeView services
@@ -146,4 +149,5 @@ public partial class App : Application
         });
     }
 }
+
 

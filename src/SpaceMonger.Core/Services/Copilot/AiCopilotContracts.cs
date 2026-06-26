@@ -7,6 +7,7 @@ public enum AiIntent
 {
     GeneralChat,
     Identity,
+    ModuleHelp,
     DiskScan,
     FolderCleanupAnalysis,
     FileTreeQuery,
@@ -68,6 +69,7 @@ public sealed class AiInteractionCard : INotifyPropertyChanged
     public string? Impact { get; init; }
     public string ConfirmText { get; init; } = "确认";
     public string CancelText { get; init; } = "取消";
+    public string? FollowUpPrompt { get; init; }
     public required AiActionRequest Action { get; init; }
 
     public AiInteractionCardStatus Status
@@ -127,4 +129,6 @@ public sealed record AiSkillRoutingResult(
     IReadOnlyList<AiIntent> Intents,
     IReadOnlyList<AiSkill> Skills,
     AiActionRequest? SuggestedAction,
-    string? LocalAnswer = null);
+    string? LocalAnswer = null,
+    bool CanRunWithoutScanContext = false,
+    bool PreferModelAnswer = false);

@@ -3,7 +3,8 @@
 namespace SpaceMonger.Core.Services.Agent;
 
 public sealed record AgentContext(
-    ScanSession Session,
-    FileEntry CurrentViewRoot,
+    ScanSession? Session,
+    FileEntry? CurrentViewRoot,
     FileEntry? LinkedEntry,
-    CleanupRecommendation? LinkedRecommendation);
+    CleanupRecommendation? LinkedRecommendation,
+    bool HasExistingRecommendations = false);

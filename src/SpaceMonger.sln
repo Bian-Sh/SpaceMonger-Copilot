@@ -11,6 +11,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpaceMonger.Core.Tests", ".
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpaceMonger.App.Tests", "..\tests\SpaceMonger.App.Tests\SpaceMonger.App.Tests.csproj", "{E87159A0-20AA-42E5-A037-387230408E95}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "skills", "skills", "{A7EC9FB7-85A3-4B50-A60C-A70D6F8F6FA7}"
+	ProjectSection(SolutionItems) = preProject
+		..\skills\app-guide\SKILL.md = ..\skills\app-guide\SKILL.md
+		..\skills\disk-management\SKILL.md = ..\skills\disk-management\SKILL.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

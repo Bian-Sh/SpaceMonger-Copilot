@@ -5,10 +5,11 @@ namespace SpaceMonger.Core.Services.Agent;
 public interface IAgentRuntime
 {
     Task<AgentResponse> RunAsync(
-        AgentContext context,
+        AgentContext? context,
         IReadOnlyList<(string Role, string Content)> conversationHistory,
         string userMessage,
         IReadOnlyList<AiSkill> activeSkills,
+        string? responseLanguage,
         string apiKey,
         string? baseUrl,
         CancellationToken cancellationToken);

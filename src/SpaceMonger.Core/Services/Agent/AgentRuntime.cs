@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.Json;
 using SpaceMonger.Core.Models;
 using SpaceMonger.Core.Services.Copilot;
@@ -22,10 +22,11 @@ public sealed class AgentRuntime : IAgentRuntime
     }
 
     public async Task<AgentResponse> RunAsync(
-        AgentContext context,
+        AgentContext? context,
         IReadOnlyList<(string Role, string Content)> conversationHistory,
         string userMessage,
         IReadOnlyList<AiSkill> activeSkills,
+        string? responseLanguage,
         string apiKey,
         string? baseUrl,
         CancellationToken cancellationToken)
@@ -33,7 +34,7 @@ public sealed class AgentRuntime : IAgentRuntime
         var messages = conversationHistory.ToList();
         messages.Add(("user", BuildUserMessage(context, userMessage)));
 
-        var systemPrompt = BuildSystemPrompt(activeSkills);
+        var systemPrompt = BuildSystemPrompt(activeSkills, responseLanguage);
         var allToolResults = new List<AgentToolResult>();
         var seededResults = await ExecuteHeuristicToolsAsync(context, userMessage, cancellationToken).ConfigureAwait(false);
         if (seededResults.Count > 0)
@@ -56,7 +57,7 @@ public sealed class AgentRuntime : IAgentRuntime
             var toolCalls = TryParseToolCalls(assistantText);
             if (toolCalls.Count == 0)
             {
-                return new AgentResponse(assistantText, [], allToolResults, reachedToolLimit);
+                return new AgentResponse(assistantText, [], allToolResults, reachedToolLimit, ExtractProposal(allToolResults));
             }
 
             if (round == MaxToolRounds || toolCallCount >= MaxToolCalls)
@@ -88,12 +89,40 @@ public sealed class AgentRuntime : IAgentRuntime
 
         messages.Add(("user", "Tool call limit reached. Provide the best possible final answer from the observations already supplied. Do not request more tools."));
         var finalText = await _llmClient.SendChatAsync(systemPrompt, messages, apiKey, baseUrl, cancellationToken).ConfigureAwait(false);
-        return new AgentResponse(finalText, [], allToolResults, true);
+        return new AgentResponse(finalText, [], allToolResults, true, ExtractProposal(allToolResults));
+    }
+
+    private static JsonElement? ExtractProposal(IReadOnlyList<AgentToolResult> toolResults)
+    {
+        foreach (var result in toolResults.Reverse())
+        {
+            if (!string.Equals(result.ToolName, "propose_copilot_action", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (result.Content.ValueKind != JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            if (result.Content.TryGetProperty("proposal", out var proposal) && proposal.ValueKind == JsonValueKind.Object)
+            {
+                return proposal.Clone();
+            }
+        }
+
+        return null;
     }
 
 
-    private async Task<IReadOnlyList<AgentToolResult>> ExecuteHeuristicToolsAsync(AgentContext context, string userMessage, CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<AgentToolResult>> ExecuteHeuristicToolsAsync(AgentContext? context, string userMessage, CancellationToken cancellationToken)
     {
+        if (context is null)
+        {
+            return [];
+        }
+
         var calls = BuildHeuristicToolCalls(context, userMessage);
         if (calls.Count == 0)
         {
@@ -178,8 +207,18 @@ public sealed class AgentRuntime : IAgentRuntime
     {
         return values.Any(value => text.Contains(value, StringComparison.OrdinalIgnoreCase));
     }
-    private async Task<AgentToolResult> ExecuteToolAsync(AgentContext context, AgentToolCall toolCall, CancellationToken cancellationToken)
+    private async Task<AgentToolResult> ExecuteToolAsync(AgentContext? context, AgentToolCall toolCall, CancellationToken cancellationToken)
     {
+        if (context is null)
+        {
+            return new AgentToolResult(
+                toolCall.Id,
+                toolCall.Name,
+                true,
+                JsonError("scan_context_unavailable", "No scan context is available for read-only file tree tools."),
+                "No scan context is available for read-only file tree tools.");
+        }
+
         if (!_tools.TryGetValue(toolCall.Name, out var tool))
         {
             return new AgentToolResult(
@@ -210,18 +249,26 @@ public sealed class AgentRuntime : IAgentRuntime
         }
     }
 
-    private string BuildSystemPrompt(IReadOnlyList<AiSkill> activeSkills)
+    private string BuildSystemPrompt(IReadOnlyList<AiSkill> activeSkills, string? responseLanguage)
     {
         var builder = new StringBuilder();
-        builder.AppendLine("You are a disk space analysis assistant with read-only access to the already scanned file tree.");
+        builder.AppendLine("You are SpaceMonger Copilot, a disk space management assistant with read-only access to the already scanned file tree.");
+        builder.AppendLine($"Answer language: {FormatResponseLanguageInstruction(responseLanguage)}.");
+        builder.AppendLine("This answer-language rule overrides the language used inside fetched skill records or skill source text.");
         builder.AppendLine();
         builder.AppendLine("Guidelines:");
+        builder.AppendLine("- You are agent-first: understand the user's request yourself before choosing tools.");
+        builder.AppendLine("- If the user asks about a path/folder but there is no scan context or the target is outside the current scan, do not stop with an error.");
+        builder.AppendLine("- In that case, call get_copilot_context first, then call propose_copilot_action with kind=scan and the target path, and explain briefly that scanning is needed before deeper analysis.");
+        builder.AppendLine("- If the user asks what a feature means or how to use it, answer directly; do not require a scan unless execution actually depends on one.");
+        builder.AppendLine("- To create a first-level confirmation card, call the proposal tool instead of merely describing that a card could exist.");
+        builder.AppendLine("- When you have proposed an action card, still provide a short natural-language explanation in the final answer.");
         builder.AppendLine("- You MUST use tools for path lookup, name lookup, list children, subtree summary, largest files, or multi-step deep-dive requests.");
         builder.AppendLine("- Never claim to execute commands, delete files, move files, or rescan disk. Tools are read-only and query only the in-memory scan tree.");
         builder.AppendLine("- Base path and size claims on provided context or tool observations.");
         builder.AppendLine("- When you need a tool, respond with a single JSON object only, no markdown, no prose:");
         builder.AppendLine("  {\"tool_calls\":[{\"id\":\"call_1\",\"name\":\"tool_name\",\"arguments\":{}}]}");
-        builder.AppendLine("- After observations are provided, answer normally in the user's language.");
+        builder.AppendLine("- After observations are provided, answer normally in the required answer language above, even when the user message uses another language.");
         builder.AppendLine();
         if (activeSkills.Count > 0)
         {
@@ -244,8 +291,35 @@ public sealed class AgentRuntime : IAgentRuntime
         return builder.ToString();
     }
 
-    private static string BuildUserMessage(AgentContext context, string userMessage)
+    private static string FormatResponseLanguageInstruction(string? responseLanguage)
     {
+        if (string.IsNullOrWhiteSpace(responseLanguage))
+        {
+            return "match the app UI language, and if unavailable match the user's language";
+        }
+
+        return responseLanguage.Trim() switch
+        {
+            "zh-CN" => "Simplified Chinese (zh-CN)",
+            "zh" => "Chinese",
+            "en" => "English",
+            _ => responseLanguage.Trim()
+        };
+    }
+
+    private static string BuildUserMessage(AgentContext? context, string userMessage)
+    {
+        if (context is null)
+        {
+            var appOnlyContext = new
+            {
+                scan_available = false,
+                note = "No scan has been provided for this turn. Answer explanatory app-guide or identity questions only. Do not call file tree tools or claim scan data exists."
+            };
+
+            return $"App context JSON:\n{JsonSerializer.Serialize(appOnlyContext, AgentJson.Options)}\n\nUser question: {userMessage}";
+        }
+
         var contextBlock = new
         {
             current_view_path = context.CurrentViewRoot.Path,
@@ -411,6 +485,7 @@ public sealed class AgentRuntime : IAgentRuntime
         }, AgentJson.Options);
     }
 }
+
 
 
 

@@ -24,7 +24,8 @@ public sealed record AgentResponse(
     string Content,
     IReadOnlyList<AgentToolCall> ToolCalls,
     IReadOnlyList<AgentToolResult> ToolResults,
-    bool ReachedToolLimit);
+    bool ReachedToolLimit,
+    JsonElement? Proposal = null);
 
 public sealed record AgentToolDefinition(
     string Name,
