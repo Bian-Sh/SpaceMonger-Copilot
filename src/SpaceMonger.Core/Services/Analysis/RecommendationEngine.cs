@@ -1,9 +1,11 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using SpaceMonger.Core.Diagnostics;
 using SpaceMonger.Core.Enums;
 using SpaceMonger.Core.Models;
 using SpaceMonger.Core.Services.Llm;
+using SpaceMonger.Core.Services.Settings;
+using SpaceMonger.Core.Services.Whitelist;
 
 namespace SpaceMonger.Core.Services.Analysis;
 
@@ -77,10 +79,14 @@ public partial class RecommendationEngine : IRecommendationEngine
     ];
 
     private readonly ILlmClient _llmClient;
+    private readonly ISettingsService? _settingsService;
+    private readonly IPathWhitelistMatcher _whitelistMatcher;
 
-    public RecommendationEngine(ILlmClient llmClient, IDuplicateDetector duplicateDetector)
+    public RecommendationEngine(ILlmClient llmClient, IDuplicateDetector duplicateDetector, ISettingsService? settingsService = null, IPathWhitelistMatcher? whitelistMatcher = null)
     {
         _llmClient = llmClient;
+        _settingsService = settingsService;
+        _whitelistMatcher = whitelistMatcher ?? new PathWhitelistMatcher();
         _ = duplicateDetector;
     }
 
@@ -120,6 +126,11 @@ public partial class RecommendationEngine : IRecommendationEngine
         // When a focusEntry is provided (user drilled into a folder), analyze
         // only that subtree.  Otherwise analyze the full scan root.
         var analysisRoot = focusEntry ?? session.RootEntry;
+        if (IsCleanupExcluded(analysisRoot.Path))
+        {
+            result.Diagnostics.ParseError = "Analysis scope is excluded by cleanup recommendation whitelist.";
+            return result;
+        }
 
         var metadataJson = BuildCompactMetadata(session, analysisRoot);
         DebugBreakpoints.Hit("analysis-metadata-built");
@@ -144,6 +155,9 @@ public partial class RecommendationEngine : IRecommendationEngine
 
         var recommendations = ParseResponse(response, session.RootEntry, result.Diagnostics);
         DebugBreakpoints.Hit("analysis-response-parsed");
+        recommendations = recommendations
+            .Where(r => !IsCleanupExcluded(r.TargetPath))
+            .ToList();
         result.Diagnostics.ParsedRecommendationCount = recommendations.Count;
 
         if (focusEntry is null)
@@ -171,6 +185,11 @@ public partial class RecommendationEngine : IRecommendationEngine
 
         result.Recommendations = recommendations;
         return result;
+    }
+
+    private bool IsCleanupExcluded(string path)
+    {
+        return _whitelistMatcher.IsExcluded(path, _settingsService?.LoadSettings().CleanupRecommendationWhitelist);
     }
 
 }

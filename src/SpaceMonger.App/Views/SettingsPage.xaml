@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="SpaceMonger.App.Views.SettingsPage"
+<UserControl x:Class="SpaceMonger.App.Views.SettingsPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -110,6 +110,11 @@
                                 Content="{loc:Loc ThemeSectionLabel}"
                                 Tag="ThemeSectionControl"
                                 Click="SettingsNavButton_Click" />
+                        <Button x:Name="WhitelistNavButton"
+                                Style="{StaticResource SettingsNavButtonStyle}"
+                                Content="{loc:Loc SettingsWhitelistNav}"
+                                Tag="WhitelistSectionControl"
+                                Click="SettingsNavButton_Click" />
                         <Button x:Name="DisclaimerNavButton"
                                 Style="{StaticResource SettingsNavButtonStyle}"
                                 Content="{loc:Loc SettingsDisclaimerNav}"
@@ -127,6 +132,8 @@
                                                          Margin="0,18,0,0" />
                         <settings:ThemeSettingsSection x:Name="ThemeSectionControl"
                                                        Margin="0,18,0,0" />
+                        <settings:WhitelistSettingsSection x:Name="WhitelistSectionControl"
+                                                           Margin="0,18,0,0" />
                         <settings:DisclaimerSettingsSection x:Name="DisclaimerSectionControl"
                                                             Margin="0,18,0,0" />
                         <Border x:Name="BottomScrollSpacer" Height="0" />

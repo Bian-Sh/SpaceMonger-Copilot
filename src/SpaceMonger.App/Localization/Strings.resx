@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <root>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
@@ -434,19 +434,19 @@
     <value>Scan required</value>
   </data>
   <data name="TreemapEmptyHint" xml:space="preserve">
-    <value></value>
+    <value />
   </data>
   <data name="TreemapAnalysisRequiredTitle" xml:space="preserve">
     <value>Scan required</value>
   </data>
   <data name="TreemapAnalysisRequiredHint" xml:space="preserve">
-    <value></value>
+    <value />
   </data>
   <data name="TreemapNoChildDataTitle" xml:space="preserve">
     <value>Scan required</value>
   </data>
   <data name="TreemapNoChildDataHint" xml:space="preserve">
-    <value></value>
+    <value />
   </data>
   <data name="ChatEmptyTitle" xml:space="preserve">
     <value>Chat assistant ready</value>
@@ -756,5 +756,59 @@
   </data>
   <data name="ValidateButtonLabel" xml:space="preserve">
     <value>Validate</value>
+  </data>
+  <data name="SettingsWhitelistNav" xml:space="preserve">
+    <value>Whitelist</value>
+  </data>
+  <data name="SettingsWhitelistDescription" xml:space="preserve">
+    <value>Whitelist entries are excluded or protected: scan skips them, cleanup recommendations hide them, and AI chat cannot query them.</value>
+  </data>
+  <data name="SettingsWhitelistScanTitle" xml:space="preserve">
+    <value>Scan whitelist</value>
+  </data>
+  <data name="SettingsWhitelistScanHint" xml:space="preserve">
+    <value>Skipped during normal scans and fast NTFS scans. If the scan target itself is excluded, scanning is blocked.</value>
+  </data>
+  <data name="SettingsWhitelistCleanupTitle" xml:space="preserve">
+    <value>Cleanup recommendation whitelist</value>
+  </data>
+  <data name="SettingsWhitelistCleanupHint" xml:space="preserve">
+    <value>Hidden before sending data to the model and filtered again from returned recommendations.</value>
+  </data>
+  <data name="SettingsWhitelistAiTitle" xml:space="preserve">
+    <value>AI chat whitelist</value>
+  </data>
+  <data name="SettingsWhitelistAiHint" xml:space="preserve">
+    <value>Hidden from context summaries, selected items, related recommendations, and read-only file tree tools.</value>
+  </data>
+  <data name="SettingsWhitelistPathPlaceholder" xml:space="preserve">
+    <value>Path</value>
+  </data>
+  <data name="SettingsWhitelistDescriptionPlaceholder" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="SettingsWhitelistBrowse" xml:space="preserve">
+    <value>Browse</value>
+  </data>
+  <data name="SettingsWhitelistAdd" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="SettingsWhitelistDelete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="SettingsWhitelistCopyJson" xml:space="preserve">
+    <value>Copy JSON</value>
+  </data>
+  <data name="SettingsWhitelistPasteJson" xml:space="preserve">
+    <value>Paste JSON</value>
+  </data>
+  <data name="SettingsWhitelistPasteInvalidJson" xml:space="preserve">
+    <value>Clipboard content is not a valid whitelist JSON array.</value>
+  </data>
+  <data name="ScanTargetExcludedByWhitelist" xml:space="preserve">
+    <value>The selected scan target is excluded by whitelist settings.</value>
+  </data>
+  <data name="AiWhitelistHiddenPathMessage" xml:space="preserve">
+    <value>This path is hidden by whitelist settings. AI chat cannot query or expose it.</value>
   </data>
 </root>

@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using SpaceMonger.App.Diagnostics;
 using SpaceMonger.App.Localization;
@@ -13,6 +13,7 @@ using SpaceMonger.Core.Services.Scanning;
 using SpaceMonger.Core.Services.Settings;
 using SpaceMonger.Core.Services.Cleanup;
 using SpaceMonger.Core.Services.Treemap;
+using SpaceMonger.Core.Services.Whitelist;
 
 namespace SpaceMonger.App;
 
@@ -41,6 +42,8 @@ public partial class App : Application
 
         // Theme manager (singleton, initialized early)
         services.AddSingleton<ThemeManager>();
+
+        services.AddSingleton<IPathWhitelistMatcher, PathWhitelistMatcher>();
 
         // US1 services
         services.AddSingleton<FileScanner>();

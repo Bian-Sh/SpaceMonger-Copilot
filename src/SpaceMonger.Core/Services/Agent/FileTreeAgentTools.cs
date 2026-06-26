@@ -1,12 +1,16 @@
 using System.Text.Json;
 using SpaceMonger.Core.Models;
 using SpaceMonger.Core.Services.FileTree;
+using SpaceMonger.Core.Services.Settings;
+using SpaceMonger.Core.Services.Whitelist;
 
 namespace SpaceMonger.Core.Services.Agent;
 
-public abstract class FileTreeAgentToolBase(IFileTreeQueryService queryService) : IAgentTool
+public abstract class FileTreeAgentToolBase(IFileTreeQueryService queryService, ISettingsService? settingsService = null, IPathWhitelistMatcher? whitelistMatcher = null) : IAgentTool
 {
     protected IFileTreeQueryService QueryService { get; } = queryService;
+    private readonly ISettingsService? _settingsService = settingsService;
+    private readonly IPathWhitelistMatcher _whitelistMatcher = whitelistMatcher ?? new PathWhitelistMatcher();
 
     public abstract string Name { get; }
     public abstract string Description { get; }
@@ -89,9 +93,19 @@ public abstract class FileTreeAgentToolBase(IFileTreeQueryService queryService) 
             }
         });
     }
+
+    protected bool IsAiHidden(string? path)
+    {
+        return _whitelistMatcher.IsExcluded(path, _settingsService?.LoadSettings().AiConversationWhitelist);
+    }
+
+    protected static JsonElement HiddenPath()
+    {
+        return Error("hidden_by_whitelist", "This path is hidden by whitelist settings.");
+    }
 }
 
-public sealed class FindByNameTool(IFileTreeQueryService queryService) : FileTreeAgentToolBase(queryService)
+public sealed class FindByNameTool(IFileTreeQueryService queryService, ISettingsService? settingsService = null, IPathWhitelistMatcher? whitelistMatcher = null) : FileTreeAgentToolBase(queryService, settingsService, whitelistMatcher)
 {
     public override string Name => "find_by_name";
     public override string Description => "Find scanned files or directories by name using case-insensitive matching.";
@@ -123,7 +137,7 @@ public sealed class FindByNameTool(IFileTreeQueryService queryService) : FileTre
     }
 }
 
-public sealed class FindByPathTool(IFileTreeQueryService queryService) : FileTreeAgentToolBase(queryService)
+public sealed class FindByPathTool(IFileTreeQueryService queryService, ISettingsService? settingsService = null, IPathWhitelistMatcher? whitelistMatcher = null) : FileTreeAgentToolBase(queryService, settingsService, whitelistMatcher)
 {
     public override string Name => "find_by_path";
     public override string Description => "Find a scanned file or directory by full path. Windows paths are case-insensitive and slash-normalized.";
@@ -139,6 +153,11 @@ public sealed class FindByPathTool(IFileTreeQueryService queryService) : FileTre
             return Task.FromResult(Error("invalid_arguments", "path is required."));
         }
 
+        if (IsAiHidden(path))
+        {
+            return Task.FromResult(HiddenPath());
+        }
+
         var entry = QueryService.FindByPath(context.Session, path);
         return Task.FromResult(entry is null
             ? Error("not_found", $"Path not found in scanned tree: {path}")
@@ -146,7 +165,7 @@ public sealed class FindByPathTool(IFileTreeQueryService queryService) : FileTre
     }
 }
 
-public sealed class ListChildrenTool(IFileTreeQueryService queryService) : FileTreeAgentToolBase(queryService)
+public sealed class ListChildrenTool(IFileTreeQueryService queryService, ISettingsService? settingsService = null, IPathWhitelistMatcher? whitelistMatcher = null) : FileTreeAgentToolBase(queryService, settingsService, whitelistMatcher)
 {
     public override string Name => "list_children";
     public override string Description => "List direct children of a scanned directory, ordered by descending size.";
@@ -160,6 +179,11 @@ public sealed class ListChildrenTool(IFileTreeQueryService queryService) : FileT
         if (string.IsNullOrWhiteSpace(path))
         {
             return Task.FromResult(Error("invalid_arguments", "path is required."));
+        }
+
+        if (IsAiHidden(path))
+        {
+            return Task.FromResult(HiddenPath());
         }
 
         var entry = QueryService.FindByPath(context.Session, path);
@@ -184,7 +208,7 @@ public sealed class ListChildrenTool(IFileTreeQueryService queryService) : FileT
     }
 }
 
-public sealed class SummarizeSubtreeTool(IFileTreeQueryService queryService) : FileTreeAgentToolBase(queryService)
+public sealed class SummarizeSubtreeTool(IFileTreeQueryService queryService, ISettingsService? settingsService = null, IPathWhitelistMatcher? whitelistMatcher = null) : FileTreeAgentToolBase(queryService, settingsService, whitelistMatcher)
 {
     public override string Name => "summarize_subtree";
     public override string Description => "Summarize a scanned subtree with file/folder counts and largest direct children.";
@@ -198,6 +222,11 @@ public sealed class SummarizeSubtreeTool(IFileTreeQueryService queryService) : F
         if (string.IsNullOrWhiteSpace(path))
         {
             return Task.FromResult(Error("invalid_arguments", "path is required."));
+        }
+
+        if (IsAiHidden(path))
+        {
+            return Task.FromResult(HiddenPath());
         }
 
         var entry = QueryService.FindByPath(context.Session, path);
@@ -221,7 +250,7 @@ public sealed class SummarizeSubtreeTool(IFileTreeQueryService queryService) : F
     }
 }
 
-public sealed class FindLargeFilesTool(IFileTreeQueryService queryService) : FileTreeAgentToolBase(queryService)
+public sealed class FindLargeFilesTool(IFileTreeQueryService queryService, ISettingsService? settingsService = null, IPathWhitelistMatcher? whitelistMatcher = null) : FileTreeAgentToolBase(queryService, settingsService, whitelistMatcher)
 {
     public override string Name => "find_large_files";
     public override string Description => "Find the largest scanned files, optionally under a directory path.";
@@ -232,6 +261,11 @@ public sealed class FindLargeFilesTool(IFileTreeQueryService queryService) : Fil
     public override Task<JsonElement> ExecuteAsync(AgentContext context, JsonElement arguments, CancellationToken cancellationToken)
     {
         var underPath = GetString(arguments, "under_path");
+        if (IsAiHidden(underPath))
+        {
+            return Task.FromResult(HiddenPath());
+        }
+
         if (!string.IsNullOrWhiteSpace(underPath) && QueryService.FindByPath(context.Session, underPath) is null)
         {
             return Task.FromResult(Error("not_found", $"Path not found in scanned tree: {underPath}"));

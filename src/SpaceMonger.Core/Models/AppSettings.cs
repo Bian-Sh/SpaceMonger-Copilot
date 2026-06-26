@@ -1,4 +1,4 @@
-﻿using SpaceMonger.Core.Enums;
+using SpaceMonger.Core.Enums;
 using SpaceMonger.Core.Models.Theme;
 
 namespace SpaceMonger.Core.Models;
@@ -17,4 +17,14 @@ public class AppSettings
 
     /// <summary>Serialized theme profile (or null = use default).</summary>
     public ThemeProfile? ThemeProfile { get; set; }
+
+    public List<PathWhitelistEntry> ScanWhitelist { get; set; } = [];
+    public List<PathWhitelistEntry> CleanupRecommendationWhitelist { get; set; } = [];
+    public List<PathWhitelistEntry> AiConversationWhitelist { get; set; } = [];
+}
+
+public class PathWhitelistEntry
+{
+    public string Path { get; set; } = string.Empty;
+    public string? Description { get; set; }
 }

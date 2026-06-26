@@ -1,12 +1,17 @@
-﻿using System.Windows.Media;
+using System.Collections.ObjectModel;
+using System.Text.Json;
+using System.Windows;
+using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SpaceMonger.App.Localization;
 using SpaceMonger.App.Services;
 using SpaceMonger.Core.Enums;
+using SpaceMonger.Core.Models;
 using SpaceMonger.Core.Models.Theme;
 using SpaceMonger.Core.Services.Llm;
 using SpaceMonger.Core.Services.Settings;
+using SpaceMonger.Core.Services.Whitelist;
 
 namespace SpaceMonger.App.ViewModels;
 
@@ -23,6 +28,7 @@ public partial class SettingsViewModel : ObservableObject
     private readonly ISettingsService _settingsService;
     private readonly ILlmClient _llmClient;
     private readonly ThemeManager _themeManager;
+    private readonly IPathWhitelistMatcher _whitelistMatcher;
     private bool _isLoadingSettings;
     private bool _suppressPersistence;
 
@@ -126,6 +132,23 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private string _validationStatusText = string.Empty;
 
+    public ObservableCollection<PathWhitelistEntry> ScanWhitelist { get; } = [];
+    public ObservableCollection<PathWhitelistEntry> CleanupRecommendationWhitelist { get; } = [];
+    public ObservableCollection<PathWhitelistEntry> AiConversationWhitelist { get; } = [];
+
+    [ObservableProperty]
+    private string? _newScanWhitelistPath;
+
+    [ObservableProperty]
+    private string? _newCleanupWhitelistPath;
+
+    [ObservableProperty]
+    private string? _newAiWhitelistPath;
+
+    [ObservableProperty]
+    private string? _whitelistErrorMessage;
+
+
     // ── Theme Properties ─────────────────────────────────────────
 
     [ObservableProperty]
@@ -182,11 +205,12 @@ public partial class SettingsViewModel : ObservableObject
 
     public static IReadOnlyList<ThemeProfile> AvailableThemePresets { get; } = ThemeProfile.BuiltInPresets;
 
-    public SettingsViewModel(ISettingsService settingsService, ILlmClient llmClient, ThemeManager themeManager)
+    public SettingsViewModel(ISettingsService settingsService, ILlmClient llmClient, ThemeManager themeManager, IPathWhitelistMatcher? whitelistMatcher = null)
     {
         _settingsService = settingsService;
         _llmClient = llmClient;
         _themeManager = themeManager;
+        _whitelistMatcher = whitelistMatcher ?? new PathWhitelistMatcher();
         L.LanguageChanged += RefreshValidationStatusText;
 
         LoadSettings();
@@ -352,6 +376,177 @@ public partial class SettingsViewModel : ObservableObject
         SettingsChanged?.Invoke();
     }
 
+
+    [RelayCommand]
+    private void AddScanWhitelistPath()
+    {
+        AddWhitelistPath(ScanWhitelist, NewScanWhitelistPath);
+        NewScanWhitelistPath = null;
+    }
+
+    [RelayCommand]
+    private void AddCleanupWhitelistPath()
+    {
+        AddWhitelistPath(CleanupRecommendationWhitelist, NewCleanupWhitelistPath);
+        NewCleanupWhitelistPath = null;
+    }
+
+    [RelayCommand]
+    private void AddAiWhitelistPath()
+    {
+        AddWhitelistPath(AiConversationWhitelist, NewAiWhitelistPath);
+        NewAiWhitelistPath = null;
+    }
+
+    [RelayCommand]
+    private void BrowseScanWhitelistPath()
+    {
+        BrowseWhitelistPath(ScanWhitelist);
+    }
+
+    [RelayCommand]
+    private void BrowseCleanupWhitelistPath()
+    {
+        BrowseWhitelistPath(CleanupRecommendationWhitelist);
+    }
+
+    [RelayCommand]
+    private void BrowseAiWhitelistPath()
+    {
+        BrowseWhitelistPath(AiConversationWhitelist);
+    }
+
+    [RelayCommand]
+    private void RemoveWhitelistEntry(PathWhitelistEntry? entry)
+    {
+        if (entry is null)
+        {
+            return;
+        }
+
+        if (ScanWhitelist.Remove(entry) || CleanupRecommendationWhitelist.Remove(entry) || AiConversationWhitelist.Remove(entry))
+        {
+            PersistWhitelists();
+        }
+    }
+
+    [RelayCommand]
+    private void CopyWhitelist(string? kind)
+    {
+        var source = GetWhitelist(kind);
+        if (source is null)
+        {
+            return;
+        }
+
+        var json = JsonSerializer.Serialize(source.Select(CloneWhitelistEntry).ToList(), new JsonSerializerOptions { WriteIndented = true });
+        Clipboard.SetText(json);
+        WhitelistErrorMessage = null;
+    }
+
+    [RelayCommand]
+    private void PasteWhitelist(string? kind)
+    {
+        var target = GetWhitelist(kind);
+        if (target is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var text = Clipboard.GetText();
+            var incoming = JsonSerializer.Deserialize<List<PathWhitelistEntry>>(text, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (incoming is null)
+            {
+                throw new JsonException("empty whitelist json");
+            }
+
+            ReplaceCollection(target, _whitelistMatcher.MergeEntries(target, incoming));
+            WhitelistErrorMessage = null;
+            PersistWhitelists();
+        }
+        catch (Exception ex) when (ex is JsonException or ArgumentException)
+        {
+            WhitelistErrorMessage = L.Text("SettingsWhitelistPasteInvalidJson");
+        }
+    }
+
+    [RelayCommand]
+    private void WhitelistEntryChanged()
+    {
+        PersistWhitelists();
+    }
+
+    private void AddWhitelistPath(ObservableCollection<PathWhitelistEntry> target, string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        ReplaceCollection(target, _whitelistMatcher.MergeEntries(target, [new PathWhitelistEntry { Path = path.Trim() }]));
+        WhitelistErrorMessage = null;
+        PersistWhitelists();
+    }
+
+    private void BrowseWhitelistPath(ObservableCollection<PathWhitelistEntry> target)
+    {
+        var dialog = new Microsoft.Win32.OpenFolderDialog();
+        if (dialog.ShowDialog() == true)
+        {
+            AddWhitelistPath(target, dialog.FolderName);
+        }
+    }
+
+    private ObservableCollection<PathWhitelistEntry>? GetWhitelist(string? kind)
+    {
+        return kind switch
+        {
+            "scan" => ScanWhitelist,
+            "cleanup" => CleanupRecommendationWhitelist,
+            "ai" => AiConversationWhitelist,
+            _ => null
+        };
+    }
+
+    private void PersistWhitelists()
+    {
+        PersistAppSettings(settings =>
+        {
+            settings.ScanWhitelist = ScanWhitelist.Select(CloneWhitelistEntry).ToList();
+            settings.CleanupRecommendationWhitelist = CleanupRecommendationWhitelist.Select(CloneWhitelistEntry).ToList();
+            settings.AiConversationWhitelist = AiConversationWhitelist.Select(CloneWhitelistEntry).ToList();
+        });
+    }
+
+    private static PathWhitelistEntry CloneWhitelistEntry(PathWhitelistEntry entry)
+    {
+        return new PathWhitelistEntry
+        {
+            Path = entry.Path.Trim(),
+            Description = string.IsNullOrWhiteSpace(entry.Description) ? null : entry.Description.Trim()
+        };
+    }
+
+    private static void ReplaceCollection(ObservableCollection<PathWhitelistEntry> target, IEnumerable<PathWhitelistEntry>? entries)
+    {
+        target.Clear();
+        if (entries is null)
+        {
+            return;
+        }
+
+        foreach (var entry in entries.Where(entry => !string.IsNullOrWhiteSpace(entry.Path)))
+        {
+            target.Add(new PathWhitelistEntry
+            {
+                Path = entry.Path.Trim(),
+                Description = string.IsNullOrWhiteSpace(entry.Description) ? null : entry.Description.Trim()
+            });
+        }
+    }
+
     private void SyncThemeToManager()
     {
         var bgHex = ThemeManager.ToHex(ThemeBackgroundColor);
@@ -504,6 +699,10 @@ public partial class SettingsViewModel : ObservableObject
             Language = string.IsNullOrWhiteSpace(settings.Language) ? "zh-CN" : settings.Language;
             SelectedDeletionMode = settings.DeletionMode;
             IsApiKeyValid = settings.IsApiKeyValid;
+            ReplaceCollection(ScanWhitelist, settings.ScanWhitelist);
+            ReplaceCollection(CleanupRecommendationWhitelist, settings.CleanupRecommendationWhitelist);
+            ReplaceCollection(AiConversationWhitelist, settings.AiConversationWhitelist);
+            WhitelistErrorMessage = null;
 
             ValidationState = IsApiKeyValid ? ValidationState.Valid : ValidationState.None;
 

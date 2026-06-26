@@ -1,5 +1,6 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using SpaceMonger.Core.Models;
+using SpaceMonger.Core.Services.Whitelist;
 
 namespace SpaceMonger.Core.Services.Scanning;
 
@@ -20,7 +21,7 @@ public partial class IncrementalFileScanner
             var mftRecords = MftEnumerator.EnumerateVolume(volumeRoot, progress, ct);
             if (mftRecords == null)
             {
-                Trace.WriteLine("[MFT] " +"EnumerateVolume returned null — falling back");
+                Trace.WriteLine("[MFT] " +"EnumerateVolume returned null 鈥?falling back");
                 return null;
             }
 
@@ -45,13 +46,13 @@ public partial class IncrementalFileScanner
                 StringComparison.OrdinalIgnoreCase);
             Trace.WriteLine("[MFT] " +$"isWholeVolume={isWholeVolume}");
 
-            // Get the actual FRN for the target path. Don't hardcode segment 5 for root —
+            // Get the actual FRN for the target path. Don't hardcode segment 5 for root 鈥?
             // the full FRN includes a sequence number in the upper 16 bits.
             var targetFrn = NtfsUsnNative.GetFileReferenceNumber(fullPath);
             Trace.WriteLine("[MFT] " +$"targetFrn=0x{targetFrn:X16} (segment {targetFrn & 0x0000_FFFF_FFFF_FFFF})");
             if (targetFrn == 0)
             {
-                Trace.WriteLine("[MFT] " +"GetFileReferenceNumber returned 0 — falling back");
+                Trace.WriteLine("[MFT] " +"GetFileReferenceNumber returned 0 鈥?falling back");
                 return null;
             }
 
@@ -72,7 +73,7 @@ public partial class IncrementalFileScanner
                 var bfsQueue = new Queue<long>();
                 bfsQueue.Enqueue(targetFrn);
 
-                // Build parent→children lookup for BFS
+                // Build parent鈫抍hildren lookup for BFS
                 var childrenByParent = new Dictionary<long, List<long>>();
                 foreach (var (frn, rec) in mftRecords)
                 {
@@ -100,7 +101,7 @@ public partial class IncrementalFileScanner
 
             Trace.WriteLine("[MFT] " +$"subtreeFrns count: {subtreeFrns.Count}");
 
-            // Ensure the target FRN is in the subtree set — FSCTL_ENUM_USN_DATA may not
+            // Ensure the target FRN is in the subtree set 鈥?FSCTL_ENUM_USN_DATA may not
             // return certain system entries (e.g. root directory has no USN record).
             subtreeFrns.Add(targetFrn);
 
@@ -121,7 +122,7 @@ public partial class IncrementalFileScanner
                 }
                 else if (frn == targetFrn)
                 {
-                    // Synthetic root — not returned by FSCTL_ENUM_USN_DATA (no USN record)
+                    // Synthetic root 鈥?not returned by FSCTL_ENUM_USN_DATA (no USN record)
                     var dirInfo = new DirectoryInfo(fullPath);
                     frnToEntry[frn] = new FileEntry
                     {
@@ -179,7 +180,9 @@ public partial class IncrementalFileScanner
                 }
             }
 
-            // Free MFT records — no longer needed
+            PruneWhitelistedEntries(rootEntry, _settingsService?.LoadSettings().ScanWhitelist ?? []);
+
+            // Free MFT records 鈥?no longer needed
             mftRecords = null;
 
             Trace.WriteLine("[MFT] " +$"Tree built: {frnToEntry.Count} entries in {sw.ElapsedMilliseconds}ms");
@@ -210,7 +213,7 @@ public partial class IncrementalFileScanner
 
             FileScanner.PopulateDriveInfo(session, fullPath);
 
-            Trace.WriteLine("[MFT] " +$"SUCCESS — Total scan time: {sw.ElapsedMilliseconds}ms");
+            Trace.WriteLine("[MFT] " +$"SUCCESS 鈥?Total scan time: {sw.ElapsedMilliseconds}ms");
 
             return (session, frnToEntry);
         }
@@ -221,6 +224,24 @@ public partial class IncrementalFileScanner
         }
     }
 
+
+    private void PruneWhitelistedEntries(FileEntry root, IEnumerable<PathWhitelistEntry> whitelist)
+    {
+        for (var index = root.Children.Count - 1; index >= 0; index--)
+        {
+            var child = root.Children[index];
+            if (_whitelistMatcher.IsExcluded(child.Path, whitelist))
+            {
+                root.Children.RemoveAt(index);
+                continue;
+            }
+
+            if (child.IsDirectory)
+            {
+                PruneWhitelistedEntries(child, whitelist);
+            }
+        }
+    }
     private static bool IsWholeVolumeRoot(string path)
     {
         var fullPath = Path.GetFullPath(path);
@@ -233,4 +254,7 @@ public partial class IncrementalFileScanner
     }
 
 }
+
+
+
 

@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using SpaceMonger.Core.Diagnostics;
 using SpaceMonger.Core.Enums;
@@ -9,12 +9,14 @@ namespace SpaceMonger.Core.Services.Analysis;
 
 public partial class RecommendationEngine
 {
-    private static string BuildCompactMetadata(ScanSession session, FileEntry analysisRoot)
+    private string BuildCompactMetadata(ScanSession session, FileEntry analysisRoot)
     {
         // Collect all entries in a single pass from the analysis root
         var allFiles = new List<FileEntry>();
         var allDirs = new List<FileEntry>();
         CollectEntries(analysisRoot, allFiles, allDirs);
+        allFiles = allFiles.Where(file => !IsCleanupExcluded(file.Path)).ToList();
+        allDirs = allDirs.Where(dir => !IsCleanupExcluded(dir.Path)).ToList();
 
         // Top files by size
         var topFiles = allFiles
@@ -117,8 +119,13 @@ public partial class RecommendationEngine
         return sb.ToString();
     }
 
-    private static void CollectEntries(FileEntry entry, List<FileEntry> files, List<FileEntry> dirs)
+    private void CollectEntries(FileEntry entry, List<FileEntry> files, List<FileEntry> dirs)
     {
+        if (IsCleanupExcluded(entry.Path))
+        {
+            return;
+        }
+
         if (entry.IsDirectory)
         {
             dirs.Add(entry);
@@ -165,7 +172,7 @@ public partial class RecommendationEngine
     /// distinguish a real temp folder from a user working folder that happens
     /// to have "temp" in its name.
     /// </summary>
-    private static string BuildContentFingerprint(FileEntry dir)
+    private string BuildContentFingerprint(FileEntry dir)
     {
         var allFiles = new List<FileEntry>();
         CollectFilesOnly(dir, allFiles);
@@ -221,10 +228,15 @@ public partial class RecommendationEngine
         return sb.ToString();
     }
 
-    private static void CollectFilesOnly(FileEntry entry, List<FileEntry> files)
+    private void CollectFilesOnly(FileEntry entry, List<FileEntry> files)
     {
         foreach (var child in entry.Children)
         {
+            if (IsCleanupExcluded(child.Path))
+            {
+                continue;
+            }
+
             if (child.IsDirectory)
                 CollectFilesOnly(child, files);
             else

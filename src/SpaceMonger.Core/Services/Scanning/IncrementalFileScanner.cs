@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics;
 using SpaceMonger.Core.Models;
+using SpaceMonger.Core.Services.Settings;
+using SpaceMonger.Core.Services.Whitelist;
 
 namespace SpaceMonger.Core.Services.Scanning;
 
@@ -11,15 +13,19 @@ namespace SpaceMonger.Core.Services.Scanning;
 public partial class IncrementalFileScanner : IFileScanner
 {
     private readonly FileScanner _inner;
+    private readonly ISettingsService? _settingsService;
+    private readonly IPathWhitelistMatcher _whitelistMatcher;
     private readonly Dictionary<string, VolumeScanState> _volumeStates = new(StringComparer.OrdinalIgnoreCase);
     private Task? _pendingIndexBuild;
 
     public bool IsReady => _pendingIndexBuild is null or { IsCompleted: true };
     public event Action? IsReadyChanged;
 
-    public IncrementalFileScanner(FileScanner inner)
+    public IncrementalFileScanner(FileScanner inner, ISettingsService? settingsService = null, IPathWhitelistMatcher? whitelistMatcher = null)
     {
         _inner = inner;
+        _settingsService = settingsService;
+        _whitelistMatcher = whitelistMatcher ?? new PathWhitelistMatcher();
     }
 
     public async Task<ScanSession> ScanAsync(
@@ -36,6 +42,12 @@ public partial class IncrementalFileScanner : IFileScanner
         }
 
         var fullPath = Path.GetFullPath(path);
+        var scanWhitelist = _settingsService?.LoadSettings().ScanWhitelist ?? [];
+        if (_whitelistMatcher.IsExcluded(fullPath, scanWhitelist))
+        {
+            throw new InvalidOperationException("Scan target is excluded by whitelist settings.");
+        }
+
         var volumeRoot = Path.GetPathRoot(fullPath);
 
         Trace.WriteLine($"[USN] ScanAsync called: fullPath={fullPath}, volumeRoot={volumeRoot}, hasState={volumeRoot != null && _volumeStates.ContainsKey(volumeRoot)}");
@@ -130,3 +142,4 @@ public partial class IncrementalFileScanner : IFileScanner
         public Dictionary<long, FileEntry> FrnIndex { get; set; } = new();
     }
 }
+

@@ -1,11 +1,22 @@
-using System.IO.Enumeration;
+﻿using System.IO.Enumeration;
 using System.Runtime.InteropServices;
 using SpaceMonger.Core.Models;
+using SpaceMonger.Core.Services.Settings;
+using SpaceMonger.Core.Services.Whitelist;
 
 namespace SpaceMonger.Core.Services.Scanning;
 
 public class FileScanner : IFileScanner
 {
+    private readonly ISettingsService? _settingsService;
+    private readonly IPathWhitelistMatcher _whitelistMatcher;
+
+    public FileScanner(ISettingsService? settingsService = null, IPathWhitelistMatcher? whitelistMatcher = null)
+    {
+        _settingsService = settingsService;
+        _whitelistMatcher = whitelistMatcher ?? new PathWhitelistMatcher();
+    }
+
     public bool IsReady => true;
     public event Action? IsReadyChanged { add { } remove { } }
 
@@ -29,6 +40,12 @@ public class FileScanner : IFileScanner
         };
 
         PopulateDriveInfo(session, path);
+
+        var scanWhitelist = _settingsService?.LoadSettings().ScanWhitelist ?? [];
+        if (_whitelistMatcher.IsExcluded(path, scanWhitelist))
+        {
+            throw new InvalidOperationException("Scan target is excluded by whitelist settings.");
+        }
 
         var rootEntry = CreateRootEntry(path);
 
@@ -54,7 +71,7 @@ public class FileScanner : IFileScanner
                 try
                 {
                     // Use FileSystemEnumerable<T> to read all entries in one pass.
-                    // This maps directly to FindFirstFile/FindNextFile 鈥?one syscall per entry,
+                    // This maps directly to FindFirstFile/FindNextFile 閳?one syscall per entry,
                     // no extra GetFileAttributesEx or stat calls like FileInfo/DirectoryInfo would cause.
                     var enumerable = new FileSystemEnumerable<(string FullPath, string Name, FileAttributes Attributes, long Length, DateTime LastWrite, bool IsDir)>(
                         current.Path,
@@ -70,7 +87,7 @@ public class FileScanner : IFileScanner
                         {
                             IgnoreInaccessible = false,
                             RecurseSubdirectories = false,
-                            AttributesToSkip = 0 // Don't skip anything 鈥?we handle attributes ourselves.
+                            AttributesToSkip = 0 // Don't skip anything 閳?we handle attributes ourselves.
                         });
 
                     foreach (var item in enumerable)
@@ -79,6 +96,11 @@ public class FileScanner : IFileScanner
                         {
                             session.IsCancelled = true;
                             break;
+                        }
+
+                        if (_whitelistMatcher.IsExcluded(item.FullPath, scanWhitelist))
+                        {
+                            continue;
                         }
 
                         var isReparsePoint = (item.Attributes & FileAttributes.ReparsePoint) != 0;
@@ -121,7 +143,7 @@ public class FileScanner : IFileScanner
                                 Attributes = item.Attributes,
                                 LastModified = item.LastWrite,
                                 Extension = System.IO.Path.GetExtension(item.Name)?.ToLowerInvariant(),
-                                // Length comes straight from WIN32_FIND_DATA 鈥?no extra syscall.
+                                // Length comes straight from WIN32_FIND_DATA 閳?no extra syscall.
                                 // Cloud placeholders report 0 to avoid triggering downloads.
                                 Size = isCloudPlaceholder ? 0 : item.Length,
                                 AllocatedSize = GetAllocatedSize(item.FullPath, item.Length, isCloudPlaceholder),
@@ -143,7 +165,7 @@ public class FileScanner : IFileScanner
                     // Skip directories that cannot be read due to I/O errors.
                 }
 
-                // Throttle progress reports 鈥?reporting every directory hammers the UI thread.
+                // Throttle progress reports 閳?reporting every directory hammers the UI thread.
                 if (++reportCounter % ProgressReportInterval == 0)
                 {
                     progress.Report(new ScanProgress(current.Path, fileCount, folderCount));
@@ -204,7 +226,7 @@ public class FileScanner : IFileScanner
 
     private static FileEntry CreateRootEntry(string path)
     {
-        // Only the root needs a DirectoryInfo call 鈥?one syscall for the entire scan.
+        // Only the root needs a DirectoryInfo call 閳?one syscall for the entire scan.
         var dirInfo = new DirectoryInfo(path);
         return new FileEntry
         {
@@ -296,4 +318,5 @@ public class FileScanner : IFileScanner
     [DllImport("kernel32.dll", EntryPoint = "GetCompressedFileSizeW", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern uint GetCompressedFileSize(string fileName, out uint fileSizeHigh);
 }
+
 

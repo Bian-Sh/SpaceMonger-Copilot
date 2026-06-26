@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -28,7 +28,7 @@ public partial class SettingsPage : UserControl
         };
     }
 
-    private IReadOnlyList<Button> NavButtons => _navButtons ??= [ApiNavButton, GeneralNavButton, ThemeNavButton, DisclaimerNavButton];
+    private IReadOnlyList<Button> NavButtons => _navButtons ??= [ApiNavButton, GeneralNavButton, ThemeNavButton, WhitelistNavButton, DisclaimerNavButton];
 
     private void SettingsNavButton_Click(object sender, RoutedEventArgs e)
     {
@@ -79,7 +79,7 @@ public partial class SettingsPage : UserControl
         var scrollOffset = SettingsScrollViewer.VerticalOffset + activationOffset;
         FrameworkElement activeSection = ApiSectionControl;
 
-        foreach (var section in new FrameworkElement[] { ApiSectionControl, GeneralSectionControl, ThemeSectionControl, DisclaimerSectionControl })
+        foreach (var section in new FrameworkElement[] { ApiSectionControl, GeneralSectionControl, ThemeSectionControl, WhitelistSectionControl, DisclaimerSectionControl })
         {
             if (GetSectionOffset(section) <= scrollOffset)
             {

@@ -1,9 +1,20 @@
-using SpaceMonger.Core.Models;
+﻿using SpaceMonger.Core.Models;
+using SpaceMonger.Core.Services.Settings;
+using SpaceMonger.Core.Services.Whitelist;
 
 namespace SpaceMonger.Core.Services.FileTree;
 
 public sealed class FileTreeQueryService : IFileTreeQueryService
 {
+    private readonly ISettingsService? _settingsService;
+    private readonly IPathWhitelistMatcher _whitelistMatcher;
+
+    public FileTreeQueryService(ISettingsService? settingsService = null, IPathWhitelistMatcher? whitelistMatcher = null)
+    {
+        _settingsService = settingsService;
+        _whitelistMatcher = whitelistMatcher ?? new PathWhitelistMatcher();
+    }
+
     public FileEntry? FindByPath(ScanSession session, string path)
     {
         if (session.RootEntry is null || string.IsNullOrWhiteSpace(path))
@@ -11,8 +22,14 @@ public sealed class FileTreeQueryService : IFileTreeQueryService
             return null;
         }
 
+        if (IsAiExcluded(path))
+        {
+            return null;
+        }
+
         var normalizedPath = NormalizePath(path);
         return EnumerateDepthFirst(session.RootEntry)
+            .Where(entry => !IsAiExcluded(entry.Path))
             .FirstOrDefault(entry => NormalizePath(entry.Path) == normalizedPath);
     }
 
@@ -27,6 +44,7 @@ public sealed class FileTreeQueryService : IFileTreeQueryService
         var limit = Math.Clamp(maxResults, 1, 500);
 
         return EnumerateDepthFirst(session.RootEntry)
+            .Where(entry => !IsAiExcluded(entry.Path))
             .Where(entry => exactMatch
                 ? string.Equals(entry.Name, name, comparison)
                 : entry.Name.Contains(name, comparison))
@@ -45,6 +63,7 @@ public sealed class FileTreeQueryService : IFileTreeQueryService
 
         var limit = Math.Clamp(maxResults, 1, 500);
         return entry.Children
+            .Where(child => !IsAiExcluded(child.Path))
             .OrderByDescending(child => child.Size)
             .Take(limit)
             .ToList();
@@ -59,7 +78,7 @@ public sealed class FileTreeQueryService : IFileTreeQueryService
         var directoryCount = 0;
         DateTime? lastModified = null;
 
-        foreach (var child in EnumerateDepthFirst(entry))
+        foreach (var child in EnumerateDepthFirst(entry).Where(child => !IsAiExcluded(child.Path)))
         {
             if (child.IsDirectory)
             {
@@ -78,6 +97,7 @@ public sealed class FileTreeQueryService : IFileTreeQueryService
 
         var limit = Math.Clamp(topChildren, 1, 100);
         var largestChildren = entry.Children
+            .Where(child => !IsAiExcluded(child.Path))
             .OrderByDescending(child => child.Size)
             .Take(limit)
             .ToList();
@@ -111,10 +131,16 @@ public sealed class FileTreeQueryService : IFileTreeQueryService
         var limit = Math.Clamp(maxResults, 1, 500);
 
         return EnumerateDepthFirst(root)
+            .Where(entry => !IsAiExcluded(entry.Path))
             .Where(entry => !entry.IsDirectory && (!minSizeBytes.HasValue || entry.Size >= minSizeBytes.Value))
             .OrderByDescending(entry => entry.Size)
             .Take(limit)
             .ToList();
+    }
+
+    private bool IsAiExcluded(string path)
+    {
+        return _whitelistMatcher.IsExcluded(path, _settingsService?.LoadSettings().AiConversationWhitelist);
     }
 
     private static IEnumerable<FileEntry> EnumerateDepthFirst(FileEntry root)
@@ -146,3 +172,5 @@ public sealed class FileTreeQueryService : IFileTreeQueryService
         return normalized.TrimEnd('\\').ToUpperInvariant();
     }
 }
+
+

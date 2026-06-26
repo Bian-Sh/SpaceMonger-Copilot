@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <root>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
@@ -431,19 +431,19 @@
     <value>待扫描</value>
   </data>
   <data name="TreemapEmptyHint" xml:space="preserve">
-    <value></value>
+    <value />
   </data>
   <data name="TreemapAnalysisRequiredTitle" xml:space="preserve">
     <value>待扫描</value>
   </data>
   <data name="TreemapAnalysisRequiredHint" xml:space="preserve">
-    <value></value>
+    <value />
   </data>
   <data name="TreemapNoChildDataTitle" xml:space="preserve">
     <value>待扫描</value>
   </data>
   <data name="TreemapNoChildDataHint" xml:space="preserve">
-    <value></value>
+    <value />
   </data>
   <data name="ChatEmptyTitle" xml:space="preserve">
     <value>聊天助手待命</value>
@@ -753,5 +753,59 @@
   </data>
   <data name="ValidateButtonLabel" xml:space="preserve">
     <value>验证</value>
+  </data>
+  <data name="SettingsWhitelistNav" xml:space="preserve">
+    <value>白名单</value>
+  </data>
+  <data name="SettingsWhitelistDescription" xml:space="preserve">
+    <value>白名单表示排除/保护：扫描跳过、清理推荐不推荐、AI 对话不查询也不暴露匹配路径。</value>
+  </data>
+  <data name="SettingsWhitelistScanTitle" xml:space="preserve">
+    <value>扫描白名单</value>
+  </data>
+  <data name="SettingsWhitelistScanHint" xml:space="preserve">
+    <value>普通扫描和 NTFS 快速扫描都会跳过；如果扫描目标本身被排除，将阻止扫描。</value>
+  </data>
+  <data name="SettingsWhitelistCleanupTitle" xml:space="preserve">
+    <value>清理推荐白名单</value>
+  </data>
+  <data name="SettingsWhitelistCleanupHint" xml:space="preserve">
+    <value>构造模型输入前过滤，模型返回结果后再次过滤，避免受保护路径进入推荐列表。</value>
+  </data>
+  <data name="SettingsWhitelistAiTitle" xml:space="preserve">
+    <value>AI 对话白名单</value>
+  </data>
+  <data name="SettingsWhitelistAiHint" xml:space="preserve">
+    <value>从上下文摘要、选中项、推荐关联项和只读文件树工具中隐藏。</value>
+  </data>
+  <data name="SettingsWhitelistPathPlaceholder" xml:space="preserve">
+    <value>路径</value>
+  </data>
+  <data name="SettingsWhitelistDescriptionPlaceholder" xml:space="preserve">
+    <value>备注</value>
+  </data>
+  <data name="SettingsWhitelistBrowse" xml:space="preserve">
+    <value>选择文件夹</value>
+  </data>
+  <data name="SettingsWhitelistAdd" xml:space="preserve">
+    <value>添加</value>
+  </data>
+  <data name="SettingsWhitelistDelete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="SettingsWhitelistCopyJson" xml:space="preserve">
+    <value>复制 JSON</value>
+  </data>
+  <data name="SettingsWhitelistPasteJson" xml:space="preserve">
+    <value>粘贴 JSON</value>
+  </data>
+  <data name="SettingsWhitelistPasteInvalidJson" xml:space="preserve">
+    <value>剪贴板内容不是有效的白名单 JSON 数组。</value>
+  </data>
+  <data name="ScanTargetExcludedByWhitelist" xml:space="preserve">
+    <value>所选扫描目标已被白名单设置排除。</value>
+  </data>
+  <data name="AiWhitelistHiddenPathMessage" xml:space="preserve">
+    <value>该路径已按白名单设置隐藏，AI 对话不能查询或暴露它。</value>
   </data>
 </root>

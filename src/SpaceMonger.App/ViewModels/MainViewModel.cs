@@ -124,6 +124,11 @@ public partial class MainViewModel : ObservableObject
             CrashDiagnostics.Log("Scan.CancelledException", scanTarget);
             ScanProgressText = L.Text("ScanCancelledStatus");
         }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("whitelist", StringComparison.OrdinalIgnoreCase))
+        {
+            CrashDiagnostics.Log("Scan.WhitelistBlocked", scanTarget);
+            ScanProgressText = L.Text("ScanTargetExcludedByWhitelist");
+        }
         finally
         {
             IsScanning = false;
