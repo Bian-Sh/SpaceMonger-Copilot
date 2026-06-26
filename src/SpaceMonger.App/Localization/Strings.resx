@@ -535,6 +535,24 @@
   <data name="SettingsDefaultCleanupModeHint" xml:space="preserve">
     <value>Choose how files are removed during cleanup</value>
   </data>
+  <data name="SettingsDisclaimerNav" xml:space="preserve">
+    <value>Disclaimer</value>
+  </data>
+  <data name="SettingsDisclaimerIntro" xml:space="preserve">
+    <value>Before using this app, please review the following notes. The app helps you inspect local storage usage, understand file distribution, and organize disk space. Scan results, analysis, recommendations, and cleanup suggestions are provided as assistance only and should not be treated as final judgments about whether a file is valuable or safe to remove.</value>
+  </data>
+  <data name="SettingsDisclaimerPrivacy" xml:space="preserve">
+    <value>The app scans only the local paths you choose and displays related file or folder names, paths, sizes, hierarchy, and similar information. If you enable AI analysis or AI chat, the app may send the file tree summary, paths, sizes, recommendation results, and context necessary to generate suggestions or answer your questions to the model service you configured. Any third-party model service processes such data according to its own terms and privacy policy.</value>
+  </data>
+  <data name="SettingsDisclaimerRisk" xml:space="preserve">
+    <value>Because file purpose, business context, and personal workflows cannot be fully determined automatically, scan results, rule-based analysis, cleanup recommendations, and AI responses may be incomplete, inaccurate, or outdated. Deleting, moving, or cleaning files may affect software behavior, project builds, sync or backup workflows, and business processes; permanent deletion may cause unrecoverable data loss.</value>
+  </data>
+  <data name="SettingsDisclaimerResponsibility" xml:space="preserve">
+    <value>You should review target files, confirm the basis for recommendations, assess potential impact, and back up important data before cleanup. Actual deletion, movement, or cleanup actions are confirmed and performed by you, and you are responsible for their consequences. The developer is not responsible for accidental deletion, data loss, business interruption, third-party model service behavior, or losses caused by improper use.</value>
+  </data>
+  <data name="SettingsDisclaimerRecommendation" xml:space="preserve">
+    <value>We recommend starting with low-risk items and using recycle bin mode or another recoverable move option whenever possible. For work documents, project files, system folders, synced drives, or unfamiliar paths, back up first or postpone action until you are confident it is safe to proceed.</value>
+  </data>
   <data name="SettingsValidationValidating" xml:space="preserve">
     <value>Validating...</value>
   </data>

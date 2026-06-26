@@ -110,6 +110,11 @@
                                 Content="{loc:Loc ThemeSectionLabel}"
                                 Tag="ThemeSectionControl"
                                 Click="SettingsNavButton_Click" />
+                        <Button x:Name="DisclaimerNavButton"
+                                Style="{StaticResource SettingsNavButtonStyle}"
+                                Content="{loc:Loc SettingsDisclaimerNav}"
+                                Tag="DisclaimerSectionControl"
+                                Click="SettingsNavButton_Click" />
                     </StackPanel>
                 </Grid>
                 <!-- Scrollable content -->
@@ -122,6 +127,8 @@
                                                          Margin="0,18,0,0" />
                         <settings:ThemeSettingsSection x:Name="ThemeSectionControl"
                                                        Margin="0,18,0,0" />
+                        <settings:DisclaimerSettingsSection x:Name="DisclaimerSectionControl"
+                                                            Margin="0,18,0,0" />
                         <Border x:Name="BottomScrollSpacer" Height="0" />
                     </StackPanel>
                 </ScrollViewer>

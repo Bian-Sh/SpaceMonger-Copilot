@@ -532,6 +532,24 @@
   <data name="SettingsDefaultCleanupModeHint" xml:space="preserve">
     <value>选择清理文件时使用的移除方式</value>
   </data>
+  <data name="SettingsDisclaimerNav" xml:space="preserve">
+    <value>免责声明</value>
+  </data>
+  <data name="SettingsDisclaimerIntro" xml:space="preserve">
+    <value>使用本应用前，请了解以下说明。本应用用于辅助你查看本地存储占用、理解文件分布并整理磁盘空间，所有扫描、分析、建议和清理结果都应作为辅助信息，而不是对文件价值或可删除性的最终判断。</value>
+  </data>
+  <data name="SettingsDisclaimerPrivacy" xml:space="preserve">
+    <value>应用只会扫描你主动选择的本地路径，并在界面中展示相关文件或目录的名称、路径、大小、层级关系等信息。若你启用 AI 分析或 AI 对话，为生成清理建议或回答问题，应用可能会把必要的文件树摘要、路径、大小、推荐结果和上下文发送给你配置的模型服务；第三方模型服务对这些数据的处理方式由其自身条款和隐私政策约束。</value>
+  </data>
+  <data name="SettingsDisclaimerRisk" xml:space="preserve">
+    <value>由于文件用途、业务场景和用户习惯无法被完全自动判断，扫描结果、规则分析、清理推荐和 AI 回答都可能存在遗漏、误判或过期信息。删除、移动或清理文件可能影响软件运行、项目构建、同步备份或业务流程，且永久删除可能造成无法恢复的数据损失。</value>
+  </data>
+  <data name="SettingsDisclaimerResponsibility" xml:space="preserve">
+    <value>你应在执行清理前自行核对目标文件、确认推荐依据、评估影响范围，并根据需要提前备份重要数据。实际删除、移动或清理操作由你确认并执行，相关后果由你自行承担；开发者不对误删、数据丢失、业务中断、第三方模型服务行为或不当使用造成的损失承担责任。</value>
+  </data>
+  <data name="SettingsDisclaimerRecommendation" xml:space="preserve">
+    <value>建议先从低风险项目开始清理，优先使用回收站模式或其他可恢复的移动方式；对工作资料、项目文件、系统目录、同步盘和不熟悉的路径，应先备份或暂缓处理，确认无误后再继续。</value>
+  </data>
   <data name="SettingsValidationValidating" xml:space="preserve">
     <value>验证中...</value>
   </data>

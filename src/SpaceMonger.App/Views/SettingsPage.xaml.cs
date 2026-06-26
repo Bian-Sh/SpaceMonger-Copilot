@@ -28,7 +28,7 @@ public partial class SettingsPage : UserControl
         };
     }
 
-    private IReadOnlyList<Button> NavButtons => _navButtons ??= [ApiNavButton, GeneralNavButton, ThemeNavButton];
+    private IReadOnlyList<Button> NavButtons => _navButtons ??= [ApiNavButton, GeneralNavButton, ThemeNavButton, DisclaimerNavButton];
 
     private void SettingsNavButton_Click(object sender, RoutedEventArgs e)
     {
@@ -61,7 +61,7 @@ public partial class SettingsPage : UserControl
         if (!SettingsScrollViewer.IsLoaded || SettingsScrollViewer.ViewportHeight <= 0)
             return;
 
-        var themeOffset = GetSectionOffset(ThemeSectionControl);
+        var themeOffset = GetSectionOffset(DisclaimerSectionControl);
         var contentHeightWithoutSpacer = SettingsContentPanel.ActualHeight - BottomScrollSpacer.ActualHeight;
         var requiredContentHeight = themeOffset + SettingsScrollViewer.ViewportHeight;
         BottomScrollSpacer.Height = Math.Max(0, requiredContentHeight - contentHeightWithoutSpacer);
@@ -79,7 +79,7 @@ public partial class SettingsPage : UserControl
         var scrollOffset = SettingsScrollViewer.VerticalOffset + activationOffset;
         FrameworkElement activeSection = ApiSectionControl;
 
-        foreach (var section in new FrameworkElement[] { ApiSectionControl, GeneralSectionControl, ThemeSectionControl })
+        foreach (var section in new FrameworkElement[] { ApiSectionControl, GeneralSectionControl, ThemeSectionControl, DisclaimerSectionControl })
         {
             if (GetSectionOffset(section) <= scrollOffset)
             {
