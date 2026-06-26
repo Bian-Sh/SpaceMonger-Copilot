@@ -12,5 +12,7 @@ public interface IAgentRuntime
         string? responseLanguage,
         string apiKey,
         string? baseUrl,
+        bool enableThinking,
+        Action<string>? onThinkingToken,
         CancellationToken cancellationToken);
 }

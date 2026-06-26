@@ -20,6 +20,7 @@ public enum AiActionKind
     None,
     StartScan,
     AnalyzeCleanup,
+    ClearConversation,
     NavigateToScannedPath,
     SelectRecommendation,
     DeselectRecommendation

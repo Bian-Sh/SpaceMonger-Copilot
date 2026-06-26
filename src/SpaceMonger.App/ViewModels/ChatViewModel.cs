@@ -81,13 +81,6 @@ public partial class ChatViewModel : ObservableObject
         RefreshApiKeyStatus();
         if (string.IsNullOrWhiteSpace(InputText)) return;
 
-        if (IsClearConversationRequest(InputText))
-        {
-            ClearConversation();
-            InputText = null;
-            return;
-        }
-
         var userInput = InputText.Trim();
         var settings = _settingsService.LoadSettings();
         var responseLanguage = ResolveResponseLanguage(settings.Language);
@@ -101,6 +94,11 @@ public partial class ChatViewModel : ObservableObject
             LinkedRecommendation = LinkedRecommendation
         });
         InputText = null;
+
+        if (TryHandleChatWindowIntent(userInput))
+        {
+            return;
+        }
 
         var routed = _skillRouter.Route(userInput, LinkedEntry, _currentViewRoot, _actionExecutor.HasExistingRecommendations, responseLanguage);
         if (TryHandleLocalRoutedResponse(routed, userInput))
@@ -153,6 +151,7 @@ public partial class ChatViewModel : ObservableObject
                     responseLanguage,
                     apiKey,
                     baseUrl,
+                    settings.EnableThinking,
                     thinkingToken => assistantMessage.Thinking += thinkingToken,
                     textToken => assistantMessage.Text += textToken,
                     CancellationToken.None);
@@ -165,6 +164,7 @@ public partial class ChatViewModel : ObservableObject
                     responseLanguage,
                     apiKey,
                     baseUrl,
+                    settings.EnableThinking,
                     thinkingToken => assistantMessage.Thinking += thinkingToken,
                     textToken => assistantMessage.Text += textToken,
                     CancellationToken.None);
@@ -200,6 +200,12 @@ public partial class ChatViewModel : ObservableObject
         card.StatusText = L.Text("CopilotCardRunning");
         try
         {
+            if (card.Action.Kind == AiActionKind.ClearConversation)
+            {
+                ClearConversation();
+                return;
+            }
+
             var result = await _actionExecutor.ExecuteAsync(card.Action, CancellationToken.None);
             card.Status = result.Success ? AiInteractionCardStatus.Completed : AiInteractionCardStatus.Failed;
             card.StatusText = result.Details is null ? result.Message : $"{result.Message}\n{result.Details}";
@@ -311,6 +317,7 @@ public partial class ChatViewModel : ObservableObject
                 responseLanguage,
                 apiKey,
                 baseUrl,
+                settings.EnableThinking,
                 thinkingToken => assistantMessage.Thinking += thinkingToken,
                 textToken => assistantMessage.Text += textToken,
                 cancellationToken);
@@ -409,6 +416,7 @@ public partial class ChatViewModel : ObservableObject
         {
             nameof(AiActionKind.StartScan) => AiActionKind.StartScan,
             nameof(AiActionKind.AnalyzeCleanup) => AiActionKind.AnalyzeCleanup,
+            nameof(AiActionKind.ClearConversation) => AiActionKind.ClearConversation,
             nameof(AiActionKind.NavigateToScannedPath) => AiActionKind.NavigateToScannedPath,
             _ => AiActionKind.None
         };
@@ -437,15 +445,79 @@ public partial class ChatViewModel : ObservableObject
     private static bool GetBool(JsonElement element, string propertyName)
         => element.TryGetProperty(propertyName, out var value) && value.ValueKind is JsonValueKind.True or JsonValueKind.False && value.GetBoolean();
 
-    private bool IsClearConversationRequest(string text)
+    private bool TryHandleChatWindowIntent(string text)
+    {
+        var clearIntent = ClassifyClearConversationIntent(text);
+        if (clearIntent == ClearConversationIntent.None)
+        {
+            return false;
+        }
+
+        var explicitRequest = clearIntent == ClearConversationIntent.Explicit;
+        Messages.Add(new ChatMessage
+        {
+            Sender = ChatSender.Assistant,
+            Text = explicitRequest
+                ? Localized("Confirm clearing this chat?", "确认清空对话？")
+                : Localized("You can clear this chat window and start fresh. Confirm clearing it?", "你可以清空本窗口并重新开始，确认清空吗？"),
+            Timestamp = DateTime.Now,
+            InteractionCard = BuildClearConversationCard(explicitRequest)
+        });
+        return true;
+    }
+
+    private static ClearConversationIntent ClassifyClearConversationIntent(string text)
     {
         var normalized = text.Trim().ToLowerInvariant();
-        return normalized is "clear" or "clear chat" or "clear conversation" or "reset chat"
-            || normalized.Contains("清空对话", StringComparison.Ordinal)
-            || normalized.Contains("清除对话", StringComparison.Ordinal)
-            || normalized.Contains("重新开始对话", StringComparison.Ordinal)
-            || normalized.Contains("开启新话题", StringComparison.Ordinal)
-            || normalized.Contains("新话题", StringComparison.Ordinal);
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return ClearConversationIntent.None;
+        }
+
+        string[] explicitPhrases =
+        [
+            "clear", "clear chat", "clear conversation", "reset chat", "new chat", "start a new chat",
+            "清空", "清空对话", "清除对话", "清空聊天", "删除聊天记录", "清空本窗口", "清空当前对话",
+            "清空当前对话上下文", "新建会话", "开启新会话", "开新会话", "新话题", "重新开始对话"
+        ];
+
+        if (explicitPhrases.Any(phrase => normalized.Contains(phrase, StringComparison.Ordinal)))
+        {
+            return ClearConversationIntent.Explicit;
+        }
+
+        string[] guidedPhrases =
+        [
+            "上下文乱", "上下文太乱", "聊乱了", "对话乱", "你记混", "记混了", "忘掉前面", "不要记之前",
+            "重新来", "重来吧", "答非所问", "越聊越乱", "forget previous", "forget earlier", "start fresh",
+            "context is messy", "you are confused", "this chat is messy"
+        ];
+
+        return guidedPhrases.Any(phrase => normalized.Contains(phrase, StringComparison.Ordinal))
+            ? ClearConversationIntent.Guided
+            : ClearConversationIntent.None;
+    }
+
+    private static AiInteractionCard BuildClearConversationCard(bool explicitRequest)
+        => new()
+        {
+            Title = explicitRequest
+                ? Localized("Confirm clearing chat?", "确认清空对话？")
+                : Localized("Clear this chat window?", "清空本窗口？"),
+            Description = Localized(
+                "This clears messages and Copilot conversation context in this window. Scan data and disk files stay unchanged.",
+                "这会清空本窗口消息和 Copilot 对话上下文；扫描数据和磁盘文件不会改变。"),
+            Impact = Localized("You can continue with a fresh chat after confirming.", "确认后可以从一个全新的对话继续。"),
+            ConfirmText = Localized("Clear Chat", "清空对话"),
+            CancelText = L.Text("CopilotCardDefaultCancel"),
+            Action = new AiActionRequest(AiActionKind.ClearConversation)
+        };
+
+    private enum ClearConversationIntent
+    {
+        None,
+        Explicit,
+        Guided
     }
 
     private void ClearConversation()

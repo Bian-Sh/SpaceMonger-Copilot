@@ -44,6 +44,7 @@ public interface IChatService
         string? responseLanguage,
         string apiKey,
         string? baseUrl,
+        bool enableThinking,
         Action<string>? onThinkingToken,
         Action<string>? onTextToken,
         CancellationToken cancellationToken);
@@ -54,6 +55,7 @@ public interface IChatService
         string? responseLanguage,
         string apiKey,
         string? baseUrl,
+        bool enableThinking,
         Action<string>? onThinkingToken,
         Action<string>? onTextToken,
         CancellationToken cancellationToken);

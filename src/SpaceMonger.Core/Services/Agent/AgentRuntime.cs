@@ -29,6 +29,8 @@ public sealed class AgentRuntime : IAgentRuntime
         string? responseLanguage,
         string apiKey,
         string? baseUrl,
+        bool enableThinking,
+        Action<string>? onThinkingToken,
         CancellationToken cancellationToken)
     {
         var messages = conversationHistory.ToList();
@@ -47,11 +49,13 @@ public sealed class AgentRuntime : IAgentRuntime
 
         for (var round = 0; round <= MaxToolRounds; round++)
         {
-            var assistantText = await _llmClient.SendChatAsync(
+            var assistantText = await CompleteAssistantTurnAsync(
                 systemPrompt,
                 messages,
                 apiKey,
                 baseUrl,
+                enableThinking,
+                onThinkingToken,
                 cancellationToken).ConfigureAwait(false);
 
             var toolCalls = TryParseToolCalls(assistantText);
@@ -88,8 +92,40 @@ public sealed class AgentRuntime : IAgentRuntime
         }
 
         messages.Add(("user", "Tool call limit reached. Provide the best possible final answer from the observations already supplied. Do not request more tools."));
-        var finalText = await _llmClient.SendChatAsync(systemPrompt, messages, apiKey, baseUrl, cancellationToken).ConfigureAwait(false);
+        var finalText = await CompleteAssistantTurnAsync(systemPrompt, messages, apiKey, baseUrl, enableThinking, onThinkingToken, cancellationToken).ConfigureAwait(false);
         return new AgentResponse(finalText, [], allToolResults, true, ExtractProposal(allToolResults));
+    }
+
+    private async Task<string> CompleteAssistantTurnAsync(
+        string systemPrompt,
+        List<(string role, string content)> messages,
+        string apiKey,
+        string? baseUrl,
+        bool enableThinking,
+        Action<string>? onThinkingToken,
+        CancellationToken cancellationToken)
+    {
+        if (!enableThinking)
+        {
+            return await _llmClient.SendChatAsync(
+                systemPrompt,
+                messages,
+                apiKey,
+                baseUrl,
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        var response = await _llmClient.StreamChatWithThinkingAsync(
+            systemPrompt,
+            messages,
+            apiKey,
+            baseUrl,
+            enableThinking,
+            onThinkingToken,
+            null,
+            cancellationToken).ConfigureAwait(false);
+
+        return response.Text;
     }
 
     private static JsonElement? ExtractProposal(IReadOnlyList<AgentToolResult> toolResults)

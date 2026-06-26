@@ -39,6 +39,8 @@ public class ChatService : IChatService
             responseLanguage,
             apiKey,
             baseUrl,
+            false,
+            null,
             cancellationToken).ConfigureAwait(false);
 
         AddTurnToHistory(userMessage, response.Content);
@@ -67,9 +69,11 @@ public class ChatService : IChatService
             responseLanguage,
             apiKey,
             baseUrl,
+            false,
+            null,
             cancellationToken).ConfigureAwait(false);
 
-        onToken(response.Content);
+        await StreamTextAsync(response.Content, onToken, cancellationToken).ConfigureAwait(false);
         AddTurnToHistory(userMessage, response.Content);
         return response.Content;
     }
@@ -85,6 +89,7 @@ public class ChatService : IChatService
         string? responseLanguage,
         string apiKey,
         string? baseUrl,
+        bool enableThinking,
         Action<string>? onThinkingToken,
         Action<string>? onTextToken,
         CancellationToken cancellationToken)
@@ -97,15 +102,17 @@ public class ChatService : IChatService
             responseLanguage,
             apiKey,
             baseUrl,
+            enableThinking,
+            onThinkingToken,
             cancellationToken).ConfigureAwait(false);
 
-        if (response.ToolResults.Count > 0)
+        if (enableThinking && response.ToolResults.Count > 0)
         {
             var limitNote = response.ReachedToolLimit ? " Tool limit reached; answered from partial observations." : string.Empty;
-            onThinkingToken?.Invoke($"Queried {response.ToolResults.Count} read-only file tree tool(s).{limitNote}\n");
+            await StreamTextAsync($"Queried {response.ToolResults.Count} read-only file tree tool(s).{limitNote}\n", onThinkingToken, cancellationToken).ConfigureAwait(false);
         }
 
-        onTextToken?.Invoke(response.Content);
+        await StreamTextAsync(response.Content, onTextToken, cancellationToken).ConfigureAwait(false);
         AddTurnToHistory(userMessage, response.Content);
         return new ChatResponse(response.Content, string.Empty, response.Proposal);
     }
@@ -116,6 +123,7 @@ public class ChatService : IChatService
         string? responseLanguage,
         string apiKey,
         string? baseUrl,
+        bool enableThinking,
         Action<string>? onThinkingToken,
         Action<string>? onTextToken,
         CancellationToken cancellationToken)
@@ -128,14 +136,16 @@ public class ChatService : IChatService
             responseLanguage,
             apiKey,
             baseUrl,
+            enableThinking,
+            onThinkingToken,
             cancellationToken).ConfigureAwait(false);
 
-        if (response.ToolResults.Count > 0)
+        if (enableThinking && response.ToolResults.Count > 0)
         {
-            onThinkingToken?.Invoke($"Ignored {response.ToolResults.Count} file tree tool request(s) because no scan context is available.\n");
+            await StreamTextAsync($"Ignored {response.ToolResults.Count} file tree tool request(s) because no scan context is available.\n", onThinkingToken, cancellationToken).ConfigureAwait(false);
         }
 
-        onTextToken?.Invoke(response.Content);
+        await StreamTextAsync(response.Content, onTextToken, cancellationToken).ConfigureAwait(false);
         AddTurnToHistory(userMessage, response.Content);
         return new ChatResponse(response.Content, string.Empty, response.Proposal);
     }
@@ -143,6 +153,44 @@ public class ChatService : IChatService
     public void ClearHistory()
     {
         _conversationHistory.Clear();
+    }
+
+    private static async Task StreamTextAsync(string text, Action<string>? onToken, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return;
+        }
+
+        if (onToken is null)
+        {
+            return;
+        }
+
+        const int maxChunkLength = 48;
+        var index = 0;
+        while (index < text.Length)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var length = Math.Min(maxChunkLength, text.Length - index);
+            var newlineOffset = text.IndexOf('\n', index, length);
+            if (newlineOffset >= 0)
+            {
+                length = newlineOffset - index + 1;
+            }
+            else if (index + length < text.Length)
+            {
+                var lastSpace = text.LastIndexOf(' ', index + length - 1, length);
+                if (lastSpace > index + 12)
+                {
+                    length = lastSpace - index + 1;
+                }
+            }
+
+            onToken(text.Substring(index, length));
+            index += length;
+            await Task.Delay(18, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     private void AddTurnToHistory(string userMessage, string assistantResponse)

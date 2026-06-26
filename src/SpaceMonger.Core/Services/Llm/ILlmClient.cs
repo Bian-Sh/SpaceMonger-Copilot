@@ -35,6 +35,7 @@ public interface ILlmClient
         List<(string role, string content)> messages,
         string apiKey,
         string? baseUrl,
+        bool enableThinking,
         Action<string>? onThinkingToken,
         Action<string>? onTextToken,
         CancellationToken cancellationToken);

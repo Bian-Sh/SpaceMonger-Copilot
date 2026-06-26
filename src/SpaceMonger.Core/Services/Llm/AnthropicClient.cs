@@ -147,6 +147,7 @@ public class AnthropicClient : ILlmClient
         List<(string role, string content)> messages,
         string apiKey,
         string? baseUrl,
+        bool enableThinking,
         Action<string>? onThinkingToken,
         Action<string>? onTextToken,
         CancellationToken cancellationToken)
@@ -156,7 +157,7 @@ public class AnthropicClient : ILlmClient
             messages,
             ChatMaxTokens,
             GetModel(baseUrl, preferDeepSeekPro: false),
-            IsDeepSeekAnthropicEndpoint(baseUrl));
+            IsDeepSeekAnthropicEndpoint(baseUrl) && !enableThinking);
         requestBody["stream"] = true;
 
         var jsonBody = requestBody.ToJsonString();
