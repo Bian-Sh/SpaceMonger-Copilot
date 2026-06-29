@@ -1,4 +1,5 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
+using Serilog;
 
 namespace SpaceMonger.App.Diagnostics;
 
@@ -12,7 +13,7 @@ internal static class DebugBreakpoints
         if (!IsEnabled(name))
             return;
 
-        Debug.WriteLine($"SpaceMonger debug breakpoint: {name}");
+        Log.Debug("Debug breakpoint hit: {Name}", name);
 
         if (!Debugger.IsAttached && IsLaunchEnabled())
         {

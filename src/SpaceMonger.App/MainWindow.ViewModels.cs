@@ -26,12 +26,18 @@ public partial class MainWindow
 {
     private void MainViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.BeginInvoke(() => MainViewModel_PropertyChanged(sender, e));
+            return;
+        }
+
         if (sender is not MainViewModel mainVm)
             return;
 
-        if (e.PropertyName is nameof(MainViewModel.IsScanning) or nameof(MainViewModel.ScanProgressText))
+        if (e.PropertyName is nameof(MainViewModel.IsScanning) or nameof(MainViewModel.ScanTitleText) or nameof(MainViewModel.ScanProgressText))
         {
-            TreemapView.SetScanningState(mainVm.IsScanning, mainVm.ScanProgressText);
+            TreemapView.SetScanningState(mainVm.IsScanning, mainVm.ScanTitleText, mainVm.ScanProgressText);
         }
         else if (e.PropertyName is nameof(MainViewModel.SelectedPath))
         {
@@ -85,6 +91,12 @@ public partial class MainWindow
 
     private void TreemapViewModel_NavigationChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.BeginInvoke(() => TreemapViewModel_NavigationChanged(sender, e));
+            return;
+        }
+
         if (_treemapViewModel is null)
             return;
 
@@ -146,6 +158,12 @@ public partial class MainWindow
     }
     private void TreemapViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.BeginInvoke(() => TreemapViewModel_PropertyChanged(sender, e));
+            return;
+        }
+
         if (_chatViewModel is null || _treemapViewModel is null)
             return;
 
@@ -171,11 +189,71 @@ public partial class MainWindow
 
         if (recommendation.Entry is not null)
         {
+            TryShowCachedAiScanForPath(recommendation.Entry.Path);
             _treemapViewModel.NavigateToEntry(recommendation.Entry);
+            return;
+        }
+
+        TryShowCachedAiScanForPath(recommendation.TargetPath);
+    }
+
+    private void CacheAiScanSession(ScanSession session)
+    {
+        if (session.RootEntry is null || string.IsNullOrWhiteSpace(session.TargetPath))
+            return;
+
+        _aiScanSessionsByRoot[NormalizePathKey(session.TargetPath)] = session;
+    }
+
+    private bool TryShowCachedAiScanForPath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || _treemapViewModel is null)
+            return false;
+
+        var session = _aiScanSessionsByRoot.Values
+            .Where(candidate => candidate.RootEntry is not null && IsPathUnder(path, candidate.RootEntry.Path))
+            .OrderByDescending(candidate => NormalizePathKey(candidate.RootEntry!.Path).Length)
+            .FirstOrDefault();
+        if (session?.RootEntry is null)
+            return false;
+
+        if (DataContext is MainViewModel mainVm)
+        {
+            mainVm.CurrentSession = session;
+            mainVm.UpdateStatusBar(session);
+        }
+
+        _treemapViewModel.SetRoot(session.RootEntry, session);
+        _chatViewModel?.SetContext(session, session.RootEntry);
+        if (TreeViewControl.DataContext is TreeViewModel treeViewModel)
+        {
+            treeViewModel.SetRoot(session.RootEntry, session);
+        }
+
+        return _treemapViewModel.NavigateToPath(path);
+    }
+
+    private static bool IsPathUnder(string path, string rootPath)
+    {
+        var normalizedPath = NormalizePathKey(path);
+        var normalizedRoot = NormalizePathKey(rootPath);
+        return string.Equals(normalizedPath, normalizedRoot, StringComparison.OrdinalIgnoreCase)
+            || normalizedPath.StartsWith(normalizedRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizePathKey(string path)
+    {
+        try
+        {
+            return Path.GetFullPath(path.Trim()).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+        catch
+        {
+            return path.Trim().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         }
     }
 
-    // ─── Tab switching (replaces TabControl) ────────────────────────
+    // 鈹€鈹€鈹€ Tab switching (replaces TabControl) 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
     private void ShowRecommendationsPanel()
     {
@@ -195,7 +273,7 @@ public partial class MainWindow
 
     private void RecommendationsTab_Checked(object sender, RoutedEventArgs e)
     {
-        if (RecommendationsPanel == null || ConsoleTextBox == null || ConsoleFilterButton == null)
+        if (RecommendationsPanel == null || ConsoleItemsControl == null || ConsoleFilterButton == null)
             return;
         RecommendationsPanel.Visibility = Visibility.Visible;
         ConsoleFrame.Visibility = Visibility.Collapsed;
@@ -204,7 +282,7 @@ public partial class MainWindow
 
     private void ConsoleTab_Checked(object sender, RoutedEventArgs e)
     {
-        if (RecommendationsPanel == null || ConsoleTextBox == null || ConsoleFilterButton == null)
+        if (RecommendationsPanel == null || ConsoleItemsControl == null || ConsoleFilterButton == null)
             return;
         RecommendationsPanel.Visibility = Visibility.Collapsed;
         ConsoleFrame.Visibility = Visibility.Visible;
@@ -220,7 +298,7 @@ public partial class MainWindow
         RecommendationsSplitter.Visibility = Visibility.Visible;
     }
 
-    // ─── View Mode Tabs (Treemap / TreeView) ────────────────────────
+    // 鈹€鈹€鈹€ View Mode Tabs (Treemap / TreeView) 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
     private void TreemapTab_Checked(object sender, RoutedEventArgs e)
     {
@@ -274,8 +352,6 @@ public partial class MainWindow
         return null;
     }
 
-    // ─── Console ────────────────────────────────────────────────────
+    // 鈹€鈹€鈹€ Console 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 }
-
-

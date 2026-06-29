@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="SpaceMonger.App.Views.RecommendationsPanel"
+<UserControl x:Class="SpaceMonger.App.Views.RecommendationsPanel"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -181,36 +181,43 @@
                         </Style>
                     </TextBlock.Style>
                 </TextBlock>
-                <TextBlock Text="{loc:Loc RecommendationsEmptyTitle}"
-                           FontSize="15"
+                <TextBlock FontSize="15"
                            FontWeight="SemiBold"
                            Foreground="{DynamicResource VP.TextPrimaryBrush}"
                            HorizontalAlignment="Center"
                            TextAlignment="Center"
-                           Margin="0,0,0,6">
+                            Margin="0,0,0,6">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock">
+                            <Setter Property="Text" Value="{loc:Loc RecommendationsEmptyTitle}" />
                             <Setter Property="Visibility" Value="Collapsed" />
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding AnalysisError, TargetNullValue=''}" Value="">
                                     <Setter Property="Visibility" Value="Visible" />
                                 </DataTrigger>
+                                <DataTrigger Binding="{Binding IsWaitingForExternalRecommendations}" Value="True">
+                                    <Setter Property="Text" Value="{loc:Loc RecommendationsWaitingForAiTitle}" />
+                                </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </TextBlock.Style>
                 </TextBlock>
-                <TextBlock Text="{loc:Loc RecommendationsEmptyDescription}"
-                           TextWrapping="Wrap"
+                <TextBlock TextWrapping="Wrap"
                            Foreground="{DynamicResource VP.TextSecondaryBrush}"
                            FontSize="13"
                            HorizontalAlignment="Center"
                            TextAlignment="Center">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock">
+                            <Setter Property="Text" Value="{loc:Loc RecommendationsEmptyDescription}" />
                             <Setter Property="Visibility" Value="Collapsed" />
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding AnalysisError, TargetNullValue=''}" Value="">
                                     <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsWaitingForExternalRecommendations}" Value="True">
+                                    <Setter Property="Text" Value="{loc:Loc RecommendationsWaitingForAiDescription}" />
+                                    <Setter Property="Visibility" Value="Collapsed" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
@@ -243,6 +250,7 @@
                             Margin="2,2">
                         <Grid>
                             <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
@@ -315,6 +323,24 @@
                                            FontSize="11"
                                            Foreground="{DynamicResource VP.TextTertiaryBrush}" />
                             </StackPanel>
+
+                            <TextBlock Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3"
+                                       Text="{Binding UnityMetadataText}"
+                                       Margin="0,3,0,0"
+                                       FontSize="10.5"
+                                       Foreground="{DynamicResource VP.TextTertiaryBrush}"
+                                       TextWrapping="Wrap">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding UnityMetadataText}" Value="">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                         </Grid>
                     </Border>
                 </DataTemplate>
@@ -334,19 +360,8 @@
                             Padding="16,5"
                             Click="CleanUpButton_Click"
                             ToolTipService.ShowOnDisabled="True"
-                            ToolTip="{loc:Loc CleanUpToolTip}">
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource VP.DangerButton}">
-                                <Setter Property="IsEnabled" Value="True" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding TotalSelectedCount}" Value="0">
-                                        <Setter Property="IsEnabled" Value="False" />
-                                        <Setter Property="ToolTip" Value="{loc:Loc NoItemsSelectedForCleanupToolTip}" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
+                            ToolTip="{loc:Loc CleanUpToolTip}"
+                            Style="{StaticResource VP.DangerButton}" />
                     <Button Content="{loc:Loc AnalyzeButton}"
                             Padding="16,5"
                             Margin="6,0,0,0"

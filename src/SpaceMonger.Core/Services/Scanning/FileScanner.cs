@@ -1,5 +1,7 @@
 ﻿using System.IO.Enumeration;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using SpaceMonger.Core.Models;
 using SpaceMonger.Core.Services.Settings;
 using SpaceMonger.Core.Services.Whitelist;
@@ -10,11 +12,13 @@ public class FileScanner : IFileScanner
 {
     private readonly ISettingsService? _settingsService;
     private readonly IPathWhitelistMatcher _whitelistMatcher;
+    private readonly ILogger<FileScanner> _logger;
 
-    public FileScanner(ISettingsService? settingsService = null, IPathWhitelistMatcher? whitelistMatcher = null)
+    public FileScanner(ISettingsService? settingsService = null, IPathWhitelistMatcher? whitelistMatcher = null, ILogger<FileScanner>? logger = null)
     {
         _settingsService = settingsService;
         _whitelistMatcher = whitelistMatcher ?? new PathWhitelistMatcher();
+        _logger = logger ?? NullLogger<FileScanner>.Instance;
     }
 
     public bool IsReady => true;
@@ -33,6 +37,8 @@ public class FileScanner : IFileScanner
         IProgress<ScanProgress> progress,
         CancellationToken cancellationToken)
     {
+        _logger.LogInformation("Full scan starting for {Path}", path);
+
         var session = new ScanSession
         {
             TargetPath = path,
@@ -44,6 +50,7 @@ public class FileScanner : IFileScanner
         var scanWhitelist = _settingsService?.LoadSettings().ScanWhitelist ?? [];
         if (_whitelistMatcher.IsExcluded(path, scanWhitelist))
         {
+            _logger.LogWarning("Scan target is excluded by whitelist settings: {Path}", path);
             throw new InvalidOperationException("Scan target is excluded by whitelist settings.");
         }
 
@@ -156,13 +163,14 @@ public class FileScanner : IFileScanner
                         }
                     }
                 }
-                catch (UnauthorizedAccessException)
+                catch (UnauthorizedAccessException ex)
                 {
                     current.IsAccessDenied = true;
+                    _logger.LogDebug(ex, "Access denied while scanning {Path}", current.Path);
                 }
-                catch (IOException)
+                catch (IOException ex)
                 {
-                    // Skip directories that cannot be read due to I/O errors.
+                    _logger.LogDebug(ex, "I/O error while scanning {Path}", current.Path);
                 }
 
                 // Throttle progress reports 閳?reporting every directory hammers the UI thread.
@@ -185,6 +193,15 @@ public class FileScanner : IFileScanner
         session.TotalSize = rootEntry.Size;
         session.EndTime = DateTime.Now;
         session.RootEntry = rootEntry;
+
+        if (session.IsCancelled)
+        {
+            _logger.LogWarning("Full scan cancelled for {Path}; files={FileCount}, folders={FolderCount}", path, fileCount, folderCount);
+        }
+        else
+        {
+            _logger.LogInformation("Full scan completed for {Path}; files={FileCount}, folders={FolderCount}, bytes={TotalSize}, elapsedMs={ElapsedMs}", path, fileCount, folderCount, session.TotalSize, ((session.EndTime ?? DateTime.Now) - session.StartTime).TotalMilliseconds);
+        }
 
         return session;
     }
@@ -318,5 +335,3 @@ public class FileScanner : IFileScanner
     [DllImport("kernel32.dll", EntryPoint = "GetCompressedFileSizeW", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern uint GetCompressedFileSize(string fileName, out uint fileSizeHigh);
 }
-
-

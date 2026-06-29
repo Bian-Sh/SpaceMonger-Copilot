@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
 
 namespace SpaceMonger.Core.Services.Scanning;
@@ -22,7 +22,7 @@ internal static class MftEnumerator
     private const int FileNameOffsetOffset = 58;
 
     private const uint FILE_ATTRIBUTE_DIRECTORY = 0x10;
-    private const int BufferSize = 1024 * 1024; // 1MB — large sequential reads
+    private const int BufferSize = 1024 * 1024; // 1MB 鈥?large sequential reads
     private const int ProgressInterval = 50_000;
 
     // NTFS FRN layout: lower 48 bits = MFT segment number, upper 16 bits = sequence number.
@@ -35,7 +35,27 @@ internal static class MftEnumerator
     internal static Dictionary<long, MftRecord>? EnumerateVolume(
         string volumeRoot,
         IProgress<ScanProgress> progress,
-        CancellationToken ct)
+        CancellationToken ct,
+        ILogger? logger = null)
+    {
+        return EnumerateVolumeCore(volumeRoot, progress, ct, directoriesOnly: false, logger);
+    }
+
+    internal static Dictionary<long, MftRecord>? EnumerateDirectories(
+        string volumeRoot,
+        IProgress<ScanProgress> progress,
+        CancellationToken ct,
+        ILogger? logger = null)
+    {
+        return EnumerateVolumeCore(volumeRoot, progress, ct, directoriesOnly: true, logger);
+    }
+
+    private static Dictionary<long, MftRecord>? EnumerateVolumeCore(
+        string volumeRoot,
+        IProgress<ScanProgress> progress,
+        CancellationToken ct,
+        bool directoriesOnly,
+        ILogger? logger)
     {
         try
         {
@@ -69,6 +89,7 @@ internal static class MftEnumerator
             {
                 var records = new Dictionary<long, MftRecord>();
                 var count = 0;
+                var scannedCount = 0;
                 var fileCount = 0;
                 var folderCount = 0;
 
@@ -88,8 +109,8 @@ internal static class MftEnumerator
                     {
                         var error = Marshal.GetLastWin32Error();
                         if (error == NtfsUsnNative.ERROR_HANDLE_EOF)
-                            break; // Done — enumerated all MFT records
-                        Trace.WriteLine($"[MFT] FSCTL_ENUM_USN_DATA failed: win32 error {error}, records so far: {count}");
+                            break; // Done 鈥?enumerated all MFT records
+                        logger?.LogWarning("FSCTL_ENUM_USN_DATA failed: win32 error {Error}, records so far: {Count}", error, count);
                         return null; // Unexpected error
                     }
 
@@ -106,20 +127,21 @@ internal static class MftEnumerator
                         if (recordLength == 0)
                             break;
 
-                        var record = ParseRecord(buffer + offset);
+                        scannedCount++;
+                        var record = ParseRecord(buffer + offset, directoriesOnly);
                         if (record != null)
                         {
                             records[record.FileReferenceNumber] = record;
                             count++;
                             if (record.IsDirectory) folderCount++;
                             else fileCount++;
+                        }
 
-                            if (count % ProgressInterval == 0)
-                            {
-                                progress.Report(new ScanProgress(
-                                    "Reading file system",
-                                    fileCount, folderCount));
-                            }
+                        if (scannedCount % ProgressInterval == 0)
+                        {
+                            progress.Report(new ScanProgress(
+                                "Reading file system",
+                                fileCount, folderCount));
                         }
 
                         offset += recordLength;
@@ -131,7 +153,7 @@ internal static class MftEnumerator
                 if (ct.IsCancellationRequested)
                     return null;
 
-                Trace.WriteLine($"[MFT] Enumerated {records.Count} records");
+                logger?.LogInformation("MFT enumerated {RecordCount} records", records.Count);
                 return records;
             }
             finally
@@ -141,12 +163,12 @@ internal static class MftEnumerator
         }
         catch (Exception ex)
         {
-            Trace.WriteLine($"[MFT] EnumerateVolume failed: {ex.Message}");
+            logger?.LogWarning(ex, "MFT EnumerateVolume failed");
             return null;
         }
     }
 
-    private static MftRecord? ParseRecord(nint recordPtr)
+    private static MftRecord? ParseRecord(nint recordPtr, bool directoriesOnly)
     {
         var majorVersion = Marshal.ReadInt16(recordPtr + MajorVersionOffset);
         if (majorVersion != 2)
@@ -155,11 +177,15 @@ internal static class MftEnumerator
         var frn = Marshal.ReadInt64(recordPtr + FileReferenceNumberOffset);
         var parentFrn = Marshal.ReadInt64(recordPtr + ParentFrnOffset);
         var fileAttributes = (uint)Marshal.ReadInt32(recordPtr + FileAttributesOffset);
+        var isDirectory = (fileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+        if (directoriesOnly && !isDirectory)
+            return null;
+
         var fileNameLength = Marshal.ReadInt16(recordPtr + FileNameLengthOffset);
         var fileNameOffset = Marshal.ReadInt16(recordPtr + FileNameOffsetOffset);
 
         // Skip NTFS metadata files (segment 0-4 and 6-23), except segment 5 (root directory).
-        // The full FRN includes a sequence number in the upper 16 bits — mask it off.
+        // The full FRN includes a sequence number in the upper 16 bits 鈥?mask it off.
         var segmentNumber = frn & SegmentNumberMask;
         if (segmentNumber < 24 && segmentNumber != 5)
             return null;
@@ -170,8 +196,6 @@ internal static class MftEnumerator
         // Skip alternate data streams
         if (fileName.Contains(':'))
             return null;
-
-        var isDirectory = (fileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
 
         return new MftRecord(frn, parentFrn, fileName, fileAttributes, isDirectory);
     }

@@ -292,10 +292,10 @@
                                 </TextBlock>
                                 <Button.ContextMenu>
                                     <ContextMenu>
-                                        <MenuItem x:Name="ConsoleLevelVerboseMenuItem" Header="Verbose" IsCheckable="True" StaysOpenOnClick="True" Click="ConsoleLogLevel_Click" />
-                                        <MenuItem x:Name="ConsoleLevelInfoMenuItem" Header="Info" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Click="ConsoleLogLevel_Click" />
-                                        <MenuItem x:Name="ConsoleLevelWarningMenuItem" Header="Warning" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Click="ConsoleLogLevel_Click" />
-                                        <MenuItem x:Name="ConsoleLevelErrorMenuItem" Header="Error" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Click="ConsoleLogLevel_Click" />
+                                        <MenuItem x:Name="ConsoleLevelVerboseMenuItem" Header="Verbose" IsCheckable="True" StaysOpenOnClick="True" Click="LogLevelFilter_Click" />
+                                        <MenuItem x:Name="ConsoleLevelInfoMenuItem" Header="Info" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Click="LogLevelFilter_Click" />
+                                        <MenuItem x:Name="ConsoleLevelWarningMenuItem" Header="Warning" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Click="LogLevelFilter_Click" />
+                                        <MenuItem x:Name="ConsoleLevelErrorMenuItem" Header="Error" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Click="LogLevelFilter_Click" />
                                     </ContextMenu>
                                 </Button.ContextMenu>
                             </Button>
@@ -343,18 +343,26 @@
                                         CornerRadius="0,0,10,10"
                                         ClipToBounds="True"
                                         Visibility="Collapsed">
-                                    <TextBox x:Name="ConsoleTextBox"
-                                             Padding="12,10"
-                                             Background="Transparent"
-                                             Foreground="#A9DC76"
-                                             BorderThickness="0"
-                                             FontFamily="Cascadia Code, SF Mono, Menlo, Consolas, monospace"
-                                             FontSize="12.5"
-                                             IsReadOnly="True"
-                                             TextWrapping="Wrap"
-                                             VerticalScrollBarVisibility="Auto"
-                                             HorizontalScrollBarVisibility="Auto"
-                                             CaretBrush="#A9DC76" />
+                                    <ScrollViewer x:Name="ConsoleScrollViewer"
+                                                  Padding="12,10"
+                                                  VerticalScrollBarVisibility="Auto"
+                                                  HorizontalScrollBarVisibility="Auto">
+                                        <ItemsControl x:Name="ConsoleItemsControl"
+                                                      FontFamily="Cascadia Code, SF Mono, Menlo, Consolas, monospace"
+                                                      FontSize="12.5">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock TextWrapping="Wrap">
+                                                        <Run Text="{Binding TimeText, Mode=OneWay}" Foreground="{Binding TimeBrush, Mode=OneWay}" />
+                                                        <Run Text=" " />
+                                                        <Run Text="{Binding LevelText, Mode=OneWay}" Foreground="{Binding LevelBrush, Mode=OneWay}" FontWeight="SemiBold" />
+                                                        <Run Text=" " />
+                                                        <Run Text="{Binding DisplayMessage, Mode=OneWay}" Foreground="{Binding MessageBrush, Mode=OneWay}" />
+                                                    </TextBlock>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
                                 </Border>
                             </Grid>
                         </Border>
@@ -485,5 +493,4 @@
                                Panel.ZIndex="200" />
     </Grid>
 </Window>
-
 

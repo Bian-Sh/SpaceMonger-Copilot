@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using SpaceMonger.App.Converters;
 using SpaceMonger.App.Controls;
@@ -17,10 +17,6 @@ public partial class MainWindow
         if (_recommendationsViewModel is null)
             return;
 
-        var mainVm = DataContext as ViewModels.MainViewModel;
-        if (mainVm?.CurrentSession is null)
-            return;
-
         var accepted = _recommendationsViewModel.Recommendations
             .Where(r => r.IsAccepted)
             .ToList();
@@ -34,6 +30,10 @@ public partial class MainWindow
                 MessageBoxImage.Information);
             return;
         }
+
+        var mainVm = DataContext as ViewModels.MainViewModel;
+        if (mainVm?.CurrentSession is null)
+            return;
 
         var totalSize = accepted.Sum(r => r.Size);
         var deletionMode = _settingsViewModel?.SelectedDeletionMode ?? DeletionMode.MoveToRecycleBin;

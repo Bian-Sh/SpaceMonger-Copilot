@@ -1,0 +1,45 @@
+﻿using System.Collections.ObjectModel;
+using System.Globalization;
+using System.Windows;
+using Serilog.Core;
+using Serilog.Events;
+
+namespace SpaceMonger.App.Logging;
+
+public sealed class UiLogSink : ILogEventSink
+{
+    private const int MaxEntries = 2_000;
+
+    public ObservableCollection<UiLogEntry> Entries { get; } = new();
+
+    public event Action? EntryAdded;
+
+    public void Emit(LogEvent logEvent)
+    {
+        var entry = new UiLogEntry(
+            logEvent.Timestamp,
+            logEvent.Level,
+            logEvent.RenderMessage(CultureInfo.CurrentCulture),
+            logEvent.Exception?.ToString());
+
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher is null || dispatcher.CheckAccess())
+        {
+            Add(entry);
+            return;
+        }
+
+        dispatcher.BeginInvoke(() => Add(entry));
+    }
+
+    private void Add(UiLogEntry entry)
+    {
+        Entries.Add(entry);
+        while (Entries.Count > MaxEntries)
+        {
+            Entries.RemoveAt(0);
+        }
+
+        EntryAdded?.Invoke();
+    }
+}

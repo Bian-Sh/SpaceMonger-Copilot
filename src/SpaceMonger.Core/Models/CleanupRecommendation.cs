@@ -44,6 +44,29 @@ public class CleanupRecommendation : INotifyPropertyChanged
     /// </summary>
     public string Explanation { get; set; } = string.Empty;
 
+    public DateTime? LastModified { get; set; }
+
+    public bool? UnityHubListed { get; set; }
+
+    public string UnityMetadataText
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (LastModified is { } lastModified)
+            {
+                parts.Add($"Last modified: {lastModified:yyyy-MM-dd HH:mm}");
+            }
+
+            if (UnityHubListed is { } hubListed)
+            {
+                parts.Add("Unity Hub listed: " + (hubListed ? "yes" : "no"));
+            }
+
+            return string.Join(" · ", parts);
+        }
+    }
+
     /// <summary>
     /// Gets or sets a value indicating whether the user has accepted this recommendation.
     /// When set to true, IsDismissed is automatically set to false.

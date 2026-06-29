@@ -1,6 +1,8 @@
 ﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using SpaceMonger.App.Diagnostics;
 using SpaceMonger.App.Converters;
 using SpaceMonger.Core.Enums;
@@ -12,6 +14,7 @@ namespace SpaceMonger.App.ViewModels;
 public partial class RecommendationsViewModel : ObservableObject
 {
     private readonly IRecommendationEngine _recommendationEngine;
+    private readonly ILogger<RecommendationsViewModel> _logger;
     private ScanSession? _currentSession;
     private string? _apiKey;
     private string? _baseUrl;
@@ -48,6 +51,9 @@ public partial class RecommendationsViewModel : ObservableObject
     private bool _isAnalyzing;
 
     [ObservableProperty]
+    private bool _isWaitingForExternalRecommendations;
+
+    [ObservableProperty]
     private string? _analysisError;
 
     [ObservableProperty]
@@ -63,9 +69,11 @@ public partial class RecommendationsViewModel : ObservableObject
     public bool HasAcceptedRecommendations =>
         Recommendations.Any(r => r.IsAccepted);
 
-    public RecommendationsViewModel(IRecommendationEngine recommendationEngine)
+    public RecommendationsViewModel(IRecommendationEngine recommendationEngine, ILogger<RecommendationsViewModel>? logger = null)
     {
         _recommendationEngine = recommendationEngine;
+        _logger = logger ?? NullLogger<RecommendationsViewModel>.Instance;
+        _logger.LogInformation("RecommendationsViewModel created");
     }
 
     public void SetContext(ScanSession session, string apiKey, string? baseUrl, string? modelName, bool enableThinking, string? responseLanguage, FileEntry? focusEntry = null)
@@ -77,6 +85,45 @@ public partial class RecommendationsViewModel : ObservableObject
         _enableThinking = enableThinking;
         _responseLanguage = responseLanguage;
         _focusEntry = focusEntry;
+        _logger.LogInformation("Recommendation context set: target={TargetPath}, focus={FocusPath}, model={ModelName}, thinking={EnableThinking}", session.TargetPath, focusEntry?.Path, modelName, enableThinking);
+    }
+
+    public void SetExternalRecommendations(IEnumerable<CleanupRecommendation> recommendations, AnalysisDiagnostics? diagnostics = null)
+    {
+        var indexedRecommendations = recommendations.ToList();
+        for (var index = 0; index < indexedRecommendations.Count; index++)
+        {
+            if (string.IsNullOrWhiteSpace(indexedRecommendations[index].Id))
+            {
+                indexedRecommendations[index].Id = (index + 1).ToString();
+            }
+        }
+
+        _logger.LogInformation("External recommendations applied: count={Count}", indexedRecommendations.Count);
+        AnalysisError = null;
+        IsWaitingForExternalRecommendations = false;
+        LastDiagnostics = diagnostics;
+        Recommendations = new ObservableCollection<CleanupRecommendation>(indexedRecommendations);
+        ApplyFilters();
+        UpdateTotals();
+        HasRecommendations = Recommendations.Count > 0;
+    }
+
+    public void BeginExternalRecommendationLoad()
+    {
+        _logger.LogInformation("External recommendation load started");
+        AnalysisError = null;
+        IsWaitingForExternalRecommendations = true;
+        HasRecommendations = false;
+        Recommendations = new ObservableCollection<CleanupRecommendation>();
+        ApplyFilters();
+        UpdateTotals();
+    }
+
+    public void EndExternalRecommendationLoad()
+    {
+        _logger.LogInformation("External recommendation load ended");
+        IsWaitingForExternalRecommendations = false;
     }
 
     [RelayCommand]
@@ -85,7 +132,9 @@ public partial class RecommendationsViewModel : ObservableObject
         if (_currentSession is null || _apiKey is null)
             return;
 
+        _logger.LogInformation("Recommendation analysis started: target={TargetPath}, focus={FocusPath}", _currentSession.TargetPath, _focusEntry?.Path);
         IsAnalyzing = true;
+        IsWaitingForExternalRecommendations = false;
         AnalysisError = null;
 
         // Clear previous recommendations immediately so stale results from
@@ -114,10 +163,12 @@ public partial class RecommendationsViewModel : ObservableObject
             ApplyFilters();
             UpdateTotals();
             HasRecommendations = Recommendations.Count > 0;
+            _logger.LogInformation("Recommendation analysis completed: count={Count}", Recommendations.Count);
             DebugBreakpoints.Hit("recommendations-applied");
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Recommendation analysis failed");
             AnalysisError = ex.Message;
             LastDiagnostics = null;
             HasRecommendations = false;
@@ -125,6 +176,7 @@ public partial class RecommendationsViewModel : ObservableObject
         }
         finally
         {
+            _logger.LogInformation("Recommendation analysis ended");
             IsAnalyzing = false;
         }
     }
@@ -132,6 +184,7 @@ public partial class RecommendationsViewModel : ObservableObject
     [RelayCommand]
     private void Accept(CleanupRecommendation rec)
     {
+        _logger.LogInformation("Recommendation accepted: id={Id}, path={TargetPath}", rec.Id, rec.TargetPath);
         rec.IsAccepted = true;
         UpdateTotals();
     }
@@ -139,6 +192,7 @@ public partial class RecommendationsViewModel : ObservableObject
     [RelayCommand]
     private void Dismiss(CleanupRecommendation rec)
     {
+        _logger.LogInformation("Recommendation dismissed: id={Id}, path={TargetPath}", rec.Id, rec.TargetPath);
         rec.IsDismissed = true;
         UpdateTotals();
     }
@@ -148,7 +202,8 @@ public partial class RecommendationsViewModel : ObservableObject
     {
         foreach (var rec in Recommendations.Where(r => r.SafetyRating == SafetyRating.Safe))
         {
-            rec.IsAccepted = true;
+            _logger.LogInformation("Recommendation accepted: id={Id}, path={TargetPath}", rec.Id, rec.TargetPath);
+        rec.IsAccepted = true;
         }
 
         UpdateTotals();
@@ -159,7 +214,8 @@ public partial class RecommendationsViewModel : ObservableObject
     {
         foreach (var rec in Recommendations.Where(r => r.SafetyRating == SafetyRating.Caution))
         {
-            rec.IsDismissed = true;
+            _logger.LogInformation("Recommendation dismissed: id={Id}, path={TargetPath}", rec.Id, rec.TargetPath);
+        rec.IsDismissed = true;
         }
 
         UpdateTotals();
@@ -183,7 +239,8 @@ public partial class RecommendationsViewModel : ObservableObject
     {
         foreach (var rec in Recommendations.Where(r => r.Category == category))
         {
-            rec.IsAccepted = true;
+            _logger.LogInformation("Recommendation accepted: id={Id}, path={TargetPath}", rec.Id, rec.TargetPath);
+        rec.IsAccepted = true;
         }
 
         UpdateTotals();
@@ -194,7 +251,8 @@ public partial class RecommendationsViewModel : ObservableObject
     {
         foreach (var rec in Recommendations.Where(r => r.Category == category))
         {
-            rec.IsDismissed = true;
+            _logger.LogInformation("Recommendation dismissed: id={Id}, path={TargetPath}", rec.Id, rec.TargetPath);
+        rec.IsDismissed = true;
         }
 
         UpdateTotals();
@@ -252,4 +310,3 @@ public partial class RecommendationsViewModel : ObservableObject
                 : null;
     }
 }
-

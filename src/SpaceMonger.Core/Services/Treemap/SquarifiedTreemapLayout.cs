@@ -19,6 +19,10 @@ public class SquarifiedTreemapLayout : ITreemapLayoutEngine
     // Maximum children to render per directory.
     private const int MaxChildrenPerDir = 20;
 
+    // Keep whole-drive scans responsive even when several large directories
+    // each have many visible descendants.
+    private const int MaxVisibleNodes = 2000;
+
     // Drive root (depth 0) gets a neutral off-white. Everything below it
     // cycles through 8 colors matching the original SpaceMonger palette.
     private const string DriveColor = "#F0F0E8";
@@ -90,7 +94,7 @@ public class SquarifiedTreemapLayout : ITreemapLayoutEngine
         };
         result.Add(node);
 
-        if (depth >= maxDepth)
+        if (depth >= maxDepth || result.Count >= MaxVisibleNodes)
             return;
 
         float borderPad = GetBorderPadding(depth, rect.Width, rect.Height);
@@ -125,7 +129,7 @@ public class SquarifiedTreemapLayout : ITreemapLayoutEngine
         List<FileEntry> items, Rect rect, int depth, int maxDepth,
         List<TreemapNode> result)
     {
-        if (depth > maxDepth || items.Count == 0 || rect.Area <= 0)
+        if (depth > maxDepth || items.Count == 0 || rect.Area <= 0 || result.Count >= MaxVisibleNodes)
             return;
 
         if (rect.Width < MinNodeDimension || rect.Height < MinNodeDimension)
@@ -153,7 +157,7 @@ public class SquarifiedTreemapLayout : ITreemapLayoutEngine
         var remaining = new Rect(rect.X, rect.Y, rect.Width, rect.Height);
         int start = 0;
 
-        while (start < items.Count)
+        while (start < items.Count && result.Count < MaxVisibleNodes)
         {
             float shorterSide = remaining.ShorterSide;
             if (shorterSide <= 0)
@@ -223,6 +227,9 @@ public class SquarifiedTreemapLayout : ITreemapLayoutEngine
                 h = stripThickness;
             }
 
+            if (result.Count >= MaxVisibleNodes)
+                break;
+
             EmitNode(items[i], new Rect(x, y, w, h), depth, maxDepth, result);
             offset += itemLength;
         }
@@ -237,7 +244,7 @@ public class SquarifiedTreemapLayout : ITreemapLayoutEngine
         FileEntry entry, Rect rect, int depth, int maxDepth,
         List<TreemapNode> result)
     {
-        if (rect.Width < MinNodeDimension || rect.Height < MinNodeDimension)
+        if (result.Count >= MaxVisibleNodes || rect.Width < MinNodeDimension || rect.Height < MinNodeDimension)
             return;
 
         if (entry.IsDirectory)

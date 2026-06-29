@@ -1,5 +1,8 @@
 ﻿using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Serilog;
+using SpaceMonger.App.Logging;
 using SpaceMonger.App.Diagnostics;
 using SpaceMonger.App.Localization;
 using SpaceMonger.App.Services;
@@ -30,10 +33,13 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        AppLog.Configure();
+        Log.Information("Application startup begin");
         base.OnStartup(e);
         CrashDiagnostics.Register(this);
 
         var services = new ServiceCollection();
+        services.AddLogging(builder => builder.ClearProviders().AddSerilog(dispose: true));
 
         services.AddHttpClient("Anthropic", client =>
         {
@@ -75,6 +81,7 @@ public partial class App : Application
         services.AddSingleton<IAgentTool, FindLargeFilesTool>();
         services.AddSingleton<IAgentTool, GetCopilotContextTool>();
         services.AddSingleton<IAgentTool, ProposeCopilotActionTool>();
+        services.AddSingleton<IAgentTool, ReadUnityRegistryContextTool>();
         services.AddSingleton<IAgentRuntime, AgentRuntime>();
         services.AddSingleton<IChatService, ChatService>();
         services.AddTransient<ChatViewModel>();
@@ -89,6 +96,8 @@ public partial class App : Application
         Services = services.BuildServiceProvider();
 
         // Initialize theme manager early
+        Log.Information("Service provider built");
+
         var themeManager = Services.GetRequiredService<ThemeManager>();
         themeManager.Initialize();
         themeManager.Refresh();
@@ -121,25 +130,15 @@ public partial class App : Application
 
         mainViewModel.ScanCompleted += session =>
         {
+            Log.Information("Scan completed event received for {TargetPath}", session.TargetPath);
             treemapViewModel.SetRoot(session.RootEntry!, session);
             chatViewModel.SetContext(session, session.RootEntry!);
             treeViewModel.SetRoot(session.RootEntry!, session);
         };
 
         mainWindow.Show();
+        Log.Information("Main window shown");
 
-        // Support --scan <path> command-line argument for auto-scanning
-        if (e.Args.Length >= 2 && e.Args[0] == "--scan")
-        {
-            var scanPath = e.Args[1];
-            mainViewModel.SelectedPath = scanPath;
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(1000);
-                await System.Windows.Application.Current.Dispatcher.InvokeAsync(
-                    () => mainViewModel.ScanCommand.Execute(null));
-            });
-        }
 
         _ = Task.Run(async () =>
         {
@@ -148,6 +147,12 @@ public partial class App : Application
                 () => updateViewModel.CheckForUpdateCommand.Execute(null));
         });
     }
-}
 
+    protected override void OnExit(ExitEventArgs e)
+    {
+        Log.Information("Application exit begin with code {ExitCode}", e.ApplicationExitCode);
+        AppLog.CloseAndFlush();
+        base.OnExit(e);
+    }
+}
 

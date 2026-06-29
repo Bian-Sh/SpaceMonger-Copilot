@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 using SpaceMonger.Core.Models;
 using SpaceMonger.Core.Services.Whitelist;
 
@@ -15,20 +16,20 @@ public partial class IncrementalFileScanner
         try
         {
             var sw = Stopwatch.StartNew();
-            Trace.WriteLine($"[MFT] Scan starting: fullPath={fullPath}, volumeRoot={volumeRoot}");
+            _logger.LogInformation("MFT scan starting: fullPath={FullPath}, volumeRoot={VolumeRoot}", fullPath, volumeRoot);
 
             // Phase 1: Enumerate MFT
-            var mftRecords = MftEnumerator.EnumerateVolume(volumeRoot, progress, ct);
+            var mftRecords = MftEnumerator.EnumerateVolume(volumeRoot, progress, ct, logger: _logger);
             if (mftRecords == null)
             {
-                Trace.WriteLine("[MFT] " +"EnumerateVolume returned null 鈥?falling back");
+                _logger.LogWarning("MFT EnumerateVolume returned null; falling back");
                 return null;
             }
 
             if (ct.IsCancellationRequested)
                 return null;
 
-            Trace.WriteLine("[MFT] " +$"Enumeration complete: {mftRecords.Count} records in {sw.ElapsedMilliseconds}ms");
+            _logger.LogInformation("MFT enumeration complete: {RecordCount} records in {ElapsedMs}ms", mftRecords.Count, sw.ElapsedMilliseconds);
 
             // Phase 2: Build tree from flat records
             // Count files/folders from MFT for progress reporting during tree build
@@ -44,20 +45,20 @@ public partial class IncrementalFileScanner
                 Path.GetFullPath(fullPath).TrimEnd('\\'),
                 volumeRoot.TrimEnd('\\'),
                 StringComparison.OrdinalIgnoreCase);
-            Trace.WriteLine("[MFT] " +$"isWholeVolume={isWholeVolume}");
+            _logger.LogDebug("MFT scan whole volume: {IsWholeVolume}", isWholeVolume);
 
             // Get the actual FRN for the target path. Don't hardcode segment 5 for root 鈥?
             // the full FRN includes a sequence number in the upper 16 bits.
             var targetFrn = NtfsUsnNative.GetFileReferenceNumber(fullPath);
-            Trace.WriteLine("[MFT] " +$"targetFrn=0x{targetFrn:X16} (segment {targetFrn & 0x0000_FFFF_FFFF_FFFF})");
+            _logger.LogDebug("MFT target FRN: {TargetFrn:X16} segment {Segment}", targetFrn, targetFrn & 0x0000_FFFF_FFFF_FFFF);
             if (targetFrn == 0)
             {
-                Trace.WriteLine("[MFT] " +"GetFileReferenceNumber returned 0 鈥?falling back");
+                _logger.LogWarning("GetFileReferenceNumber returned 0; falling back");
                 return null;
             }
 
             // Check if targetFrn exists in MFT records
-            Trace.WriteLine("[MFT] " +$"targetFrn in mftRecords: {mftRecords.ContainsKey(targetFrn)}");
+            _logger.LogDebug("MFT target FRN found in records: {Found}", mftRecords.ContainsKey(targetFrn));
 
             // Determine which FRNs belong to the target subtree
             HashSet<long> subtreeFrns;
@@ -99,7 +100,7 @@ public partial class IncrementalFileScanner
                 }
             }
 
-            Trace.WriteLine("[MFT] " +$"subtreeFrns count: {subtreeFrns.Count}");
+            _logger.LogDebug("MFT subtree FRN count: {Count}", subtreeFrns.Count);
 
             // Ensure the target FRN is in the subtree set 鈥?FSCTL_ENUM_USN_DATA may not
             // return certain system entries (e.g. root directory has no USN record).
@@ -132,11 +133,11 @@ public partial class IncrementalFileScanner
                         Attributes = dirInfo.Attributes,
                         FileReferenceNumber = targetFrn
                     };
-                    Trace.WriteLine("[MFT] " +$"Created synthetic root for FRN 0x{targetFrn:X16}");
+                    _logger.LogWarning("Created synthetic MFT root for FRN {TargetFrn:X16}", targetFrn);
                 }
             }
 
-            Trace.WriteLine("[MFT] " +$"frnToEntry count: {frnToEntry.Count}");
+            _logger.LogDebug("MFT entry map count: {Count}", frnToEntry.Count);
             progress.Report(new ScanProgress("Linking directory tree", mftFiles, mftFolders));
 
             // Link parent/children
@@ -161,7 +162,7 @@ public partial class IncrementalFileScanner
                     "System Volume Information",
                     StringComparison.OrdinalIgnoreCase));
             }
-            Trace.WriteLine("[MFT] " +$"Root entry: Name='{rootEntry.Name}', Children={rootEntry.Children.Count}");
+            _logger.LogDebug("MFT root entry: name={Name}, children={Children}", rootEntry.Name, rootEntry.Children.Count);
 
             // Set root path and reconstruct paths via BFS
             rootEntry.Path = fullPath;
@@ -180,12 +181,12 @@ public partial class IncrementalFileScanner
                 }
             }
 
-            PruneWhitelistedEntries(rootEntry, _settingsService?.LoadSettings().ScanWhitelist ?? []);
+            PruneWhitelistedEntries(rootEntry, BuildNormalizedWhitelist(_settingsService?.LoadSettings().ScanWhitelist ?? []));
 
             // Free MFT records 鈥?no longer needed
             mftRecords = null;
 
-            Trace.WriteLine("[MFT] " +$"Tree built: {frnToEntry.Count} entries in {sw.ElapsedMilliseconds}ms");
+            _logger.LogInformation("MFT tree built: {EntryCount} entries in {ElapsedMs}ms", frnToEntry.Count, sw.ElapsedMilliseconds);
 
             if (ct.IsCancellationRequested)
                 return null;
@@ -197,7 +198,7 @@ public partial class IncrementalFileScanner
             if (ct.IsCancellationRequested)
                 return null;
 
-            Trace.WriteLine("[MFT] " +$"Size collection complete: {fileCount} files, {folderCount} folders in {sw.ElapsedMilliseconds}ms");
+            _logger.LogInformation("MFT size collection complete: {FileCount} files, {FolderCount} folders in {ElapsedMs}ms", fileCount, folderCount, sw.ElapsedMilliseconds);
 
             // Phase 4: Build session
             var session = new ScanSession
@@ -213,24 +214,29 @@ public partial class IncrementalFileScanner
 
             FileScanner.PopulateDriveInfo(session, fullPath);
 
-            Trace.WriteLine("[MFT] " +$"SUCCESS 鈥?Total scan time: {sw.ElapsedMilliseconds}ms");
+            _logger.LogInformation("MFT scan completed in {ElapsedMs}ms", sw.ElapsedMilliseconds);
 
             return (session, frnToEntry);
         }
         catch (Exception ex)
         {
-            Trace.WriteLine("[MFT] " +$"EXCEPTION: {ex}");
+            _logger.LogWarning(ex, "MFT scan failed");
             return null;
         }
     }
 
 
-    private void PruneWhitelistedEntries(FileEntry root, IEnumerable<PathWhitelistEntry> whitelist)
+    private static void PruneWhitelistedEntries(FileEntry root, IReadOnlyList<string> normalizedWhitelist)
     {
+        if (normalizedWhitelist.Count == 0)
+        {
+            return;
+        }
+
         for (var index = root.Children.Count - 1; index >= 0; index--)
         {
             var child = root.Children[index];
-            if (_whitelistMatcher.IsExcluded(child.Path, whitelist))
+            if (IsWhitelistedPath(child.Path, normalizedWhitelist))
             {
                 root.Children.RemoveAt(index);
                 continue;
@@ -238,10 +244,52 @@ public partial class IncrementalFileScanner
 
             if (child.IsDirectory)
             {
-                PruneWhitelistedEntries(child, whitelist);
+                PruneWhitelistedEntries(child, normalizedWhitelist);
             }
         }
     }
+
+    private static IReadOnlyList<string> BuildNormalizedWhitelist(IEnumerable<PathWhitelistEntry> whitelist)
+    {
+        return whitelist
+            .Select(entry => TryNormalizePath(entry.Path))
+            .Where(path => path is not null)
+            .Cast<string>()
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static bool IsWhitelistedPath(string path, IReadOnlyList<string> normalizedWhitelist)
+    {
+        var normalizedPath = TryNormalizePath(path);
+        if (normalizedPath is null)
+        {
+            return false;
+        }
+
+        return normalizedWhitelist.Any(prefix => string.Equals(normalizedPath, prefix, StringComparison.OrdinalIgnoreCase)
+            || normalizedPath.StartsWith(prefix + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+            || normalizedPath.StartsWith(prefix + Path.AltDirectorySeparatorChar, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string? TryNormalizePath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            return Path.GetFullPath(path.Trim())
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException or System.Security.SecurityException)
+        {
+            return null;
+        }
+    }
+
     private static bool IsWholeVolumeRoot(string path)
     {
         var fullPath = Path.GetFullPath(path);
@@ -254,7 +302,3 @@ public partial class IncrementalFileScanner
     }
 
 }
-
-
-
-

@@ -3,6 +3,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Threading;
+using Serilog;
 
 namespace SpaceMonger.App.Diagnostics;
 
@@ -33,16 +34,7 @@ internal static class CrashDiagnostics
 
     public static void Log(string category, string message)
     {
-        try
-        {
-            Directory.CreateDirectory(LogDirectory);
-            var path = Path.Combine(LogDirectory, $"spacemonger-{DateTime.Now:yyyyMMdd}.log");
-            File.AppendAllText(path, $"{DateTime.Now:O} [{category}] {message}{Environment.NewLine}");
-        }
-        catch
-        {
-            // Best-effort diagnostics must never crash the app.
-        }
+        Serilog.Log.Information("Crash diagnostics {Category}: {Message}", category, message);
     }
 
     public static void CaptureException(string source, Exception exception)
@@ -57,13 +49,15 @@ internal static class CrashDiagnostics
 
             var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss-fff");
             var logPath = Path.Combine(LogDirectory, $"crash-{stamp}.log");
-            File.WriteAllText(logPath, BuildCrashLog(source, exception));
-
+            var crashLog = BuildCrashLog(source, exception);
             var dumpPath = Path.Combine(DumpDirectory, $"crash-{stamp}.dmp");
             if (!TryWriteMiniDump(dumpPath, out var dumpError))
             {
-                File.AppendAllText(logPath, $"{Environment.NewLine}MiniDumpWriteDump failed: {dumpError}{Environment.NewLine}");
+                crashLog += $"{Environment.NewLine}MiniDumpWriteDump failed: {dumpError}{Environment.NewLine}";
             }
+
+            File.WriteAllText(logPath, crashLog);
+            Serilog.Log.Fatal(exception, "Unhandled exception captured from {Source}; report={LogPath}; dump={DumpPath}", source, logPath, dumpPath);
         }
         catch
         {

@@ -1,5 +1,7 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using SpaceMonger.Core.Diagnostics;
 using SpaceMonger.Core.Enums;
 using SpaceMonger.Core.Models;
@@ -83,13 +85,15 @@ public partial class RecommendationEngine : IRecommendationEngine
     private readonly ILlmClient _llmClient;
     private readonly ISettingsService? _settingsService;
     private readonly IPathWhitelistMatcher _whitelistMatcher;
+    private readonly ILogger<RecommendationEngine> _logger;
     private readonly AsyncLocal<List<PathWhitelistEntry>?> _cleanupRecommendationWhitelist = new();
 
-    public RecommendationEngine(ILlmClient llmClient, IDuplicateDetector duplicateDetector, ISettingsService? settingsService = null, IPathWhitelistMatcher? whitelistMatcher = null)
+    public RecommendationEngine(ILlmClient llmClient, IDuplicateDetector duplicateDetector, ISettingsService? settingsService = null, IPathWhitelistMatcher? whitelistMatcher = null, ILogger<RecommendationEngine>? logger = null)
     {
         _llmClient = llmClient;
         _settingsService = settingsService;
         _whitelistMatcher = whitelistMatcher ?? new PathWhitelistMatcher();
+        _logger = logger ?? NullLogger<RecommendationEngine>.Instance;
         _ = duplicateDetector;
     }
 
@@ -118,6 +122,7 @@ public partial class RecommendationEngine : IRecommendationEngine
         CancellationToken cancellationToken,
         FileEntry? focusEntry = null)
     {
+        _logger.LogInformation("Analysis started: target={TargetPath}, focus={FocusPath}, model={ModelName}, thinking={EnableThinking}", session.TargetPath, focusEntry?.Path, modelName, enableThinking);
         var result = new AnalysisResult();
         _cleanupRecommendationWhitelist.Value = _settingsService?.LoadSettings().CleanupRecommendationWhitelist;
 
@@ -125,6 +130,7 @@ public partial class RecommendationEngine : IRecommendationEngine
         {
             if (session.RootEntry is null)
             {
+                _logger.LogWarning("Analysis skipped because scan session root is null: target={TargetPath}", session.TargetPath);
                 result.Diagnostics.ParseError = "ScanSession.RootEntry is null.";
                 return result;
             }
@@ -134,6 +140,7 @@ public partial class RecommendationEngine : IRecommendationEngine
             var analysisRoot = focusEntry ?? session.RootEntry;
             if (IsCleanupExcluded(analysisRoot.Path))
             {
+                _logger.LogWarning("Analysis scope excluded by cleanup recommendation whitelist: {Path}", analysisRoot.Path);
                 result.Diagnostics.ParseError = "Analysis scope is excluded by cleanup recommendation whitelist.";
                 return result;
             }
@@ -150,8 +157,10 @@ public partial class RecommendationEngine : IRecommendationEngine
                 MetadataLength = metadataJson.Length,
             };
 
+            _logger.LogInformation("Analysis metadata built: scope={ScopePath}, chars={MetadataLength}", analysisRoot.Path, metadataJson.Length);
             var response = await _llmClient.SendAnalysisAsync(systemPrompt, metadataJson, apiKey, baseUrl, modelName, enableThinking, cancellationToken);
             DebugBreakpoints.Hit("analysis-response-received");
+            _logger.LogInformation("Analysis response received: chars={ResponseLength}", response.Length);
             result.Diagnostics.ResponseLength = response.Length;
             result.Diagnostics.ResponsePreview = BuildPreview(response);
             result.Diagnostics.RawResponsePath = WriteRawResponse(response);
@@ -160,11 +169,13 @@ public partial class RecommendationEngine : IRecommendationEngine
             result.Diagnostics.ThinkingPath = AnthropicClient.LastResponseThinkingPath;
 
             var recommendations = ParseResponse(response, session.RootEntry, result.Diagnostics);
+            AddUnityLibraryRecommendations(recommendations, analysisRoot);
             DebugBreakpoints.Hit("analysis-response-parsed");
             recommendations = recommendations
                 .Where(r => !IsCleanupExcluded(r.TargetPath))
                 .ToList();
             result.Diagnostics.ParsedRecommendationCount = recommendations.Count;
+            _logger.LogInformation("Analysis response parsed: recommendations={Count}", recommendations.Count);
 
             if (focusEntry is null)
             {
@@ -177,6 +188,7 @@ public partial class RecommendationEngine : IRecommendationEngine
                     .Where(r => !IsHardProtectedPath(r.TargetPath))
                     .ToList();
                 result.Diagnostics.ProtectedFilteredCount = beforeFilterCount - recommendations.Count;
+                _logger.LogInformation("Protected recommendation filter removed {Count} entries", result.Diagnostics.ProtectedFilteredCount);
             }
 
             foreach (var rec in recommendations)
@@ -190,6 +202,7 @@ public partial class RecommendationEngine : IRecommendationEngine
             }
 
             result.Recommendations = recommendations;
+            _logger.LogInformation("Analysis completed: finalRecommendations={Count}", recommendations.Count);
             return result;
         }
         finally

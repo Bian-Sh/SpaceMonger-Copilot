@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 using SpaceMonger.Core.Models;
 
 namespace SpaceMonger.Core.Services.Scanning;
@@ -10,15 +11,15 @@ public partial class IncrementalFileScanner
         var watermark = UsnJournalReader.QueryJournal(volumeRoot);
         if (watermark == null)
         {
-            Trace.WriteLine($"[USN] QueryJournal returned null for {volumeRoot} — incremental rescan unavailable");
+            _logger.LogWarning("QueryJournal returned null for {VolumeRoot}; incremental rescan unavailable", volumeRoot);
             return;
         }
 
-        Trace.WriteLine($"[USN] Journal captured: ID={watermark.JournalId}, NextUsn={watermark.NextUsn}");
+        _logger.LogInformation("USN journal captured: journalId={JournalId}, nextUsn={NextUsn}", watermark.JournalId, watermark.NextUsn);
 
         var frnIndex = BuildFrnIndex(session.RootEntry!);
 
-        Trace.WriteLine($"[USN] FRN index built: {frnIndex.Count} directories indexed");
+        _logger.LogInformation("FRN index built: {DirectoryCount} directories indexed", frnIndex.Count);
 
         _volumeStates[volumeRoot] = new VolumeScanState
         {

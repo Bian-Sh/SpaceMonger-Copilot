@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using SpaceMonger.App.Localization;
 using SpaceMonger.App.ViewModels;
 using SpaceMonger.Core.Models;
 
@@ -23,17 +24,32 @@ public partial class RecommendationsPanel : UserControl
 
     private void CleanUpButton_Click(object sender, RoutedEventArgs e)
     {
+        if (ShowWaitingForAiMessageIfNeeded())
+            return;
+
         CleanupRequested?.Invoke();
     }
 
     private void AnalyzeButton_Click(object sender, RoutedEventArgs e)
     {
+        if (ShowWaitingForAiMessageIfNeeded())
+            return;
+
         if (DataContext is RecommendationsViewModel { IsAnalyzing: true })
         {
             return;
         }
 
         AnalyzeRequested?.Invoke();
+    }
+
+    private bool ShowWaitingForAiMessageIfNeeded()
+    {
+        if (DataContext is not RecommendationsViewModel { IsWaitingForExternalRecommendations: true })
+            return false;
+
+        MessageBox.Show(L.Text("AiExternalAnalysisWaitMessage"), L.Text("AnalyzeButton"), MessageBoxButton.OK, MessageBoxImage.Information);
+        return true;
     }
 
     private void RecommendationItem_RequestBringIntoView(object sender, RequestBringIntoViewEventArgs e)

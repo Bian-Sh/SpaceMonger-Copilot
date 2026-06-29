@@ -99,11 +99,44 @@ public partial class ChatPanel : UserControl
 
     private void InputTextBox_KeyDown(object sender, KeyEventArgs e)
     {
+        if (_viewModel?.IsCompletionMenuOpen == true)
+        {
+            if (e.Key == Key.Down)
+            {
+                _viewModel.MoveCompletionSelection(1);
+                e.Handled = true;
+                return;
+            }
+
+            if (e.Key == Key.Up)
+            {
+                _viewModel.MoveCompletionSelection(-1);
+                e.Handled = true;
+                return;
+            }
+
+            if (e.Key is Key.Tab or Key.Enter)
+            {
+                _viewModel.ConfirmActiveCompletion();
+                InputTextBox.CaretIndex = InputTextBox.Text?.Length ?? 0;
+                e.Handled = true;
+                return;
+            }
+
+            if (e.Key == Key.Escape)
+            {
+                _viewModel.IsSlashCommandMenuOpen = false;
+                _viewModel.IsSkillMentionMenuOpen = false;
+                e.Handled = true;
+                return;
+            }
+        }
+
         if (e.Key == Key.Enter && !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
         {
-            if (_viewModel?.SendCommand.CanExecute(null) == true)
+            if (_viewModel?.SubmitOrStopCommand.CanExecute(null) == true)
             {
-                _viewModel.SendCommand.Execute(null);
+                _viewModel.SubmitOrStopCommand.Execute(null);
             }
             e.Handled = true;
         }

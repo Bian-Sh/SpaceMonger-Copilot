@@ -203,5 +203,76 @@ public class AiSkillRouterTests
         result.SuggestedAction.Should().BeNull();
         result.LocalAnswer.Should().BeNull();
     }
-}
 
+
+    [Fact]
+    public void Route_CleanupAnalysisWithDriveMention_CreatesScanThenCleanupAction()
+    {
+        var prompt = "\u5206\u6790\u4e0bD\u76d8\u6709\u5565\u53ef\u4ee5\u6e05\u7406\u7684";
+
+        var result = _router.Route(prompt, null, null, hasExistingRecommendations: false);
+
+        result.Intents.Should().Contain(AiIntent.DiskScan);
+        result.Intents.Should().Contain(AiIntent.FolderCleanupAnalysis);
+        result.SuggestedAction.Should().NotBeNull();
+        result.SuggestedAction!.Kind.Should().Be(AiActionKind.StartScan);
+        result.SuggestedAction.Path.Should().Be(@"D:\");
+    }
+
+    [Fact]
+    public void Route_UnityLibraryCleanup_LoadsUnityProjectCleanupSkill()
+    {
+        var result = _router.Route("Unity Library cleanup risk", null, null, hasExistingRecommendations: false);
+
+        result.Intents.Should().Contain(AiIntent.UnityProjectCleanup);
+        result.Skills.Select(skill => skill.Id).Should().Contain("unity_project_cleanup");
+        result.Skills.Single(skill => skill.Id == "unity_project_cleanup").Prompt.Should().Contain("Unity Project Cleanup Skill");
+        result.SuggestedAction.Should().NotBeNull();
+        result.SuggestedAction!.Kind.Should().Be(AiActionKind.DiscoverUnityLibraries);
+    }
+
+    [Theory]
+    [InlineData("\u6574\u7406\u6211\u7684 Unity\u5de5\u7a0b")]
+    [InlineData("\u6e05\u7406\u6211\u7684 Unity\u5de5\u7a0b")]
+    [InlineData("\u6e05\u7406\u6211\u6240\u6709 unity \u5de5\u7a0b\u7684library")]
+    public void Route_ChineseUnityProjectRequests_LoadUnityProjectCleanupSkill(string prompt)
+    {
+        var result = _router.Route(prompt, null, null, hasExistingRecommendations: false);
+
+        result.Intents.Should().Contain(AiIntent.UnityProjectCleanup);
+        result.Skills.Select(skill => skill.Id).Should().Contain("unity_project_cleanup");
+    }
+
+
+    [Fact]
+    public void GetSkillCatalog_ReturnsAppSkillsForMentionMenu()
+    {
+        var catalog = _router.GetSkillCatalog();
+
+        catalog.Select(skill => skill.Id).Should().Contain(["app-guide", "disk-management", "unity-project-cleanup"]);
+        catalog.Should().OnlyContain(skill => !string.IsNullOrWhiteSpace(skill.Description));
+    }
+
+    [Fact]
+    public void Route_SelectedUnitySkill_InjectsExplicitSkillEvenForAmbiguousPrompt()
+    {
+        var result = _router.Route("@unity-project-cleanup ?? Library", null, null, hasExistingRecommendations: false);
+
+        result.SelectedSkillIds.Should().ContainSingle().Which.Should().Be("unity-project-cleanup");
+        result.Intents.Should().Contain(AiIntent.UnityProjectCleanup);
+        result.Skills.Select(skill => skill.Id).Should().Contain("unity-project-cleanup");
+        result.Skills.Single(skill => skill.Id == "unity-project-cleanup").Prompt.Should().Contain("Unity Project Cleanup Skill");
+    }
+
+    [Theory]
+    [InlineData("推荐清理中 Unity Hub: yes 是啥意思？")]
+    [InlineData("@app-guide 推荐清理中 Unity Hub: yes 是啥意思？")]
+    public void Route_UnityHubMeaningQuestion_DoesNotDiscoverUnityLibraries(string prompt)
+    {
+        var result = _router.Route(prompt, null, null, hasExistingRecommendations: false);
+
+        result.Intents.Should().Contain(AiIntent.ModuleHelp);
+        result.SuggestedAction.Should().BeNull();
+    }
+
+}

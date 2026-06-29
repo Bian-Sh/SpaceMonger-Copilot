@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using Serilog;
 using System.Windows;
 using SpaceMonger.App.ViewModels;
 
@@ -92,17 +93,7 @@ internal sealed class AcceptanceAutomationServer : IDisposable
             }
             catch (Exception ex)
             {
-                try
-                {
-                    await File.AppendAllTextAsync(
-                        Path.Combine(Path.GetTempPath(), "spacemonger-acceptance-server.log"),
-                        DateTime.Now.ToString("O") + " " + ex + Environment.NewLine,
-                        _cts.Token).ConfigureAwait(false);
-                }
-                catch
-                {
-                    // Ignore logging failures in acceptance-only diagnostics.
-                }
+                Log.Warning(ex, "Acceptance automation server request failed");
             }
         }
     }

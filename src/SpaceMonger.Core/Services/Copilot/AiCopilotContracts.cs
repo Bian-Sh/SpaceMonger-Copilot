@@ -12,7 +12,8 @@ public enum AiIntent
     FolderCleanupAnalysis,
     FileTreeQuery,
     RecommendationCleanup,
-    TreemapNavigation
+    TreemapNavigation,
+    UnityProjectCleanup
 }
 
 public enum AiActionKind
@@ -20,10 +21,19 @@ public enum AiActionKind
     None,
     StartScan,
     AnalyzeCleanup,
+    DiscoverUnityLibraries,
     ClearConversation,
     NavigateToScannedPath,
     SelectRecommendation,
     DeselectRecommendation
+}
+
+public enum AiActionProgressStatus
+{
+    Pending,
+    Running,
+    Completed,
+    Failed
 }
 
 public enum AiInteractionCardStatus
@@ -41,6 +51,11 @@ public sealed record AiSkill(
     string Description,
     string Prompt);
 
+public sealed record AiSkillCatalogItem(
+    string Id,
+    string DisplayName,
+    string Description);
+
 public sealed record AiActionRequest(
     AiActionKind Kind,
     string? Path = null,
@@ -56,6 +71,11 @@ public sealed record AiActionResult(
     public static AiActionResult Ok(string message, string? details = null) => new(true, message, details);
     public static AiActionResult Fail(string message, string? details = null) => new(false, message, details);
 }
+
+public sealed record AiActionProgress(
+    string StepId,
+    string Title,
+    AiActionProgressStatus Status);
 
 public sealed class AiInteractionCard : INotifyPropertyChanged
 {
@@ -85,6 +105,8 @@ public sealed class AiInteractionCard : INotifyPropertyChanged
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsPending));
             OnPropertyChanged(nameof(IsFinished));
+            OnPropertyChanged(nameof(StatusIconGlyph));
+            OnPropertyChanged(nameof(StatusIconState));
         }
     }
 
@@ -113,12 +135,26 @@ public sealed class AiInteractionCard : INotifyPropertyChanged
             _isBusy = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsPending));
+            OnPropertyChanged(nameof(StatusIconGlyph));
+            OnPropertyChanged(nameof(StatusIconState));
         }
     }
 
     public bool IsPending => Status == AiInteractionCardStatus.Pending && !IsBusy;
     public bool IsFinished => Status is AiInteractionCardStatus.Completed or AiInteractionCardStatus.Cancelled or AiInteractionCardStatus.Failed;
     public bool HasStatusText => !string.IsNullOrWhiteSpace(StatusText);
+    public string StatusIconState => IsBusy || Status == AiInteractionCardStatus.Running
+        ? "running"
+        : Status == AiInteractionCardStatus.Completed
+            ? "finish"
+            : "idle";
+
+    public string StatusIconGlyph => StatusIconState switch
+    {
+        "running" => "◐",
+        "finish" => "✓",
+        _ => "○"
+    };
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
@@ -132,4 +168,7 @@ public sealed record AiSkillRoutingResult(
     AiActionRequest? SuggestedAction,
     string? LocalAnswer = null,
     bool CanRunWithoutScanContext = false,
-    bool PreferModelAnswer = false);
+    bool PreferModelAnswer = false)
+{
+    public IReadOnlyList<string> SelectedSkillIds { get; init; } = [];
+}

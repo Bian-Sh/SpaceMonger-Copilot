@@ -1,4 +1,4 @@
-﻿<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <root>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
@@ -456,6 +456,18 @@
   </data>
   <data name="RecommendationsEmptyDescription" xml:space="preserve">
     <value>可以切换到控制台查看分析过程，或调整筛选条件后重试。</value>
+  </data>
+  <data name="RecommendationsWaitingForAiTitle" xml:space="preserve">
+    <value>AI正在分析中，请稍后...</value>
+  </data>
+  <data name="RecommendationsWaitingForAiDescription" xml:space="preserve">
+    <value></value>
+  </data>
+  <data name="AiScanTitleFormat" xml:space="preserve">
+    <value>AI正在扫描{0}，请稍后...</value>
+  </data>
+  <data name="AiExternalAnalysisWaitMessage" xml:space="preserve">
+    <value>AI正在分析中，请稍后！</value>
   </data>
   <data name="SettingsBackToAppButton" xml:space="preserve">
     <value>返回应用</value>

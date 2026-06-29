@@ -34,9 +34,14 @@ internal static class ParallelSizeCollector
             if (entry.IsDirectory)
             {
                 directories.Add(entry);
+                if (entry.IsReparsePoint)
+                {
+                    continue;
+                }
+
                 foreach (var child in entry.Children)
                 {
-                    if (child.IsDirectory)
+                    if (child.IsDirectory && !child.IsReparsePoint)
                         stack.Push(child);
                 }
             }
@@ -57,6 +62,11 @@ internal static class ParallelSizeCollector
             {
                 try
                 {
+                    if (dir.IsReparsePoint)
+                    {
+                        return;
+                    }
+
                     // Build a lookup of existing children by name for fast matching
                     var childByName = new Dictionary<string, FileEntry>(
                         dir.Children.Count, StringComparer.OrdinalIgnoreCase);

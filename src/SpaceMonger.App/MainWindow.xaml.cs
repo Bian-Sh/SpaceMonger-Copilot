@@ -11,6 +11,8 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Data;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
+using SpaceMonger.App.Logging;
 using SpaceMonger.App.Controls;
 using SpaceMonger.App.Diagnostics;
 using SpaceMonger.App.Helpers;
@@ -27,7 +29,7 @@ namespace SpaceMonger.App;
 /// Interaction logic for MainWindow.xaml
 /// </summary>
 /// <summary>
-/// Lightweight data object for breadcrumb dropdown items（面包屑下拉数据项）
+/// Lightweight data object for breadcrumb dropdown items锛堥潰鍖呭睉涓嬫媺鏁版嵁椤癸級
 /// </summary>
 internal record BreadcrumbItem(string Name, string Path);
 
@@ -36,20 +38,15 @@ public partial class MainWindow : Window
     private const double DefaultRecommendationsHeight = 260;
     private const int WM_GETMINMAXINFO = 0x0024;
 
-    private readonly ObservableCollection<ConsoleLogEntry> _consoleEntries = new();
-    private readonly StringBuilder _consoleLog = new();
-    private readonly string _consoleLogPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "SpaceMonger Copilot",
-        "logs",
-        $"console-{DateTime.Now:yyyyMMdd-HHmmss}.log");
-    private ConsoleLogLevel _visibleConsoleLevels = ConsoleLogLevel.Info | ConsoleLogLevel.Warning | ConsoleLogLevel.Error;
+    private readonly ICollectionView _logEntriesView;
+    private AppLogLevelFilter _visibleLogLevels = AppLogLevelFilter.Information | AppLogLevelFilter.Warning | AppLogLevelFilter.Error | AppLogLevelFilter.Fatal;
     private RecommendationsViewModel? _recommendationsViewModel;
     private TreemapViewModel? _treemapViewModel;
     private SettingsViewModel? _settingsViewModel;
     private ChatViewModel? _chatViewModel;
     private UpdateViewModel? _updateViewModel;
     private AcceptanceAutomationServer? _acceptanceAutomationServer;
+    private readonly Dictionary<string, ScanSession> _aiScanSessionsByRoot = new(StringComparer.OrdinalIgnoreCase);
     private string? _displayPathOverride;
     private bool _suppressSelectedPathNavigation;
     private bool _closeConfirmed;
@@ -58,12 +55,20 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        Directory.CreateDirectory(Path.GetDirectoryName(_consoleLogPath)!);
-        File.WriteAllText(_consoleLogPath, "Console log file: " + _consoleLogPath + Environment.NewLine);
+        _logEntriesView = CollectionViewSource.GetDefaultView(AppLog.Entries);
+        _logEntriesView.Filter = entry => entry is UiLogEntry logEntry && _visibleLogLevels.Includes(logEntry.Level);
+        ConsoleItemsControl.ItemsSource = _logEntriesView;
+        AppLog.UiSink.EntryAdded += ScrollLogToEnd;
+        Log.Information("MainWindow initialized; log directory: {LogDirectory}", AppLog.LogDirectory);
         Loaded += MainWindow_Loaded;
         Closing += MainWindow_Closing;
         StateChanged += MainWindow_StateChanged;
-        Closed += (_, _) => _acceptanceAutomationServer?.Dispose();
+        Closed += (_, _) =>
+        {
+            Log.Information("MainWindow closed");
+            AppLog.UiSink.EntryAdded -= ScrollLogToEnd;
+            _acceptanceAutomationServer?.Dispose();
+        };
         TitleBar.CloseRequested += async (_, _) => await RequestCloseAsync();
         SpaceMonger.App.Localization.L.LanguageChanged += OnAppLanguageChanged;
     }
@@ -71,6 +76,7 @@ public partial class MainWindow : Window
 
     private void MainWindow_Closing(object? sender, CancelEventArgs e)
     {
+        Log.Information("MainWindow closing requested; confirmed={CloseConfirmed}", _closeConfirmed);
         if (_closeConfirmed)
             return;
 
@@ -92,6 +98,7 @@ public partial class MainWindow : Window
                 ModalMessageType.Warning,
                 ModalButtonFlags.Positive | ModalButtonFlags.Negative);
 
+            Log.Information("Close confirmation result: {Result}", result);
             if (result == ModalResult.Positive)
             {
                 _closeConfirmed = true;
@@ -105,6 +112,7 @@ public partial class MainWindow : Window
     }
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
+        Log.Information("MainWindow loaded");
         // Enable DWM backdrop and dark mode
         var hwnd = new WindowInteropHelper(this).EnsureHandle();
         AcrylicHelper.EnableDarkMode(hwnd);
@@ -117,7 +125,7 @@ public partial class MainWindow : Window
         if (DataContext is MainViewModel mainVm)
         {
             mainVm.PropertyChanged += MainViewModel_PropertyChanged;
-            TreemapView.SetScanningState(mainVm.IsScanning, mainVm.ScanProgressText);
+            TreemapView.SetScanningState(mainVm.IsScanning, mainVm.ScanTitleText, mainVm.ScanProgressText);
 
             // Set default path to first available drive
             if (string.IsNullOrEmpty(mainVm.SelectedPath))
@@ -130,7 +138,7 @@ public partial class MainWindow : Window
                     mainVm.SelectedPath = firstDrive;
             }
 
-            // Always rebuild breadcrumb on startup — belt-and-suspenders with PropertyChanged
+            // Always rebuild breadcrumb on startup 鈥?belt-and-suspenders with PropertyChanged
             RebuildBreadcrumbBar();
         }
 
@@ -138,6 +146,3 @@ public partial class MainWindow : Window
     }
 
 }
-
-
-

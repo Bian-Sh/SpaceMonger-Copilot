@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using SpaceMonger.Core.Models;
 using SpaceMonger.Core.Services.Settings;
 using SpaceMonger.Core.Services.Whitelist;
@@ -15,17 +16,19 @@ public partial class IncrementalFileScanner : IFileScanner
     private readonly FileScanner _inner;
     private readonly ISettingsService? _settingsService;
     private readonly IPathWhitelistMatcher _whitelistMatcher;
+    private readonly ILogger<IncrementalFileScanner> _logger;
     private readonly Dictionary<string, VolumeScanState> _volumeStates = new(StringComparer.OrdinalIgnoreCase);
     private Task? _pendingIndexBuild;
 
     public bool IsReady => _pendingIndexBuild is null or { IsCompleted: true };
     public event Action? IsReadyChanged;
 
-    public IncrementalFileScanner(FileScanner inner, ISettingsService? settingsService = null, IPathWhitelistMatcher? whitelistMatcher = null)
+    public IncrementalFileScanner(FileScanner inner, ISettingsService? settingsService = null, IPathWhitelistMatcher? whitelistMatcher = null, ILogger<IncrementalFileScanner>? logger = null)
     {
         _inner = inner;
         _settingsService = settingsService;
         _whitelistMatcher = whitelistMatcher ?? new PathWhitelistMatcher();
+        _logger = logger ?? NullLogger<IncrementalFileScanner>.Instance;
     }
 
     public async Task<ScanSession> ScanAsync(
@@ -36,7 +39,7 @@ public partial class IncrementalFileScanner : IFileScanner
         // If a background FRN index build is still running, wait for it.
         if (_pendingIndexBuild is { IsCompleted: false })
         {
-            Trace.WriteLine("[USN] Waiting for background FRN index build to finish...");
+            _logger.LogInformation("Waiting for background FRN index build to finish");
             progress.Report(new ScanProgress("Finalizing directory index...", 0, 0));
             await _pendingIndexBuild.ConfigureAwait(false);
         }
@@ -50,7 +53,7 @@ public partial class IncrementalFileScanner : IFileScanner
 
         var volumeRoot = Path.GetPathRoot(fullPath);
 
-        Trace.WriteLine($"[USN] ScanAsync called: fullPath={fullPath}, volumeRoot={volumeRoot}, hasState={volumeRoot != null && _volumeStates.ContainsKey(volumeRoot)}");
+        _logger.LogInformation("Incremental scan requested: fullPath={FullPath}, volumeRoot={VolumeRoot}, hasState={HasState}", fullPath, volumeRoot, volumeRoot != null && _volumeStates.ContainsKey(volumeRoot));
 
         // Can we do incremental?
         if (volumeRoot != null
@@ -58,7 +61,7 @@ public partial class IncrementalFileScanner : IFileScanner
             && state.Watermark != null
             && string.Equals(state.ScannedPath, fullPath, StringComparison.OrdinalIgnoreCase))
         {
-            Trace.WriteLine($"[USN] Incremental path: cachedPath={state.ScannedPath}, watermark NextUsn={state.Watermark.NextUsn}");
+            _logger.LogInformation("Trying USN incremental path: cachedPath={CachedPath}, nextUsn={NextUsn}", state.ScannedPath, state.Watermark.NextUsn);
             var result = await Task.Run(
                 () => TryIncrementalRescan(state, progress, cancellationToken),
                 cancellationToken).ConfigureAwait(false);
@@ -70,7 +73,7 @@ public partial class IncrementalFileScanner : IFileScanner
         // Try MFT scan (fast path for NTFS volumes)
         if (volumeRoot != null)
         {
-            Trace.WriteLine("[USN] Attempting MFT scan");
+            _logger.LogInformation("Attempting MFT scan");
             var mftResult = await Task.Run(
                 () => TryMftScan(fullPath, volumeRoot, progress, cancellationToken),
                 cancellationToken).ConfigureAwait(false);
@@ -87,7 +90,7 @@ public partial class IncrementalFileScanner : IFileScanner
                         var watermark = UsnJournalReader.QueryJournal(volumeRoot);
                         if (watermark != null)
                         {
-                            Trace.WriteLine($"[USN] Post-MFT watermark: ID={watermark.JournalId}, NextUsn={watermark.NextUsn}");
+                            _logger.LogInformation("Post-MFT watermark captured: journalId={JournalId}, nextUsn={NextUsn}", watermark.JournalId, watermark.NextUsn);
                             _volumeStates[volumeRoot] = new VolumeScanState
                             {
                                 ScannedPath = fullPath,
@@ -99,7 +102,7 @@ public partial class IncrementalFileScanner : IFileScanner
                     }
                     catch (Exception ex)
                     {
-                        Trace.WriteLine($"[USN] Post-MFT watermark capture failed: {ex.Message}");
+                        _logger.LogWarning(ex, "Post-MFT watermark capture failed");
                     }
                 }).ContinueWith(_ => IsReadyChanged?.Invoke(), TaskScheduler.Default);
                 IsReadyChanged?.Invoke();
@@ -109,7 +112,7 @@ public partial class IncrementalFileScanner : IFileScanner
         }
 
         // Full scan (first scan or fallback)
-        Trace.WriteLine("[USN] Performing full scan via FileScanner");
+        _logger.LogInformation("Performing full scan via FileScanner");
         var session = await _inner.ScanAsync(path, progress, cancellationToken).ConfigureAwait(false);
 
         if (!session.IsCancelled && session.RootEntry != null && volumeRoot != null)
@@ -125,7 +128,7 @@ public partial class IncrementalFileScanner : IFileScanner
                 }
                 catch (Exception ex)
                 {
-                    Trace.WriteLine($"[USN] CaptureWatermark failed: {ex.Message}");
+                    _logger.LogWarning(ex, "CaptureWatermark failed");
                 }
             }).ContinueWith(_ => IsReadyChanged?.Invoke(), TaskScheduler.Default);
             IsReadyChanged?.Invoke();
@@ -142,4 +145,3 @@ public partial class IncrementalFileScanner : IFileScanner
         public Dictionary<long, FileEntry> FrnIndex { get; set; } = new();
     }
 }
-

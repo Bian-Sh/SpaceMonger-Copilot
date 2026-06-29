@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 using SpaceMonger.Core.Models;
 
 namespace SpaceMonger.Core.Services.Scanning;
@@ -17,7 +18,7 @@ public partial class IncrementalFileScanner
             var changes = UsnJournalReader.ReadChanges(state.Watermark!, ct);
             if (changes == null)
             {
-                Trace.WriteLine("[USN] ReadChanges returned null — falling back to full scan");
+                _logger.LogWarning("ReadChanges returned null; falling back to full scan");
                 return null;
             }
 
@@ -80,7 +81,7 @@ public partial class IncrementalFileScanner
         }
         catch (Exception ex)
         {
-            Trace.WriteLine($"[USN] Incremental rescan failed: {ex.Message}");
+            _logger.LogWarning(ex, "Incremental rescan failed");
             return null; // Any error — fallback to full scan
         }
     }

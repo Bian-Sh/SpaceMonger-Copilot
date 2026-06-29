@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.IO;
 using System.Windows;
@@ -59,10 +59,11 @@ public partial class TreemapView : UserControl
         }
     }
 
-    public void SetScanningState(bool isScanning, string? progressText)
+    public void SetScanningState(bool isScanning, string? titleText, string? progressText)
     {
         _isScanning = isScanning;
         ScanningOverlay.Visibility = isScanning ? Visibility.Visible : Visibility.Collapsed;
+        ScanTitleText.Text = string.IsNullOrWhiteSpace(titleText) ? L.Text("ScanningStatus") : titleText;
         ScanProgressText.Text = progressText ?? string.Empty;
         UpdateEmptyState();
     }

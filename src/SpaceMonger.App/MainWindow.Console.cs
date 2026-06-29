@@ -11,6 +11,9 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Data;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
+using Serilog.Events;
+using SpaceMonger.App.Logging;
 using SpaceMonger.App.Controls;
 using SpaceMonger.App.Diagnostics;
 using SpaceMonger.App.Helpers;
@@ -25,40 +28,39 @@ namespace SpaceMonger.App;
 
 public partial class MainWindow
 {
-    private void AppendConsoleLine(string message, ConsoleLogLevel level = ConsoleLogLevel.Info)
+    private void WriteConsoleLog(string message, LogEventLevel level = LogEventLevel.Information)
     {
-        var entry = new ConsoleLogEntry(DateTime.Now, level, message);
-        _consoleEntries.Add(entry);
-        File.AppendAllText(_consoleLogPath, entry.ToLogLine() + Environment.NewLine);
-        RefreshConsoleText();
+        Log.Write(level, "{Message}", message);
     }
 
-    private void RefreshConsoleText()
+    private void RefreshLogView()
     {
-        _consoleLog.Clear();
-        foreach (var entry in _consoleEntries.Where(e => _visibleConsoleLevels.HasFlag(e.Level)))
+        _logEntriesView.Refresh();
+        ScrollLogToEnd();
+    }
+
+    private void ScrollLogToEnd()
+    {
+        if (ConsoleScrollViewer is not null)
         {
-            _consoleLog.AppendLine(entry.ToLogLine());
+            ConsoleScrollViewer.ScrollToEnd();
         }
-
-        ConsoleTextBox.Text = _consoleLog.ToString();
-        ConsoleTextBox.ScrollToEnd();
     }
 
-    private void ConsoleLogLevel_Click(object sender, RoutedEventArgs e)
+    private void LogLevelFilter_Click(object sender, RoutedEventArgs e)
     {
-        _visibleConsoleLevels = ConsoleLogLevel.None;
+        _visibleLogLevels = AppLogLevelFilter.None;
 
         if (ConsoleLevelVerboseMenuItem.IsChecked)
-            _visibleConsoleLevels |= ConsoleLogLevel.Verbose;
+            _visibleLogLevels |= AppLogLevelFilter.Verbose;
         if (ConsoleLevelInfoMenuItem.IsChecked)
-            _visibleConsoleLevels |= ConsoleLogLevel.Info;
+            _visibleLogLevels |= AppLogLevelFilter.Information;
         if (ConsoleLevelWarningMenuItem.IsChecked)
-            _visibleConsoleLevels |= ConsoleLogLevel.Warning;
+            _visibleLogLevels |= AppLogLevelFilter.Warning;
         if (ConsoleLevelErrorMenuItem.IsChecked)
-            _visibleConsoleLevels |= ConsoleLogLevel.Error;
+            _visibleLogLevels |= AppLogLevelFilter.Error | AppLogLevelFilter.Fatal;
 
-        RefreshConsoleText();
+        RefreshLogView();
     }
 
     private void ConsoleFilterButton_Click(object sender, RoutedEventArgs e)
@@ -72,47 +74,47 @@ public partial class MainWindow
     {
         if (diagnostics is null)
         {
-            AppendConsoleLine("DIAG: no diagnostics were produced; request likely failed before response parsing.");
+            WriteConsoleLog("DIAG: no diagnostics were produced; request likely failed before response parsing.");
             return;
         }
 
-        AppendConsoleLine("DIAG: target=" + diagnostics.TargetPath);
-        AppendConsoleLine("DIAG: scope=" + diagnostics.ScopePath + " focused=" + diagnostics.IsFocusedScope);
-        AppendConsoleLine("DIAG: metadata_chars=" + diagnostics.MetadataLength + " response_chars=" + diagnostics.ResponseLength + " extracted_json_chars=" + diagnostics.ExtractedJsonLength);
-        AppendConsoleLine("DIAG: parsed_recs=" + diagnostics.ParsedRecommendationCount + " protected_filtered=" + diagnostics.ProtectedFilteredCount + " missing_entry=" + diagnostics.MissingEntryCount + " malformed=" + diagnostics.MalformedRecommendationCount + " missing_fields=" + diagnostics.MissingFieldRecommendationCount);
+        WriteConsoleLog("DIAG: target=" + diagnostics.TargetPath);
+        WriteConsoleLog("DIAG: scope=" + diagnostics.ScopePath + " focused=" + diagnostics.IsFocusedScope);
+        WriteConsoleLog("DIAG: metadata_chars=" + diagnostics.MetadataLength + " response_chars=" + diagnostics.ResponseLength + " extracted_json_chars=" + diagnostics.ExtractedJsonLength);
+        WriteConsoleLog("DIAG: parsed_recs=" + diagnostics.ParsedRecommendationCount + " protected_filtered=" + diagnostics.ProtectedFilteredCount + " missing_entry=" + diagnostics.MissingEntryCount + " malformed=" + diagnostics.MalformedRecommendationCount + " missing_fields=" + diagnostics.MissingFieldRecommendationCount);
 
         if (!string.IsNullOrWhiteSpace(diagnostics.ParseError))
         {
-            AppendConsoleLine("DIAG: parse_error=" + diagnostics.ParseError, ConsoleLogLevel.Warning);
+            WriteConsoleLog("DIAG: parse_error=" + diagnostics.ParseError, LogEventLevel.Warning);
         }
 
         if (!string.IsNullOrWhiteSpace(diagnostics.RawResponsePath))
         {
-            AppendConsoleLine("DIAG: raw_response_path=" + diagnostics.RawResponsePath);
+            WriteConsoleLog("DIAG: raw_response_path=" + diagnostics.RawResponsePath);
         }
 
         if (!string.IsNullOrWhiteSpace(diagnostics.ResponseEnvelopePath))
         {
-            AppendConsoleLine("DIAG: response_envelope_path=" + diagnostics.ResponseEnvelopePath);
+            WriteConsoleLog("DIAG: response_envelope_path=" + diagnostics.ResponseEnvelopePath);
         }
 
         if (!string.IsNullOrWhiteSpace(diagnostics.StopReason))
         {
-            AppendConsoleLine("DIAG: stop_reason=" + diagnostics.StopReason);
+            WriteConsoleLog("DIAG: stop_reason=" + diagnostics.StopReason);
         }
 
         if (!string.IsNullOrWhiteSpace(diagnostics.ThinkingPath))
         {
-            AppendConsoleLine("DIAG: thinking_path=" + diagnostics.ThinkingPath);
+            WriteConsoleLog("DIAG: thinking_path=" + diagnostics.ThinkingPath);
         }
 
         if (!string.IsNullOrWhiteSpace(diagnostics.ExtractedJsonPreview))
         {
-            AppendConsoleLine("DIAG: extracted_json_preview=" + diagnostics.ExtractedJsonPreview);
+            WriteConsoleLog("DIAG: extracted_json_preview=" + diagnostics.ExtractedJsonPreview);
         }
         else if (!string.IsNullOrWhiteSpace(diagnostics.ResponsePreview))
         {
-            AppendConsoleLine("DIAG: response_preview=" + diagnostics.ResponsePreview);
+            WriteConsoleLog("DIAG: response_preview=" + diagnostics.ResponsePreview);
         }
     }
 
@@ -198,8 +200,8 @@ public partial class MainWindow
             ? L.Format("AnalyzingFolderStatus", focusEntry.Name)
             : L.Text("AnalyzingScanResultsStatus");
         mainVm.ScanProgressText = scopeLabel;
-        AppendConsoleLine(scopeLabel);
-        AppendConsoleLine(focusEntry is not null
+        WriteConsoleLog(scopeLabel);
+        WriteConsoleLog(focusEntry is not null
             ? $"Analysis scope: {focusEntry.Path}"
             : $"Analysis scope: {mainVm.CurrentSession.TargetPath}");
         await _recommendationsViewModel.AnalyzeCommand.ExecuteAsync(null);
@@ -208,37 +210,20 @@ public partial class MainWindow
         if (_recommendationsViewModel.AnalysisError is not null)
         {
             mainVm.ScanProgressText = L.Format("AnalysisFailedStatus", _recommendationsViewModel.AnalysisError);
-            AppendConsoleLine(mainVm.ScanProgressText, ConsoleLogLevel.Error);
+            WriteConsoleLog(mainVm.ScanProgressText, LogEventLevel.Error);
             AppendAnalysisDiagnostics(_recommendationsViewModel.LastDiagnostics);
         }
         else
         {
             var count = _recommendationsViewModel.Recommendations.Count;
             mainVm.ScanProgressText = L.Format("AnalysisCompleteStatus", count, count == 1 ? "" : "s");
-            AppendConsoleLine(mainVm.ScanProgressText);
+            WriteConsoleLog(mainVm.ScanProgressText);
             AppendAnalysisDiagnostics(_recommendationsViewModel.LastDiagnostics);
             if (count == 0)
             {
-                AppendConsoleLine("DIAG: zero final recommendations. Inspect parsed_recs/protected_filtered/parse_error above to determine whether this was an empty model result, parse failure, or post-filtering.");
+                WriteConsoleLog("DIAG: zero final recommendations. Inspect parsed_recs/protected_filtered/parse_error above to determine whether this was an empty model result, parse failure, or post-filtering.");
             }
         }
     }
 
 }
-
-[Flags]
-public enum ConsoleLogLevel
-{
-    None = 0,
-    Verbose = 1 << 0,
-    Info = 1 << 1,
-    Warning = 1 << 2,
-    Error = 1 << 3,
-}
-
-public sealed record ConsoleLogEntry(DateTime Timestamp, ConsoleLogLevel Level, string Message)
-{
-    public string ToLogLine() => $"[{Timestamp:HH:mm:ss}] [{Level}] {Message}";
-
-}
-

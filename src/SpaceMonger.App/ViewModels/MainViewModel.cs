@@ -1,6 +1,8 @@
-using System.IO;
+﻿using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using SpaceMonger.App.Converters;
 using SpaceMonger.App.Diagnostics;
 using SpaceMonger.App.Localization;
@@ -12,7 +14,9 @@ namespace SpaceMonger.App.ViewModels;
 public partial class MainViewModel : ObservableObject
 {
     private readonly IFileScanner _fileScanner;
+    private readonly ILogger<MainViewModel> _logger;
     private CancellationTokenSource? _scanCts;
+    private Action? _externalScanCancellation;
 
     [ObservableProperty]
     private string? _selectedPath;
@@ -21,10 +25,17 @@ public partial class MainViewModel : ObservableObject
     private bool _isScanning;
 
     [ObservableProperty]
+    private bool _isExternalScan;
+
+    [ObservableProperty]
+    private string? _scanTitleText;
+
+    [ObservableProperty]
     private string? _scanProgressText;
 
     [ObservableProperty]
     private ScanSession? _currentSession;
+
 
     [ObservableProperty]
     private List<string> _driveList = new();
@@ -60,12 +71,14 @@ public partial class MainViewModel : ObservableObject
 
     public event Action<ScanSession>? ScanCompleted;
 
-    public MainViewModel(IFileScanner fileScanner)
+    public MainViewModel(IFileScanner fileScanner, ILogger<MainViewModel>? logger = null)
     {
         _fileScanner = fileScanner;
+        _logger = logger ?? NullLogger<MainViewModel>.Instance;
+        _logger.LogInformation("MainViewModel created");
         _fileScanner.IsReadyChanged += () =>
         {
-            // Marshal to UI thread — the event may fire from a background thread.
+            // Marshal to UI thread 鈥?the event may fire from a background thread.
             System.Windows.Application.Current?.Dispatcher.BeginInvoke(
                 ScanCommand.NotifyCanExecuteChanged);
         };
@@ -90,9 +103,11 @@ public partial class MainViewModel : ObservableObject
             return;
         scanTarget = scanTarget.Trim();
 
-        CrashDiagnostics.Log("Scan.Start", scanTarget);
+
+        _logger.LogInformation("Scan command started for {ScanTarget}", scanTarget);
         IsScanning = true;
-        ScanProgressText = L.Text("ScanningStatus");
+        ScanTitleText = L.Text("ScanningStatus");
+        ScanProgressText = string.Empty;
         _scanCts = new CancellationTokenSource();
 
         try
@@ -107,12 +122,12 @@ public partial class MainViewModel : ObservableObject
             var session = await _fileScanner.ScanAsync(scanTarget, progress, _scanCts.Token);
             if (session.IsCancelled || _scanCts.IsCancellationRequested)
             {
-                CrashDiagnostics.Log("Scan.CancelledSession", $"target={scanTarget}, hasRoot={session.RootEntry is not null}, files={session.TotalFiles}, folders={session.TotalFolders}");
+                _logger.LogWarning("Scan cancelled for {ScanTarget}; hasRoot={HasRoot}, files={Files}, folders={Folders}", scanTarget, session.RootEntry is not null, session.TotalFiles, session.TotalFolders);
                 ScanProgressText = L.Text("ScanCancelledStatus");
                 return;
             }
 
-            CrashDiagnostics.Log("Scan.Completed", $"target={scanTarget}, files={session.TotalFiles}, folders={session.TotalFolders}, hasRoot={session.RootEntry is not null}");
+            _logger.LogInformation("Scan completed for {ScanTarget}; files={Files}, folders={Folders}, hasRoot={HasRoot}", scanTarget, session.TotalFiles, session.TotalFolders, session.RootEntry is not null);
             DebugBreakpoints.Hit("scan-returned");
             CurrentSession = session;
             UpdateStatusBar(session);
@@ -121,16 +136,17 @@ public partial class MainViewModel : ObservableObject
         }
         catch (OperationCanceledException)
         {
-            CrashDiagnostics.Log("Scan.CancelledException", scanTarget);
+            _logger.LogWarning("Scan cancelled by exception for {ScanTarget}", scanTarget);
             ScanProgressText = L.Text("ScanCancelledStatus");
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("whitelist", StringComparison.OrdinalIgnoreCase))
         {
-            CrashDiagnostics.Log("Scan.WhitelistBlocked", scanTarget);
+            _logger.LogWarning(ex, "Scan target blocked by whitelist: {ScanTarget}", scanTarget);
             ScanProgressText = L.Text("ScanTargetExcludedByWhitelist");
         }
         finally
         {
+            _logger.LogInformation("Scan command finished for {ScanTarget}", scanTarget);
             IsScanning = false;
             _scanCts?.Dispose();
             _scanCts = null;
@@ -153,10 +169,55 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanCancelScan))]
     private void CancelScan()
     {
-        _scanCts?.Cancel();
+        if (_scanCts is not null)
+        {
+            _logger.LogInformation("Scan cancellation requested");
+            _scanCts.Cancel();
+            return;
+        }
+
+        _logger.LogInformation("External scan cancellation requested");
+        _externalScanCancellation?.Invoke();
     }
 
     private bool CanCancelScan() => IsScanning;
+
+    public IDisposable BeginExternalScan(string titleText, string? progressText, Action cancel)
+    {
+        _logger.LogInformation("External scan started: {TitleText}", titleText);
+        _externalScanCancellation = cancel;
+        IsExternalScan = true;
+        ScanTitleText = titleText;
+        ScanProgressText = progressText ?? string.Empty;
+        IsScanning = true;
+        return new ExternalScanScope(this);
+    }
+
+    private void EndExternalScan()
+    {
+        _logger.LogInformation("External scan ended");
+        _externalScanCancellation = null;
+        IsExternalScan = false;
+        ScanTitleText = null;
+        IsScanning = false;
+    }
+
+    private sealed class ExternalScanScope(MainViewModel owner) : IDisposable
+    {
+        private bool _disposed;
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            owner.EndExternalScan();
+        }
+    }
+
 
     [RelayCommand]
     private Task BrowseAsync()
@@ -165,6 +226,7 @@ public partial class MainViewModel : ObservableObject
         if (dialog.ShowDialog() == true)
         {
             SelectedPath = dialog.FolderName;
+            _logger.LogInformation("Browse selected path {SelectedPath}", SelectedPath);
         }
         return Task.CompletedTask;
     }

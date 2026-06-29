@@ -17,6 +17,12 @@
         <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
         <converters:SubtractConverter x:Key="SubtractConverter" Subtrahend="50" />
         <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+
+        <!-- Spinning animation for running indicator -->
+        <Storyboard x:Key="SpinStoryboard" RepeatBehavior="Forever">
+            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
+                             From="0" To="360" Duration="0:0:1" />
+        </Storyboard>
     </UserControl.Resources>
 
     <Border Style="{DynamicResource VP.GlassPanelLarge}" Margin="0" Padding="0">
@@ -63,41 +69,465 @@
                     BorderThickness="0,1,0,0"
                     CornerRadius="0,0,10,10"
                     Padding="10">
-                <DockPanel>
-                    <Button DockPanel.Dock="Right"
-                            Content="{loc:Loc SendButton}"
-                            Padding="14,8"
-                            Margin="8,0,0,0"
-                            VerticalAlignment="Stretch"
-                            Command="{Binding SendCommand}">
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource VP.AccentButton}">
-                                <Setter Property="IsEnabled" Value="True" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsSending}" Value="True">
-                                        <Setter Property="IsEnabled" Value="False" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                    <TextBox x:Name="InputTextBox"
-                             Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}"
-                             AcceptsReturn="False"
-                             VerticalContentAlignment="Center"
-                             KeyDown="InputTextBox_KeyDown">
-                        <TextBox.Style>
-                            <Style TargetType="TextBox" BasedOn="{StaticResource VP.TextBox}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsSending}" Value="True">
-                                        <Setter Property="IsEnabled" Value="False" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBox.Style>
-                    </TextBox>
-                </DockPanel>
+                <StackPanel>
+                    <Border Margin="0,0,0,8"
+                            Padding="10"
+                            CornerRadius="10"
+                            Background="{DynamicResource VP.GlassBrush}"
+                            BorderBrush="{DynamicResource VP.BorderLightBrush}"
+                            BorderThickness="0.5"
+                            DataContext="{Binding PendingInteractionCard}"
+                            Visibility="{Binding DataContext.HasPendingInteractionCard, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="18" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Text="{Binding StatusIconGlyph}"
+                                       Margin="0,1,8,0"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Top">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{DynamicResource VP.TextTertiaryBrush}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding StatusIconState}" Value="running">
+                                                <Setter Property="Foreground" Value="{DynamicResource VP.AccentBrush}" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding StatusIconState}" Value="finish">
+                                                <Setter Property="Foreground" Value="{DynamicResource VP.SuccessBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="{Binding Title}"
+                                           FontSize="13"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource VP.TextPrimaryBrush}"
+                                           TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding Description}"
+                                           Margin="0,5,0,0"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource VP.TextSecondaryBrush}"
+                                           TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding Impact}"
+                                           Margin="0,5,0,0"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource VP.TextTertiaryBrush}"
+                                           TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding StatusText}"
+                                           Margin="0,8,0,0"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource VP.AccentBrush}"
+                                           TextWrapping="Wrap"
+                                           Visibility="{Binding HasStatusText, Converter={StaticResource BoolToVis}}" />
+                                <StackPanel Orientation="Horizontal"
+                                            HorizontalAlignment="Right"
+                                            Margin="0,10,0,0"
+                                            Visibility="{Binding IsPending, Converter={StaticResource BoolToVis}}">
+                                    <Button Content="{Binding CancelText}"
+                                            Padding="12,5"
+                                            Margin="0,0,8,0"
+                                            Style="{DynamicResource VP.Button}"
+                                            Command="{Binding DataContext.CancelInteractionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}" />
+                                    <Button Content="{Binding ConfirmText}"
+                                            Padding="12,5"
+                                            Style="{DynamicResource VP.AccentButton}"
+                                            Command="{Binding DataContext.ConfirmInteractionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    <Border Margin="0,0,0,8"
+                            Padding="6"
+                            CornerRadius="10"
+                            Background="{DynamicResource VP.GlassBrush}"
+                            BorderBrush="{DynamicResource VP.BorderLightBrush}"
+                            BorderThickness="0.5"
+                            Visibility="{Binding IsSlashCommandMenuOpen, Converter={StaticResource BoolToVis}}">
+                        <ListBox ItemsSource="{Binding SlashCommandSuggestions}"
+                                 SelectedItem="{Binding SelectedSlashCommandSuggestion, Mode=TwoWay}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 KeyboardNavigation.TabNavigation="Cycle">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    <Setter Property="Padding" Value="0" />
+                                    <Setter Property="Margin" Value="0,0,0,2" />
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Style.Triggers>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter Property="Background" Value="#1A0A84FF" />
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Button HorizontalContentAlignment="Stretch"
+                                            Padding="8,6"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Command="{Binding DataContext.SelectSlashCommandCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Command}"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource VP.TextPrimaryBrush}" />
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding Description}"
+                                                       Margin="12,0,0,0"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource VP.TextSecondaryBrush}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Border>
+                    <Border Margin="0,0,0,8"
+                            Padding="6"
+                            CornerRadius="10"
+                            Background="{DynamicResource VP.GlassBrush}"
+                            BorderBrush="{DynamicResource VP.BorderLightBrush}"
+                            BorderThickness="0.5"
+                            Visibility="{Binding IsSkillMentionMenuOpen, Converter={StaticResource BoolToVis}}">
+                        <ListBox ItemsSource="{Binding FilteredSkillMentionSuggestions}"
+                                 SelectedItem="{Binding SelectedSkillMentionSuggestion, Mode=TwoWay}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 MaxHeight="180"
+                                 KeyboardNavigation.TabNavigation="Cycle">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    <Setter Property="Padding" Value="0" />
+                                    <Setter Property="Margin" Value="0,0,0,2" />
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Style.Triggers>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter Property="Background" Value="#1A0A84FF" />
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Button HorizontalContentAlignment="Stretch"
+                                            Padding="8,6"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Command="{Binding DataContext.SelectSkillMentionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding DisplayName}"
+                                                       FontSize="13"
+                                                       FontWeight="Bold"
+                                                       Foreground="{DynamicResource VP.TextPrimaryBrush}" />
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding Description}"
+                                                       Margin="12,0,0,0"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource VP.TextSecondaryBrush}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Border>
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right"
+                                Content="{Binding SendButtonText}"
+                                Padding="14,8"
+                                Margin="8,0,0,0"
+                                VerticalAlignment="Stretch"
+                                Command="{Binding SubmitOrStopCommand}"
+                                Style="{StaticResource VP.AccentButton}" />
+                        <TextBox x:Name="InputTextBox"
+                                 Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}"
+                                 AcceptsReturn="False"
+                                 VerticalContentAlignment="Center"
+                                 PreviewKeyDown="InputTextBox_KeyDown"
+                                 KeyDown="InputTextBox_KeyDown">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox" BasedOn="{StaticResource VP.TextBox}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsSending}" Value="True">
+                                            <Setter Property="IsEnabled" Value="False" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+                    </DockPanel>
+                </StackPanel>
             </Border>
+
+
+            <!-- Workflow Step Indicator (above input, hover to expand) -->
+            <Grid DockPanel.Dock="Bottom"
+                  HorizontalAlignment="Center"
+                  Margin="0,0,0,8"
+                  Panel.ZIndex="5">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsWorkflowProgressVisible}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+
+                <Border MinWidth="168"
+                        MaxWidth="280"
+                        Padding="10,8"
+                        Margin="0,0,0,32"
+                        CornerRadius="10"
+                        Background="#F8FFFFFF"
+                        BorderBrush="#22000000"
+                        BorderThickness="1">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="18" ShadowDepth="4" Opacity="0.18" />
+                    </Border.Effect>
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Grid}}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <ItemsControl ItemsSource="{Binding WorkflowSteps}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="18" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid Width="14"
+                                          Height="14"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center">
+                                        <Ellipse Stroke="#9AA0A6"
+                                                 StrokeThickness="1.4">
+                                            <Ellipse.Style>
+                                                <Style TargetType="Ellipse">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding StatusIconState}" Value="running">
+                                                            <Setter Property="Stroke" Value="#2684FF" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding StatusIconState}" Value="finish">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Ellipse.Style>
+                                        </Ellipse>
+                                        <Path x:Name="RunningSpinnerPath"
+                                              Data="M 7,1.4 A 5.6,5.6 0 1 1 2.8,10.7"
+                                              Stroke="#2684FF"
+                                              StrokeThickness="2"
+                                              StrokeStartLineCap="Round"
+                                              StrokeEndLineCap="Round"
+                                              Fill="Transparent"
+                                              Visibility="Collapsed"
+                                              RenderTransformOrigin="0.5,0.5">
+                                            <Path.RenderTransform>
+                                                <RotateTransform CenterX="7" CenterY="7" />
+                                            </Path.RenderTransform>
+                                            <Path.Style>
+                                                <Style TargetType="Path">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding StatusIconState}" Value="running">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                            <DataTrigger.EnterActions>
+                                                                <BeginStoryboard x:Name="StepSpinStoryboard" Storyboard="{StaticResource SpinStoryboard}" />
+                                                            </DataTrigger.EnterActions>
+                                                            <DataTrigger.ExitActions>
+                                                                <StopStoryboard BeginStoryboardName="StepSpinStoryboard" />
+                                                            </DataTrigger.ExitActions>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Path.Style>
+                                        </Path>
+                                        <Grid Visibility="Collapsed">
+                                            <Grid.Style>
+                                                <Style TargetType="Grid">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding StatusIconState}" Value="finish">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Grid.Style>
+                                            <Ellipse Stroke="#34A853" StrokeThickness="1.6" />
+                                            <Path Data="M 3.8,7.1 L 6.1,9.3 L 10.5,4.6"
+                                                  Stroke="#34A853"
+                                                  StrokeThickness="1.6"
+                                                  StrokeStartLineCap="Round"
+                                                  StrokeEndLineCap="Round"
+                                                  StrokeLineJoin="Round"
+                                                  Fill="Transparent" />
+                                        </Grid>
+                                        <Grid Visibility="Collapsed">
+                                            <Grid.Style>
+                                                <Style TargetType="Grid">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding StatusIconState}" Value="failed">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Grid.Style>
+                                            <Ellipse Stroke="#EA4335" StrokeThickness="1.6" />
+                                            <Path Data="M 5,5 L 9,9 M 9,5 L 5,9"
+                                                  Stroke="#EA4335"
+                                                  StrokeThickness="1.6"
+                                                  StrokeStartLineCap="Round"
+                                                  StrokeEndLineCap="Round"
+                                                  Fill="Transparent" />
+                                        </Grid>
+                                    </Grid>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding Title}"
+                                               Margin="6,0,0,0"
+                                               FontSize="12"
+                                               Foreground="#5F6368"
+                                               TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+
+                <Border HorizontalAlignment="Center"
+                        VerticalAlignment="Bottom"
+                        Padding="10,5"
+                        CornerRadius="10"
+                        Background="#F8FFFFFF"
+                        BorderBrush="#22000000"
+                        BorderThickness="1"
+                        Cursor="Hand">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="18" ShadowDepth="4" Opacity="0.18" />
+                    </Border.Effect>
+                    <StackPanel Orientation="Horizontal">
+                        <Grid Width="14"
+                              Height="14"
+                              VerticalAlignment="Center"
+                              Margin="0,0,6,0">
+                            <Ellipse Stroke="#9AA0A6" StrokeThickness="1.4">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CurrentWorkflowIconState}" Value="running">
+                                                <Setter Property="Stroke" Value="#2684FF" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding CurrentWorkflowIconState}" Value="finish">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                            <Path Data="M 7,1.4 A 5.6,5.6 0 1 1 2.8,10.7"
+                                  Stroke="#2684FF"
+                                  StrokeThickness="2"
+                                  StrokeStartLineCap="Round"
+                                  StrokeEndLineCap="Round"
+                                  Fill="Transparent"
+                                  Visibility="Collapsed"
+                                  RenderTransformOrigin="0.5,0.5">
+                                <Path.RenderTransform>
+                                    <RotateTransform CenterX="7" CenterY="7" />
+                                </Path.RenderTransform>
+                                <Path.Style>
+                                    <Style TargetType="Path">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CurrentWorkflowIconState}" Value="running">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                                <DataTrigger.EnterActions>
+                                                    <BeginStoryboard x:Name="PillSpinStoryboard" Storyboard="{StaticResource SpinStoryboard}" />
+                                                </DataTrigger.EnterActions>
+                                                <DataTrigger.ExitActions>
+                                                    <StopStoryboard BeginStoryboardName="PillSpinStoryboard" />
+                                                </DataTrigger.ExitActions>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Path.Style>
+                            </Path>
+                            <Grid Visibility="Collapsed">
+                                <Grid.Style>
+                                    <Style TargetType="Grid">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CurrentWorkflowIconState}" Value="finish">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Style>
+                                <Ellipse Stroke="#34A853" StrokeThickness="1.6" />
+                                <Path Data="M 3.8,7.1 L 6.1,9.3 L 10.5,4.6"
+                                      Stroke="#34A853"
+                                      StrokeThickness="1.6"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round"
+                                      Fill="Transparent" />
+                            </Grid>
+                            <Grid Visibility="Collapsed">
+                                <Grid.Style>
+                                    <Style TargetType="Grid">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CurrentWorkflowIconState}" Value="failed">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Style>
+                                <Ellipse Stroke="#EA4335" StrokeThickness="1.6" />
+                                <Path Data="M 5,5 L 9,9 M 9,5 L 5,9"
+                                      Stroke="#EA4335"
+                                      StrokeThickness="1.6"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      Fill="Transparent" />
+                            </Grid>
+                        </Grid>
+                        <TextBlock Text="{Binding WorkflowProgressText}"
+                                   FontSize="12"
+                                   Foreground="#5F6368"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+            </Grid>
 
             <!-- 3. Context Indicator (above input, conditional) -->
             <Border DockPanel.Dock="Bottom"
@@ -185,7 +615,7 @@
                                         MaxWidth="{Binding ActualWidth, ElementName=MessagesScrollViewer, Converter={StaticResource SubtractConverter}}"
                                         MouseEnter="BubbleBorder_MouseEnter"
                                         MouseLeave="BubbleBorder_MouseLeave">
-                                    
+
                                     <!-- Message bubble -->
                                     <Border Padding="12,9"
                                             CornerRadius="18"
@@ -372,61 +802,88 @@
                                                         Background="#182A3A4A"
                                                         BorderBrush="{DynamicResource VP.BorderLightBrush}"
                                                         BorderThickness="0.5"
-                                                        Visibility="{Binding InteractionCard, Converter={StaticResource NullToVisibilityConverter}}">
-                                                    <StackPanel DataContext="{Binding InteractionCard}">
-                                                        <TextBlock Text="{Binding Title}"
+                                                        Visibility="Collapsed">
+                                                    <Grid DataContext="{Binding InteractionCard}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="18" />
+                                                            <ColumnDefinition Width="*" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0"
+                                                                   Text="{Binding StatusIconGlyph}"
+                                                                   Margin="0,1,8,0"
                                                                    FontSize="13"
                                                                    FontWeight="SemiBold"
-                                                                   Foreground="{DynamicResource VP.TextPrimaryBrush}"
-                                                                   TextWrapping="Wrap" />
-                                                        <TextBox Text="{Binding Description}"
-                                                                 Margin="0,5,0,0"
-                                                                 FontSize="12"
-                                                                 Foreground="{DynamicResource VP.TextSecondaryBrush}"
-                                                                 Background="Transparent"
-                                                                 BorderThickness="0"
-                                                                 IsReadOnly="True"
-                                                                 IsReadOnlyCaretVisible="False"
-                                                                 TextWrapping="Wrap"
-                                                                 AcceptsReturn="True" />
-                                                        <TextBox Text="{Binding Impact}"
-                                                                 Margin="0,5,0,0"
-                                                                 FontSize="12"
-                                                                 Foreground="{DynamicResource VP.TextTertiaryBrush}"
-                                                                 Background="Transparent"
-                                                                 BorderThickness="0"
-                                                                 IsReadOnly="True"
-                                                                 IsReadOnlyCaretVisible="False"
-                                                                 TextWrapping="Wrap"
-                                                                 AcceptsReturn="True" />
-                                                        <TextBox Text="{Binding StatusText}"
-                                                                 Margin="0,8,0,0"
-                                                                 FontSize="12"
-                                                                 Foreground="{DynamicResource VP.AccentBrush}"
-                                                                 Background="Transparent"
-                                                                 BorderThickness="0"
-                                                                 IsReadOnly="True"
-                                                                 IsReadOnlyCaretVisible="False"
-                                                                 TextWrapping="Wrap"
-                                                                 AcceptsReturn="True"
-                                                                 Visibility="{Binding HasStatusText, Converter={StaticResource BoolToVis}}" />
-                                                        <StackPanel Orientation="Horizontal"
-                                                                    HorizontalAlignment="Right"
-                                                                    Margin="0,10,0,0"
-                                                                    Visibility="{Binding IsPending, Converter={StaticResource BoolToVis}}">
-                                                            <Button Content="{Binding CancelText}"
-                                                                    Padding="12,5"
-                                                                    Margin="0,0,8,0"
-                                                                    Style="{DynamicResource VP.Button}"
-                                                                    Command="{Binding DataContext.CancelInteractionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                                    CommandParameter="{Binding}" />
-                                                            <Button Content="{Binding ConfirmText}"
-                                                                    Padding="12,5"
-                                                                    Style="{DynamicResource VP.AccentButton}"
-                                                                    Command="{Binding DataContext.ConfirmInteractionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                                    CommandParameter="{Binding}" />
+                                                                   HorizontalAlignment="Center"
+                                                                   VerticalAlignment="Top">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Foreground" Value="{DynamicResource VP.TextTertiaryBrush}" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding StatusIconState}" Value="running">
+                                                                            <Setter Property="Foreground" Value="{DynamicResource VP.AccentBrush}" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding StatusIconState}" Value="finish">
+                                                                            <Setter Property="Foreground" Value="{DynamicResource VP.SuccessBrush}" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                        <StackPanel Grid.Column="1">
+                                                            <TextBlock Text="{Binding Title}"
+                                                                       FontSize="13"
+                                                                       FontWeight="SemiBold"
+                                                                       Foreground="{DynamicResource VP.TextPrimaryBrush}"
+                                                                       TextWrapping="Wrap" />
+                                                            <TextBox Text="{Binding Description}"
+                                                                     Margin="0,5,0,0"
+                                                                     FontSize="12"
+                                                                     Foreground="{DynamicResource VP.TextSecondaryBrush}"
+                                                                     Background="Transparent"
+                                                                     BorderThickness="0"
+                                                                     IsReadOnly="True"
+                                                                     IsReadOnlyCaretVisible="False"
+                                                                     TextWrapping="Wrap"
+                                                                     AcceptsReturn="True" />
+                                                            <TextBox Text="{Binding Impact}"
+                                                                     Margin="0,5,0,0"
+                                                                     FontSize="12"
+                                                                     Foreground="{DynamicResource VP.TextTertiaryBrush}"
+                                                                     Background="Transparent"
+                                                                     BorderThickness="0"
+                                                                     IsReadOnly="True"
+                                                                     IsReadOnlyCaretVisible="False"
+                                                                     TextWrapping="Wrap"
+                                                                     AcceptsReturn="True" />
+                                                            <TextBox Text="{Binding StatusText}"
+                                                                     Margin="0,8,0,0"
+                                                                     FontSize="12"
+                                                                     Foreground="{DynamicResource VP.AccentBrush}"
+                                                                     Background="Transparent"
+                                                                     BorderThickness="0"
+                                                                     IsReadOnly="True"
+                                                                     IsReadOnlyCaretVisible="False"
+                                                                     TextWrapping="Wrap"
+                                                                     AcceptsReturn="True"
+                                                                     Visibility="{Binding HasStatusText, Converter={StaticResource BoolToVis}}" />
+                                                            <StackPanel Orientation="Horizontal"
+                                                                        HorizontalAlignment="Right"
+                                                                        Margin="0,10,0,0"
+                                                                        Visibility="{Binding IsPending, Converter={StaticResource BoolToVis}}">
+                                                                <Button Content="{Binding CancelText}"
+                                                                        Padding="12,5"
+                                                                        Margin="0,0,8,0"
+                                                                        Style="{DynamicResource VP.Button}"
+                                                                        Command="{Binding DataContext.CancelInteractionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                        CommandParameter="{Binding}" />
+                                                                <Button Content="{Binding ConfirmText}"
+                                                                        Padding="12,5"
+                                                                        Style="{DynamicResource VP.AccentButton}"
+                                                                        Command="{Binding DataContext.ConfirmInteractionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                        CommandParameter="{Binding}" />
+                                                            </StackPanel>
                                                         </StackPanel>
-                                                    </StackPanel>
+                                                    </Grid>
                                                 </Border>
 
                                             </StackPanel>
@@ -520,6 +977,3 @@
         </DockPanel>
     </Border>
 </UserControl>
-
-
-
