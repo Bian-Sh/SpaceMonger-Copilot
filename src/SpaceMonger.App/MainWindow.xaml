@@ -352,13 +352,7 @@
                                                       FontSize="12.5">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <TextBlock TextWrapping="Wrap">
-                                                        <Run Text="{Binding TimeText, Mode=OneWay}" Foreground="{Binding TimeBrush, Mode=OneWay}" />
-                                                        <Run Text=" " />
-                                                        <Run Text="{Binding LevelText, Mode=OneWay}" Foreground="{Binding LevelBrush, Mode=OneWay}" FontWeight="SemiBold" />
-                                                        <Run Text=" " />
-                                                        <Run Text="{Binding DisplayMessage, Mode=OneWay}" Foreground="{Binding MessageBrush, Mode=OneWay}" />
-                                                    </TextBlock>
+                                                    <TextBlock TextWrapping="Wrap"><Run Text="{Binding TimeText, Mode=OneWay}" Foreground="{Binding TimeBrush, Mode=OneWay}" /><Run Text=" " /><Run Text="{Binding LevelText, Mode=OneWay}" Foreground="{Binding LevelBrush, Mode=OneWay}" FontWeight="SemiBold" /><Run Text=" " /><Run Text="{Binding DisplayMessage, Mode=OneWay}" Foreground="{Binding MessageBrush, Mode=OneWay}" /></TextBlock>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
