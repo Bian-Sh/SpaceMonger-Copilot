@@ -11,15 +11,10 @@ public partial class RecommendationEngine
 {
     private string BuildCompactMetadata(ScanSession session, FileEntry analysisRoot)
     {
-        // Collect all entries in a single pass from the analysis root
-        var allFiles = new List<FileEntry>();
-        var allDirs = new List<FileEntry>();
-        CollectEntries(analysisRoot, allFiles, allDirs);
-        allFiles = allFiles.Where(file => !IsCleanupExcluded(file.Path)).ToList();
-        allDirs = allDirs.Where(dir => !IsCleanupExcluded(dir.Path)).ToList();
+        var snapshot = BuildMetadataSnapshot(analysisRoot);
 
         // Top files by size
-        var topFiles = allFiles
+        var topFiles = snapshot.TopFiles
             .OrderByDescending(f => f.Size)
             .Take(MaxTopFiles)
             .Select(f => $"{f.Path}|{f.Size}")
@@ -27,13 +22,13 @@ public partial class RecommendationEngine
 
         // Known cleanup pattern directories — now with content fingerprints
         // so the AI can distinguish real temp folders from user working folders.
-        var topDirSet = allDirs
+        var topDirSet = snapshot.TopDirs
             .Where(d => d.Depth >= 1)
             .OrderByDescending(d => d.Size)
             .Take(MaxTopDirs)
             .ToHashSet();
 
-        var patternDirs = allDirs
+        var patternDirs = snapshot.PatternDirs
             .Where(d => !topDirSet.Contains(d) && MatchesKnownPattern(d) && d.Size > 0)
             .OrderByDescending(d => d.Size)
             .Take(MaxKnownPatternItems)
@@ -45,7 +40,7 @@ public partial class RecommendationEngine
 
         // Also attach content fingerprints to top directories that match
         // ambiguous patterns so the AI gets content context for those too.
-        var topDirsWithFingerprints = allDirs
+        var topDirsWithFingerprints = snapshot.TopDirs
             .Where(d => d.Depth >= 1)
             .OrderByDescending(d => d.Size)
             .Take(MaxTopDirs)
@@ -68,7 +63,7 @@ public partial class RecommendationEngine
             .ToList();
 
         // Lightweight duplicate detection by metadata only
-        var duplicates = allFiles
+        var duplicates = snapshot.DuplicateCandidates
             .Where(f => f.Size > DuplicateMinSize)
             .GroupBy(f => (f.Name, f.Size))
             .Where(g => g.Count() >= 2)
@@ -84,8 +79,8 @@ public partial class RecommendationEngine
         sb.AppendLine($"SCAN: {session.TargetPath}");
         if (isFocused)
             sb.AppendLine($"FOCUS: {analysisRoot.Path}");
-        sb.AppendLine($"TOTAL_FILES: {allFiles.Count}");
-        sb.AppendLine($"TOTAL_FOLDERS: {allDirs.Count}");
+        sb.AppendLine($"TOTAL_FILES: {snapshot.TotalFiles}");
+        sb.AppendLine($"TOTAL_FOLDERS: {snapshot.TotalFolders}");
         sb.AppendLine($"TOTAL_SIZE: {analysisRoot.Size}");
         sb.AppendLine();
 
@@ -119,22 +114,60 @@ public partial class RecommendationEngine
         return sb.ToString();
     }
 
-    private void CollectEntries(FileEntry entry, List<FileEntry> files, List<FileEntry> dirs)
+    private MetadataSnapshot BuildMetadataSnapshot(FileEntry root)
     {
-        if (IsCleanupExcluded(entry.Path))
+        var snapshot = new MetadataSnapshot();
+        var pending = new Stack<FileEntry>();
+        pending.Push(root);
+
+        while (pending.Count > 0)
+        {
+            var entry = pending.Pop();
+            if (IsCleanupExcluded(entry.Path))
+            {
+                continue;
+            }
+
+            if (entry.IsDirectory)
+            {
+                snapshot.TotalFolders++;
+                KeepLargest(snapshot.TopDirs, entry, MaxTopDirs);
+                if (MatchesKnownPattern(entry) && entry.Size > 0)
+                {
+                    KeepLargest(snapshot.PatternDirs, entry, MaxKnownPatternItems);
+                }
+
+                for (var childIndex = entry.Children.Count - 1; childIndex >= 0; childIndex--)
+                {
+                    pending.Push(entry.Children[childIndex]);
+                }
+            }
+            else
+            {
+                snapshot.TotalFiles++;
+                KeepLargest(snapshot.TopFiles, entry, MaxTopFiles);
+                if (entry.Size > DuplicateMinSize)
+                {
+                    KeepLargest(snapshot.DuplicateCandidates, entry, MaxDuplicateCandidates);
+                }
+            }
+        }
+
+        return snapshot;
+    }
+
+    private static void KeepLargest(List<FileEntry> entries, FileEntry entry, int maxCount)
+    {
+        if (entries.Count >= maxCount && entry.Size <= entries[^1].Size)
         {
             return;
         }
 
-        if (entry.IsDirectory)
+        entries.Add(entry);
+        entries.Sort(static (left, right) => right.Size.CompareTo(left.Size));
+        if (entries.Count > maxCount)
         {
-            dirs.Add(entry);
-            foreach (var child in entry.Children)
-                CollectEntries(child, files, dirs);
-        }
-        else
-        {
-            files.Add(entry);
+            entries.RemoveAt(entries.Count - 1);
         }
     }
 
@@ -175,7 +208,7 @@ public partial class RecommendationEngine
     private string BuildContentFingerprint(FileEntry dir)
     {
         var allFiles = new List<FileEntry>();
-        CollectFilesOnly(dir, allFiles);
+        var omittedFiles = CollectFilesOnly(dir, allFiles, MaxFingerprintFiles);
 
         if (allFiles.Count == 0)
             return "empty";
@@ -220,6 +253,8 @@ public partial class RecommendationEngine
 
         var sb = new System.Text.StringBuilder();
         sb.Append($"files:{allFiles.Count}");
+        if (omittedFiles > 0)
+            sb.Append($"+{omittedFiles} more");
         sb.Append($"|user_content:{userContentPct}%");
         sb.Append($"|dates:{oldest:yyyy-MM-dd}..{newest:yyyy-MM-dd}(span:{(int)dateSpan.TotalDays}d)");
         sb.Append($"|std_temp_location:{(isStandardTempLocation ? "yes" : "no")}");
@@ -228,20 +263,48 @@ public partial class RecommendationEngine
         return sb.ToString();
     }
 
-    private void CollectFilesOnly(FileEntry entry, List<FileEntry> files)
+    private int CollectFilesOnly(FileEntry entry, List<FileEntry> files, int maxCount)
     {
-        foreach (var child in entry.Children)
-        {
-            if (IsCleanupExcluded(child.Path))
-            {
-                continue;
-            }
+        var omittedFiles = 0;
+        var pending = new Stack<FileEntry>();
+        pending.Push(entry);
 
-            if (child.IsDirectory)
-                CollectFilesOnly(child, files);
-            else
-                files.Add(child);
+        while (pending.Count > 0)
+        {
+            var current = pending.Pop();
+            foreach (var child in current.Children)
+            {
+                if (IsCleanupExcluded(child.Path))
+                {
+                    continue;
+                }
+
+                if (child.IsDirectory)
+                {
+                    pending.Push(child);
+                }
+                else if (files.Count < maxCount)
+                {
+                    files.Add(child);
+                }
+                else
+                {
+                    omittedFiles++;
+                }
+            }
         }
+
+        return omittedFiles;
+    }
+
+    private sealed class MetadataSnapshot
+    {
+        public int TotalFiles { get; set; }
+        public int TotalFolders { get; set; }
+        public List<FileEntry> TopFiles { get; } = [];
+        public List<FileEntry> TopDirs { get; } = [];
+        public List<FileEntry> PatternDirs { get; } = [];
+        public List<FileEntry> DuplicateCandidates { get; } = [];
     }
 
     private static string FormatSize(long bytes)

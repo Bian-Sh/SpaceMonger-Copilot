@@ -4,6 +4,7 @@ using SpaceMonger.Core.Enums;
 using SpaceMonger.Core.Models;
 using SpaceMonger.Core.Services.Analysis;
 using SpaceMonger.Core.Services.Llm;
+using SpaceMonger.Core.Services.Settings;
 using System.Net;
 using System.Text.Json;
 
@@ -170,6 +171,47 @@ public class RecommendationEngineTests
         result.Recommendations.Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task AnalyzeWithDiagnosticsAsync_LoadsCleanupWhitelistOncePerAnalysis()
+    {
+        var root = new FileEntry
+        {
+            Path = @"C:\",
+            Name = @"C:\",
+            IsDirectory = true,
+        };
+
+        for (var i = 0; i < 500; i++)
+        {
+            AddChild(root, new FileEntry
+            {
+                Path = $@"C:\Temp\file-{i}.tmp",
+                Name = $"file-{i}.tmp",
+                Extension = ".tmp",
+                Size = 1024,
+                LastModified = DateTime.Today,
+            });
+        }
+
+        var settingsService = Substitute.For<ISettingsService>();
+        settingsService.LoadSettings().Returns(new AppSettings());
+        var llmClient = Substitute.For<ILlmClient>();
+        llmClient.SendAnalysisAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
+            .Returns("""{"recommendations": []}""");
+        var engine = new RecommendationEngine(llmClient, Substitute.For<IDuplicateDetector>(), settingsService);
+
+        await engine.AnalyzeWithDiagnosticsAsync(
+            new ScanSession { TargetPath = @"C:\", RootEntry = root },
+            "api-key",
+            null,
+            null,
+            false,
+            "zh-CN",
+            CancellationToken.None);
+
+        settingsService.Received(1).LoadSettings();
+    }
+
     private static FileEntry CreateRootWithDirectory(string targetPath, string name, long size)
     {
         return new FileEntry
@@ -188,6 +230,13 @@ public class RecommendationEngineTests
                 }
             ]
         };
+    }
+
+    private static void AddChild(FileEntry parent, FileEntry child)
+    {
+        child.Parent = parent;
+        child.Depth = parent.Depth + 1;
+        parent.Children.Add(child);
     }
 
     private static string CreateRecommendationResponse(string path, long sizeBytes, string category, string safetyRating)

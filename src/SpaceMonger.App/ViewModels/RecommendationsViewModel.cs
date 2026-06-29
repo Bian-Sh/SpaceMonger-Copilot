@@ -97,8 +97,16 @@ public partial class RecommendationsViewModel : ObservableObject
         try
         {
             DebugBreakpoints.Hit("recommendation-engine-before");
-            var result = await _recommendationEngine.AnalyzeWithDiagnosticsAsync(
-                _currentSession, _apiKey, _baseUrl, _modelName, _enableThinking, _responseLanguage, CancellationToken.None, _focusEntry);
+            var session = _currentSession;
+            var apiKey = _apiKey;
+            var baseUrl = _baseUrl;
+            var modelName = _modelName;
+            var enableThinking = _enableThinking;
+            var responseLanguage = _responseLanguage;
+            var focusEntry = _focusEntry;
+
+            var result = await Task.Run(() => _recommendationEngine.AnalyzeWithDiagnosticsAsync(
+                session, apiKey, baseUrl, modelName, enableThinking, responseLanguage, CancellationToken.None, focusEntry));
             DebugBreakpoints.Hit("recommendation-engine-after");
 
             LastDiagnostics = result.Diagnostics;

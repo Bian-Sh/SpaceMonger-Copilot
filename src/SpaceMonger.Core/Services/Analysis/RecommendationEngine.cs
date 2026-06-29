@@ -19,6 +19,8 @@ public partial class RecommendationEngine : IRecommendationEngine
     private const int MaxDuplicateGroups = 20;
     private const int MaxContentFingerprint = 30;
     private const int MaxSampleFiles = 15;
+    private const int MaxDuplicateCandidates = 5_000;
+    private const int MaxFingerprintFiles = 2_000;
     private const long DuplicateMinSize = 1_048_576; // 1 MB
 
     // Well-known OS and application temp/cache paths that are safe to match
@@ -81,6 +83,7 @@ public partial class RecommendationEngine : IRecommendationEngine
     private readonly ILlmClient _llmClient;
     private readonly ISettingsService? _settingsService;
     private readonly IPathWhitelistMatcher _whitelistMatcher;
+    private readonly AsyncLocal<List<PathWhitelistEntry>?> _cleanupRecommendationWhitelist = new();
 
     public RecommendationEngine(ILlmClient llmClient, IDuplicateDetector duplicateDetector, ISettingsService? settingsService = null, IPathWhitelistMatcher? whitelistMatcher = null)
     {
@@ -116,80 +119,88 @@ public partial class RecommendationEngine : IRecommendationEngine
         FileEntry? focusEntry = null)
     {
         var result = new AnalysisResult();
+        _cleanupRecommendationWhitelist.Value = _settingsService?.LoadSettings().CleanupRecommendationWhitelist;
 
-        if (session.RootEntry is null)
+        try
         {
-            result.Diagnostics.ParseError = "ScanSession.RootEntry is null.";
-            return result;
-        }
+            if (session.RootEntry is null)
+            {
+                result.Diagnostics.ParseError = "ScanSession.RootEntry is null.";
+                return result;
+            }
 
-        // When a focusEntry is provided (user drilled into a folder), analyze
-        // only that subtree.  Otherwise analyze the full scan root.
-        var analysisRoot = focusEntry ?? session.RootEntry;
-        if (IsCleanupExcluded(analysisRoot.Path))
-        {
-            result.Diagnostics.ParseError = "Analysis scope is excluded by cleanup recommendation whitelist.";
-            return result;
-        }
+            // When a focusEntry is provided (user drilled into a folder), analyze
+            // only that subtree.  Otherwise analyze the full scan root.
+            var analysisRoot = focusEntry ?? session.RootEntry;
+            if (IsCleanupExcluded(analysisRoot.Path))
+            {
+                result.Diagnostics.ParseError = "Analysis scope is excluded by cleanup recommendation whitelist.";
+                return result;
+            }
 
-        var metadataJson = BuildCompactMetadata(session, analysisRoot);
-        DebugBreakpoints.Hit("analysis-metadata-built");
-        var systemPrompt = BuildSystemPrompt(responseLanguage);
+            var metadataJson = BuildCompactMetadata(session, analysisRoot);
+            DebugBreakpoints.Hit("analysis-metadata-built");
+            var systemPrompt = BuildSystemPrompt(responseLanguage);
 
-        result.Diagnostics = new AnalysisDiagnostics
-        {
-            TargetPath = session.TargetPath,
-            ScopePath = analysisRoot.Path,
-            IsFocusedScope = focusEntry is not null,
-            MetadataLength = metadataJson.Length,
-        };
+            result.Diagnostics = new AnalysisDiagnostics
+            {
+                TargetPath = session.TargetPath,
+                ScopePath = analysisRoot.Path,
+                IsFocusedScope = focusEntry is not null,
+                MetadataLength = metadataJson.Length,
+            };
 
-        var response = await _llmClient.SendAnalysisAsync(systemPrompt, metadataJson, apiKey, baseUrl, modelName, enableThinking, cancellationToken);
-        DebugBreakpoints.Hit("analysis-response-received");
-        result.Diagnostics.ResponseLength = response.Length;
-        result.Diagnostics.ResponsePreview = BuildPreview(response);
-        result.Diagnostics.RawResponsePath = WriteRawResponse(response);
-        result.Diagnostics.ResponseEnvelopePath = AnthropicClient.LastResponseEnvelopePath;
-        result.Diagnostics.StopReason = AnthropicClient.LastResponseStopReason;
-        result.Diagnostics.ThinkingPath = AnthropicClient.LastResponseThinkingPath;
+            var response = await _llmClient.SendAnalysisAsync(systemPrompt, metadataJson, apiKey, baseUrl, modelName, enableThinking, cancellationToken);
+            DebugBreakpoints.Hit("analysis-response-received");
+            result.Diagnostics.ResponseLength = response.Length;
+            result.Diagnostics.ResponsePreview = BuildPreview(response);
+            result.Diagnostics.RawResponsePath = WriteRawResponse(response);
+            result.Diagnostics.ResponseEnvelopePath = AnthropicClient.LastResponseEnvelopePath;
+            result.Diagnostics.StopReason = AnthropicClient.LastResponseStopReason;
+            result.Diagnostics.ThinkingPath = AnthropicClient.LastResponseThinkingPath;
 
-        var recommendations = ParseResponse(response, session.RootEntry, result.Diagnostics);
-        DebugBreakpoints.Hit("analysis-response-parsed");
-        recommendations = recommendations
-            .Where(r => !IsCleanupExcluded(r.TargetPath))
-            .ToList();
-        result.Diagnostics.ParsedRecommendationCount = recommendations.Count;
-
-        if (focusEntry is null)
-        {
-            // Full-drive analysis: hide only truly critical system/user-data
-            // structures.  Known cache/temp locations under Windows should still
-            // be visible, but they are risk-adjusted below instead of shown as
-            // blindly safe cleanup targets.
-            var beforeFilterCount = recommendations.Count;
+            var recommendations = ParseResponse(response, session.RootEntry, result.Diagnostics);
+            DebugBreakpoints.Hit("analysis-response-parsed");
             recommendations = recommendations
-                .Where(r => !IsHardProtectedPath(r.TargetPath))
+                .Where(r => !IsCleanupExcluded(r.TargetPath))
                 .ToList();
-            result.Diagnostics.ProtectedFilteredCount = beforeFilterCount - recommendations.Count;
-        }
+            result.Diagnostics.ParsedRecommendationCount = recommendations.Count;
 
-        foreach (var rec in recommendations)
+            if (focusEntry is null)
+            {
+                // Full-drive analysis: hide only truly critical system/user-data
+                // structures.  Known cache/temp locations under Windows should still
+                // be visible, but they are risk-adjusted below instead of shown as
+                // blindly safe cleanup targets.
+                var beforeFilterCount = recommendations.Count;
+                recommendations = recommendations
+                    .Where(r => !IsHardProtectedPath(r.TargetPath))
+                    .ToList();
+                result.Diagnostics.ProtectedFilteredCount = beforeFilterCount - recommendations.Count;
+            }
+
+            foreach (var rec in recommendations)
+            {
+                ApplySystemPathRiskAdjustment(rec);
+            }
+
+            for (int i = 0; i < recommendations.Count; i++)
+            {
+                recommendations[i].Id = (i + 1).ToString();
+            }
+
+            result.Recommendations = recommendations;
+            return result;
+        }
+        finally
         {
-            ApplySystemPathRiskAdjustment(rec);
+            _cleanupRecommendationWhitelist.Value = null;
         }
-
-        for (int i = 0; i < recommendations.Count; i++)
-        {
-            recommendations[i].Id = (i + 1).ToString();
-        }
-
-        result.Recommendations = recommendations;
-        return result;
     }
 
     private bool IsCleanupExcluded(string path)
     {
-        return _whitelistMatcher.IsExcluded(path, _settingsService?.LoadSettings().CleanupRecommendationWhitelist);
+        return _whitelistMatcher.IsExcluded(path, _cleanupRecommendationWhitelist.Value);
     }
 
 }
