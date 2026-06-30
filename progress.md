@@ -92,3 +92,8 @@
 - [2026-06-30 10:24:16 +08:00] 修复：ApplyProposalIfAny 兼容 wrapped proposal 与 snake_case action kind，解决 hasProposal=True 但确认卡/step 不出现。
 - [2026-06-30 10:24:16 +08:00] 测试：新增 wrapped proposal -> PendingInteractionCard -> Confirm -> workflow step 可见回归。
 - [2026-06-30 10:24:16 +08:00] 验证：dotnet-debug-mcp build_solution 通过；dotnet test src/SpaceMonger.sln 通过；发布 D:\AppData\Visual Studio\Projects\spacemonger-next\outputs\package-2026-06-30-1024。
+
+## 2026-06-30 18:50:02 +08:00
+- 修复 AI 外部分析等待状态下点击分析/清理按钮仍使用 Windows MessageBox 的问题。
+- RecommendationsPanel 改为通过 ShowWaitingForAiMessageAsync 委托请求宿主显示提示，MainWindow 注入现有 AppModalHost 通用模态窗口。
+- 验证：dotnet test src\\SpaceMonger.sln --no-restore 通过（73 passed，保留既有 NU1701/CS8604 warning）；CodeGraph sync 完成；发布 outputs\\SpaceMonger-win-x64-folder-20260630-184943。

@@ -36,3 +36,5 @@
 - [x] 2026-06-30 追加：确认卡点击后立即消失、语言以 app 设置优先，并加入虚拟 C/D/E 慢扫描测试。
 
 - [x] 2026-06-30 追加：修复 wrapped proposal/snake_case kind 导致 hasProposal=True 但无确认卡/无 step 的问题，并完成 CUA 验收。
+
+- [x] 2026-06-30 追加：AI 外部分析等待提示从系统 MessageBox 切换到 AppModalHost 通用模态窗口，并完成测试/发布。

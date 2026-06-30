@@ -11,6 +11,7 @@ public partial class RecommendationsPanel : UserControl
     public event Action? AnalyzeRequested;
     public event Action? CleanupRequested;
     public event Action<CleanupRecommendation>? RecommendationActivated;
+    public Func<Task>? ShowWaitingForAiMessageAsync { get; set; }
 
     public RecommendationsPanel()
     {
@@ -22,17 +23,17 @@ public partial class RecommendationsPanel : UserControl
         DataContext = vm;
     }
 
-    private void CleanUpButton_Click(object sender, RoutedEventArgs e)
+    private async void CleanUpButton_Click(object sender, RoutedEventArgs e)
     {
-        if (ShowWaitingForAiMessageIfNeeded())
+        if (await ShowWaitingForAiMessageIfNeededAsync())
             return;
 
         CleanupRequested?.Invoke();
     }
 
-    private void AnalyzeButton_Click(object sender, RoutedEventArgs e)
+    private async void AnalyzeButton_Click(object sender, RoutedEventArgs e)
     {
-        if (ShowWaitingForAiMessageIfNeeded())
+        if (await ShowWaitingForAiMessageIfNeededAsync())
             return;
 
         if (DataContext is RecommendationsViewModel { IsAnalyzing: true })
@@ -43,12 +44,14 @@ public partial class RecommendationsPanel : UserControl
         AnalyzeRequested?.Invoke();
     }
 
-    private bool ShowWaitingForAiMessageIfNeeded()
+    private async Task<bool> ShowWaitingForAiMessageIfNeededAsync()
     {
         if (DataContext is not RecommendationsViewModel { IsWaitingForExternalRecommendations: true })
             return false;
 
-        MessageBox.Show(L.Text("AiExternalAnalysisWaitMessage"), L.Text("AnalyzeButton"), MessageBoxButton.OK, MessageBoxImage.Information);
+        if (ShowWaitingForAiMessageAsync is not null)
+            await ShowWaitingForAiMessageAsync();
+
         return true;
     }
 

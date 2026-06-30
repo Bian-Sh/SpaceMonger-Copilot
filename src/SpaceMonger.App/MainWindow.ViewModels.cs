@@ -11,6 +11,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Data;
 using Microsoft.Extensions.DependencyInjection;
+using SpaceMonger.App.Controls;
 using SpaceMonger.App.Diagnostics;
 using SpaceMonger.App.Helpers;
 using SpaceMonger.App.Localization;
@@ -66,6 +67,11 @@ public partial class MainWindow
         TitleBar.SettingsRequested += (_, _) => ShowSettingsPage();
         TitleBar.CollapseChatRequested += (_, _) => ToggleChatPanel();
         RecommendationsPanel.SetViewModel(recsVm);
+        RecommendationsPanel.ShowWaitingForAiMessageAsync = () => ShowAppModalAsync(
+            L.Text("AnalyzeButton"),
+            L.Text("AiExternalAnalysisWaitMessage"),
+            ModalMessageType.Info,
+            ModalButtonFlags.Positive);
         RecommendationsPanel.AnalyzeRequested += OnAnalyzeRequested;
         RecommendationsPanel.CleanupRequested += OnCleanupRequested;
         RecommendationsPanel.RecommendationActivated += OnRecommendationActivated;
