@@ -214,13 +214,13 @@ public partial class MainWindow
             if (string.IsNullOrEmpty(currentPath))
                 return;
 
-            var segments = ParsePathSegments(currentPath);
+            var segments = BuildBreadcrumbSegments(_treemapViewModel?.CurrentRoot, currentPath);
 
             for (int i = 0; i < segments.Count; i++)
             {
                 if (i > 0)
                 {
-                    var ownerPath = segments[i - 1].path;
+                    var owner = segments[i - 1];
                     var sepBtn = new Button
                     {
                         Content = new TextBlock
@@ -239,7 +239,7 @@ public partial class MainWindow
                         Style = (Style)FindResource("VP.BreadcrumbButton"),
                         Padding = new Thickness(5, 0, 5, 0),
                         Cursor = Cursors.Hand,
-                        Tag = ownerPath,
+                        Tag = owner,
                         VerticalContentAlignment = VerticalAlignment.Center,
                     };
                     var sepMenu = new ContextMenu();
@@ -250,8 +250,9 @@ public partial class MainWindow
                     BreadcrumbBar.Children.Add(sepBtn);
                 }
 
-                string segPath = segments[i].path;
-                string segName = segments[i].name;
+                var segment = segments[i];
+                string segPath = segment.path;
+                string segName = segment.name;
 
                 // ── Name button: click to navigate ──
                 var nameButton = new Button
@@ -268,7 +269,7 @@ public partial class MainWindow
                     Padding = new Thickness(4, 2, 2, 2),
                     Style = (Style)FindResource("VP.BreadcrumbButton"),
                     Cursor = Cursors.Hand,
-                    Tag = segPath,
+                    Tag = segment,
                 };
                 nameButton.Click += BreadcrumbSegment_Click;
                 // style handles hover visuals
@@ -296,7 +297,7 @@ public partial class MainWindow
                     Padding = new Thickness(5, 0, 5, 0),
                     Style = (Style)FindResource("VP.BreadcrumbButton"),
                     Cursor = Cursors.Hand,
-                    Tag = segments[^1].path,
+                    Tag = segments[^1],
                     VerticalContentAlignment = VerticalAlignment.Center,
                 };
                 var trailMenu = new ContextMenu();
@@ -346,25 +347,42 @@ public partial class MainWindow
         return result;
     }
 
+
+    private List<(string path, string name, FileEntry? entry)> BuildBreadcrumbSegments(FileEntry? currentRoot, string fullPath)
+    {
+        if (currentRoot is null || !string.Equals(currentRoot.Path, fullPath, StringComparison.OrdinalIgnoreCase))
+            return ParsePathSegments(fullPath).Select(s => (s.path, s.name, (FileEntry?)null)).ToList();
+
+        var entries = new Stack<FileEntry>();
+        for (var entry = currentRoot; entry is not null; entry = entry.Parent)
+            entries.Push(entry);
+
+        var result = new List<(string path, string name, FileEntry? entry)> { (ThisPCSentinel, ThisPC, null) };
+        foreach (var entry in entries)
+            result.Add((entry.Path, string.IsNullOrWhiteSpace(entry.Name) ? entry.Path : entry.Name, entry));
+
+        return result;
+    }
     private void BreadcrumbSegment_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is Button btn && btn.Tag is string path)
+        if (sender is Button btn && btn.Tag is ValueTuple<string, string, FileEntry?> segment)
         {
-            // Skip "此电脑" — it's a virtual root, not a real path
+            var path = segment.Item1;
+            var entry = segment.Item3;
+
             if (path == ThisPCSentinel)
             {
                 e.Handled = true;
                 return;
             }
 
-            // Fix 6: skip if already at this path
             if (_treemapViewModel?.CurrentRoot?.Path == path)
             {
                 e.Handled = true;
                 return;
             }
 
-            NavigateToPathOrSelect(path);
+            NavigateToEntryOrPath(entry, path);
         }
         e.Handled = true;
     }
@@ -406,8 +424,19 @@ public partial class MainWindow
 
         // Discover target directory
         string? dirPath = null;
-        if (menu.PlacementTarget is FrameworkElement fe && fe.Tag is string tagPath)
-            dirPath = tagPath;
+        FileEntry? dirEntry = null;
+        if (menu.PlacementTarget is FrameworkElement fe)
+        {
+            if (fe.Tag is ValueTuple<string, string, FileEntry?> segment)
+            {
+                dirPath = segment.Item1;
+                dirEntry = segment.Item3;
+            }
+            else if (fe.Tag is string tagPath)
+            {
+                dirPath = tagPath;
+            }
+        }
 
         if (string.IsNullOrEmpty(dirPath))
             return;
@@ -425,7 +454,7 @@ public partial class MainWindow
         else
         {
             // ── Try scanned tree first ──
-            var dirEntry = FindEntryByPathInTree(_treemapViewModel?.ScanRoot, dirPath);
+            dirEntry ??= FindEntryByPathInTree(_treemapViewModel?.ScanRoot, dirPath);
             if (dirEntry is not null)
             {
                 var children = dirEntry.Children
@@ -435,7 +464,7 @@ public partial class MainWindow
 
                 if (children.Count > 0)
                 {
-                    items = children.Select(c => new BreadcrumbItem(c.Name, c.Path)).ToList();
+                    items = children.Select(c => new BreadcrumbItem(c.Name, c.Path, c)).ToList();
                     menu.ItemsSource = items;
                     return;
                 }
@@ -504,7 +533,7 @@ public partial class MainWindow
         var clickSetter = new EventSetter(MenuItem.ClickEvent, new RoutedEventHandler((s, args) =>
         {
             if (s is MenuItem mi && mi.DataContext is BreadcrumbItem bi && !string.IsNullOrEmpty(bi.Path))
-                NavigateToPathOrSelect(bi.Path);
+                NavigateToEntryOrPath(bi.Entry, bi.Path);
         }));
         style.Setters.Add(clickSetter);
 
@@ -535,6 +564,17 @@ public partial class MainWindow
         RebuildBreadcrumbBar();
     }
 
+
+    private void NavigateToEntryOrPath(FileEntry? entry, string path, bool updateSelectedPath = true)
+    {
+        if (entry is not null && _treemapViewModel?.NavigateToEntry(entry) == true)
+        {
+            UpdateSelectedPathFromNavigation(entry.Path, updateSelectedPath);
+            return;
+        }
+
+        NavigateToPathOrSelect(path, updateSelectedPath);
+    }
     private void UpdateSelectedPathFromNavigation(string path, bool updateSelectedPath)
     {
         if (!updateSelectedPath || DataContext is not MainViewModel mainVm)

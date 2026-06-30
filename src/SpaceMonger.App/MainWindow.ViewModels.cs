@@ -189,7 +189,7 @@ public partial class MainWindow
 
         if (recommendation.Entry is not null)
         {
-            TryShowCachedAiScanForPath(recommendation.Entry.Path);
+            TryShowCachedAiScanForPath(recommendation.Entry.Path, navigateToPath: false);
             _treemapViewModel.NavigateToEntry(recommendation.Entry);
             return;
         }
@@ -205,7 +205,7 @@ public partial class MainWindow
         _aiScanSessionsByRoot[NormalizePathKey(session.TargetPath)] = session;
     }
 
-    private bool TryShowCachedAiScanForPath(string? path)
+    private bool TryShowCachedAiScanForPath(string? path, bool navigateToPath = true)
     {
         if (string.IsNullOrWhiteSpace(path) || _treemapViewModel is null)
             return false;
@@ -230,7 +230,7 @@ public partial class MainWindow
             treeViewModel.SetRoot(session.RootEntry, session);
         }
 
-        return _treemapViewModel.NavigateToPath(path);
+        return !navigateToPath || _treemapViewModel.NavigateToPath(path);
     }
 
     private static bool IsPathUnder(string path, string rootPath)

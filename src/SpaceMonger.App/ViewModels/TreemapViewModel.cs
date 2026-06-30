@@ -83,14 +83,14 @@ public partial class TreemapViewModel : ObservableObject
         RecomputeLayout();
     }
 
-    public void NavigateToEntry(FileEntry entry)
+    public bool NavigateToEntry(FileEntry entry)
     {
         var viewRoot = entry.IsDirectory ? entry : entry.Parent;
         if (viewRoot is null || viewRoot == CurrentRoot)
-            return;
+            return viewRoot is not null;
 
         if (!IsInCurrentScan(viewRoot))
-            return;
+            return false;
 
         if (CurrentRoot is not null)
         {
@@ -101,6 +101,7 @@ public partial class TreemapViewModel : ObservableObject
         CurrentRoot = viewRoot;
         UpdateBreadcrumb();
         RecomputeLayout();
+        return true;
     }
 
     [RelayCommand(CanExecute = nameof(CanNavigateUp))]

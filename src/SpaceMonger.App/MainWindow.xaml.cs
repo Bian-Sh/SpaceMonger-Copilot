@@ -31,7 +31,7 @@ namespace SpaceMonger.App;
 /// <summary>
 /// Lightweight data object for breadcrumb dropdown items锛堥潰鍖呭睉涓嬫媺鏁版嵁椤癸級
 /// </summary>
-internal record BreadcrumbItem(string Name, string Path);
+internal record BreadcrumbItem(string Name, string Path, FileEntry? Entry = null);
 
 public partial class MainWindow : Window
 {
