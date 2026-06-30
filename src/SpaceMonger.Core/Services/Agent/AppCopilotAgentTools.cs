@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using SpaceMonger.Core.Services.Copilot;
 
 namespace SpaceMonger.Core.Services.Agent;
@@ -9,6 +9,7 @@ public abstract class AppCopilotToolBase : IAgentTool
     public abstract string Description { get; }
     public abstract JsonElement Schema { get; }
     public virtual ToolRiskLevel RiskLevel => ToolRiskLevel.Low;
+    public bool RequiresScanContext => false;
 
     public abstract Task<JsonElement> ExecuteAsync(AgentContext context, JsonElement arguments, CancellationToken cancellationToken);
 
@@ -59,7 +60,7 @@ public sealed class ProposeCopilotActionTool : AppCopilotToolBase
     public override string Name => "propose_copilot_action";
     public override string Description => "Propose a first-level confirmation card for scan, cleanup analysis, or navigation without executing it.";
     public override JsonElement Schema { get; } = SchemaJson("""
-        {"type":"object","properties":{"kind":{"type":"string","enum":["scan","analyze_cleanup","navigate"]},"path":{"type":"string"},"scope_label":{"type":"string"},"will_overwrite_existing_data":{"type":"boolean"},"title":{"type":"string"},"description":{"type":"string"},"impact":{"type":"string"},"confirm_text":{"type":"string"},"cancel_text":{"type":"string"}},"required":["kind"]}
+        {"type":"object","properties":{"kind":{"type":"string","enum":["StartScan","AnalyzeCleanup","DiscoverUnityLibraries","ClearConversation","NavigateToScannedPath","scan","analyze_cleanup","discover_unity_libraries","clear_conversation","navigate"]},"path":{"type":"string"},"scope_label":{"type":"string"},"will_overwrite_existing_data":{"type":"boolean"},"title":{"type":"string"},"description":{"type":"string"},"impact":{"type":"string"},"confirm_text":{"type":"string"},"cancel_text":{"type":"string"}},"required":["kind"]}
         """);
 
     public override Task<JsonElement> ExecuteAsync(AgentContext context, JsonElement arguments, CancellationToken cancellationToken)
@@ -77,13 +78,7 @@ public sealed class ProposeCopilotActionTool : AppCopilotToolBase
             && overwriteProp.ValueKind is JsonValueKind.True or JsonValueKind.False
             && overwriteProp.GetBoolean();
 
-        var actionKind = kind switch
-        {
-            "scan" => AiActionKind.StartScan,
-            "analyze_cleanup" => AiActionKind.AnalyzeCleanup,
-            "navigate" => AiActionKind.NavigateToScannedPath,
-            _ => AiActionKind.None
-        };
+        var actionKind = ResolveActionKind(kind);
 
         if (actionKind == AiActionKind.None)
         {
@@ -112,6 +107,29 @@ public sealed class ProposeCopilotActionTool : AppCopilotToolBase
                 }
             }
         }));
+    }
+
+    private static AiActionKind ResolveActionKind(string? kind)
+    {
+        if (string.IsNullOrWhiteSpace(kind))
+        {
+            return AiActionKind.None;
+        }
+
+        if (Enum.TryParse<AiActionKind>(kind, ignoreCase: true, out var actionKind))
+        {
+            return actionKind;
+        }
+
+        return kind switch
+        {
+            "scan" => AiActionKind.StartScan,
+            "analyze_cleanup" => AiActionKind.AnalyzeCleanup,
+            "discover_unity_libraries" => AiActionKind.DiscoverUnityLibraries,
+            "clear_conversation" => AiActionKind.ClearConversation,
+            "navigate" => AiActionKind.NavigateToScannedPath,
+            _ => AiActionKind.None
+        };
     }
 }
 

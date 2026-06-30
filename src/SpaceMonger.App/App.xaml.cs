@@ -82,6 +82,7 @@ public partial class App : Application
         services.AddSingleton<IAgentTool, GetCopilotContextTool>();
         services.AddSingleton<IAgentTool, ProposeCopilotActionTool>();
         services.AddSingleton<IAgentTool, ReadUnityRegistryContextTool>();
+        services.AddSingleton<IAgentTool, ManageDiskSkillsTool>();
         services.AddSingleton<IAgentRuntime, AgentRuntime>();
         services.AddSingleton<IChatService, ChatService>();
         services.AddTransient<ChatViewModel>();

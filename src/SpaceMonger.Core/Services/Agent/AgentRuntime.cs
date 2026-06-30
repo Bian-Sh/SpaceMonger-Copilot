@@ -38,12 +38,6 @@ public sealed class AgentRuntime : IAgentRuntime
 
         var systemPrompt = BuildSystemPrompt(activeSkills, responseLanguage);
         var allToolResults = new List<AgentToolResult>();
-        var seededResults = await ExecuteHeuristicToolsAsync(context, userMessage, cancellationToken).ConfigureAwait(false);
-        if (seededResults.Count > 0)
-        {
-            allToolResults.AddRange(seededResults);
-            messages.Add(("user", BuildObservationMessage(seededResults, reachedToolLimit: false)));
-        }
         var toolCallCount = 0;
         var reachedToolLimit = false;
 
@@ -152,109 +146,8 @@ public sealed class AgentRuntime : IAgentRuntime
     }
 
 
-    private async Task<IReadOnlyList<AgentToolResult>> ExecuteHeuristicToolsAsync(AgentContext? context, string userMessage, CancellationToken cancellationToken)
-    {
-        if (context is null)
-        {
-            return [];
-        }
-
-        var calls = BuildHeuristicToolCalls(context, userMessage);
-        if (calls.Count == 0)
-        {
-            return [];
-        }
-
-        var results = new List<AgentToolResult>();
-        foreach (var call in calls.Take(3))
-        {
-            results.Add(await ExecuteToolAsync(context, call, cancellationToken).ConfigureAwait(false));
-        }
-
-        return results;
-    }
-
-    private static IReadOnlyList<AgentToolCall> BuildHeuristicToolCalls(AgentContext context, string userMessage)
-    {
-        var lower = userMessage.ToLowerInvariant();
-        var calls = new List<AgentToolCall>();
-        var targetPath = ExtractLikelyPath(userMessage) ?? context.LinkedEntry?.Path;
-
-        if (ContainsAny(lower, "最大文件", "大文件", "largest", "large files", "biggest files"))
-        {
-            calls.Add(new AgentToolCall("heuristic_large_files", "find_large_files", JsonSerializer.SerializeToElement(new
-            {
-                under_path = targetPath,
-                max_results = 20
-            }, AgentJson.Options)));
-        }
-
-        if (ContainsAny(lower, "深入", "分析", "看看", "summary", "summarize", "占用") && !string.IsNullOrWhiteSpace(targetPath))
-        {
-            calls.Add(new AgentToolCall("heuristic_summary", "summarize_subtree", JsonSerializer.SerializeToElement(new
-            {
-                path = targetPath,
-                top_children = 20
-            }, AgentJson.Options)));
-        }
-
-        var nameQuery = ExtractNameQuery(userMessage);
-        if (!string.IsNullOrWhiteSpace(nameQuery))
-        {
-            calls.Add(new AgentToolCall("heuristic_find_name", "find_by_name", JsonSerializer.SerializeToElement(new
-            {
-                name = nameQuery,
-                max_results = 20
-            }, AgentJson.Options)));
-        }
-
-        return calls;
-    }
-
-    private static string? ExtractLikelyPath(string text)
-    {
-        var match = System.Text.RegularExpressions.Regex.Match(text, @"[A-Za-z]:[\\/][^\r\n\""']+");
-        return match.Success ? match.Value.Trim().TrimEnd('.', ',', '，', '。') : null;
-    }
-
-    private static string? ExtractNameQuery(string text)
-    {
-        var lower = text.ToLowerInvariant();
-        foreach (var marker in new[] { "找一下", "查找", "搜索", "find", "search" })
-        {
-            var index = lower.IndexOf(marker, StringComparison.Ordinal);
-            if (index < 0)
-            {
-                continue;
-            }
-
-            var tail = text[(index + marker.Length)..].Trim();
-            var token = tail.Split([' ', '，', ',', '。', '.', '的'], StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
-            if (!string.IsNullOrWhiteSpace(token) && !token.Contains(':', StringComparison.Ordinal))
-            {
-                return token.Trim('"', '\'', '“', '”');
-            }
-        }
-
-        return null;
-    }
-
-    private static bool ContainsAny(string text, params string[] values)
-    {
-        return values.Any(value => text.Contains(value, StringComparison.OrdinalIgnoreCase));
-    }
     private async Task<AgentToolResult> ExecuteToolAsync(AgentContext? context, AgentToolCall toolCall, CancellationToken cancellationToken)
     {
-        if (context is null)
-        {
-            return new AgentToolResult(
-                toolCall.Id,
-                toolCall.Name,
-                true,
-                JsonError("scan_context_unavailable", "No scan context is available for read-only file tree tools."),
-                "No scan context is available for read-only file tree tools.");
-        }
-
         if (!_tools.TryGetValue(toolCall.Name, out var tool))
         {
             return new AgentToolResult(
@@ -265,9 +158,20 @@ public sealed class AgentRuntime : IAgentRuntime
                 $"Unknown tool: {toolCall.Name}");
         }
 
+        if (tool.RequiresScanContext && (context?.Session is null || context.CurrentViewRoot is null))
+        {
+            return new AgentToolResult(
+                toolCall.Id,
+                tool.Name,
+                true,
+                JsonError("scan_context_unavailable", "A completed scan context is required for file tree tools."),
+                "A completed scan context is required for file tree tools.");
+        }
+
+        var toolContext = context ?? new AgentContext(null, null, null, null, false);
         try
         {
-            var content = await tool.ExecuteAsync(context, toolCall.Arguments, cancellationToken).ConfigureAwait(false);
+            var content = await tool.ExecuteAsync(toolContext, toolCall.Arguments, cancellationToken).ConfigureAwait(false);
             var isError = content.ValueKind == JsonValueKind.Object
                 && content.TryGetProperty("ok", out var ok)
                 && ok.ValueKind == JsonValueKind.False;
@@ -288,19 +192,23 @@ public sealed class AgentRuntime : IAgentRuntime
     private string BuildSystemPrompt(IReadOnlyList<AiSkill> activeSkills, string? responseLanguage)
     {
         var builder = new StringBuilder();
-        builder.AppendLine("You are SpaceMonger Copilot, a disk space management assistant with read-only access to the already scanned file tree.");
+        builder.AppendLine("You are SpaceMonger Copilot, an open skill-driven agent host specialized for disk scanning, MFT-backed space analysis, registry-assisted app discovery, and cleanup planning.");
         builder.AppendLine($"Answer language: {FormatResponseLanguageInstruction(responseLanguage)}.");
         builder.AppendLine("This answer-language rule overrides the language used inside fetched skill records or skill source text.");
         builder.AppendLine();
         builder.AppendLine("Guidelines:");
         builder.AppendLine("- You are agent-first: understand the user's request yourself before choosing tools.");
+        builder.AppendLine("- The host does not route natural-language intents with keyword enums; skills and model reasoning define the workflow, risk model, and next action proposal.");
+        builder.AppendLine("- Treat built-in disk and registry capabilities as exposed tools, not app-side hardcoded cleanup policies.");
+        builder.AppendLine("- Skills are not injected by default. Use an explicitly mentioned @skill, or call manage_disk_skills to inspect/create/update/delete disk-management skills when the user asks for skill management.");
+        builder.AppendLine("- For skill creation, first understand the user's intended workflow. Create/update only disk-management skills implementable with available SpaceMonger host tools; refuse non-disk or unsupported skill requests without calling internal tools.");
         builder.AppendLine("- If the user asks about a path/folder but there is no scan context or the target is outside the current scan, do not stop with an error.");
-        builder.AppendLine("- In that case, call get_copilot_context first, then call propose_copilot_action with kind=scan and the target path, and explain briefly that scanning is needed before deeper analysis.");
+        builder.AppendLine("- In that case, call get_copilot_context first, then call propose_copilot_action with kind=StartScan and the target path, and explain briefly that scanning is needed before deeper analysis.");
         builder.AppendLine("- If the user asks what a feature means or how to use it, answer directly; do not require a scan unless execution actually depends on one.");
         builder.AppendLine("- To create a first-level confirmation card, call the proposal tool instead of merely describing that a card could exist.");
         builder.AppendLine("- When you have proposed an action card, still provide a short natural-language explanation in the final answer.");
         builder.AppendLine("- You MUST use tools for path lookup, name lookup, list children, subtree summary, largest files, or multi-step deep-dive requests.");
-        builder.AppendLine("- Never claim to execute commands, delete files, move files, or rescan disk. Tools are read-only and query only the in-memory scan tree.");
+        builder.AppendLine("- Never claim to execute destructive commands, delete files, or move files. Tool calls can return observations or user-confirmed proposals; obey each tool risk level and schema.");
         builder.AppendLine("- Base path and size claims on provided context or tool observations.");
         builder.AppendLine("- When you need a tool, respond with a single JSON object only, no markdown, no prose:");
         builder.AppendLine("  {\"tool_calls\":[{\"id\":\"call_1\",\"name\":\"tool_name\",\"arguments\":{}}]}");
@@ -308,7 +216,7 @@ public sealed class AgentRuntime : IAgentRuntime
         builder.AppendLine();
         if (activeSkills.Count > 0)
         {
-            builder.AppendLine("Active disk-management skills for this turn:");
+            builder.AppendLine("Explicitly selected skills for this turn:");
             foreach (var skill in activeSkills)
             {
                 builder.AppendLine($"- {skill.Id}: {skill.Prompt}");
@@ -350,7 +258,18 @@ public sealed class AgentRuntime : IAgentRuntime
             var appOnlyContext = new
             {
                 scan_available = false,
-                note = "No scan has been provided for this turn. Answer explanatory app-guide or identity questions only. Do not call file tree tools or claim scan data exists."
+                note = "No scan has been provided for this turn. App-level proposal tools may be used for scan or discovery confirmation cards. Do not call file tree tools or claim scan data exists."
+            };
+
+            return $"App context JSON:\n{JsonSerializer.Serialize(appOnlyContext, AgentJson.Options)}\n\nUser question: {userMessage}";
+        }
+
+        if (context.Session is null || context.CurrentViewRoot is null)
+        {
+            var appOnlyContext = new
+            {
+                scan_available = false,
+                note = "This turn has app-only context. File tree tools require a completed scan context."
             };
 
             return $"App context JSON:\n{JsonSerializer.Serialize(appOnlyContext, AgentJson.Options)}\n\nUser question: {userMessage}";
@@ -432,7 +351,7 @@ public sealed class AgentRuntime : IAgentRuntime
             observationsJson = observationsJson[..MaxObservationChars] + "\n...TRUNCATED...";
         }
 
-        return $"Tool observations JSON:\n{observationsJson}\n\nContinue. If you have enough evidence, provide the final answer. If another read-only query is necessary, request another tool call JSON object.";
+        return $"Tool observations JSON:\n{observationsJson}\n\nContinue. If you have enough evidence, provide the final answer. If another tool call is necessary and allowed by the tool schema/risk level, request another tool call JSON object.";
     }
 
     private static IReadOnlyList<AgentToolCall> TryParseToolCalls(string text)

@@ -108,8 +108,7 @@ public class ChatService : IChatService
 
         if (enableThinking && response.ToolResults.Count > 0)
         {
-            var limitNote = response.ReachedToolLimit ? " Tool limit reached; answered from partial observations." : string.Empty;
-            await StreamTextAsync($"Queried {response.ToolResults.Count} read-only file tree tool(s).{limitNote}\n", onThinkingToken, cancellationToken).ConfigureAwait(false);
+            await StreamTextAsync(FormatToolObservationNote(response), onThinkingToken, cancellationToken).ConfigureAwait(false);
         }
 
         await StreamTextAsync(response.Content, onTextToken, cancellationToken).ConfigureAwait(false);
@@ -142,7 +141,7 @@ public class ChatService : IChatService
 
         if (enableThinking && response.ToolResults.Count > 0)
         {
-            await StreamTextAsync($"Ignored {response.ToolResults.Count} file tree tool request(s) because no scan context is available.\n", onThinkingToken, cancellationToken).ConfigureAwait(false);
+            await StreamTextAsync(FormatToolObservationNote(response), onThinkingToken, cancellationToken).ConfigureAwait(false);
         }
 
         await StreamTextAsync(response.Content, onTextToken, cancellationToken).ConfigureAwait(false);
@@ -191,6 +190,14 @@ public class ChatService : IChatService
             index += length;
             await Task.Delay(18, cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    private static string FormatToolObservationNote(AgentResponse response)
+    {
+        var successCount = response.ToolResults.Count(result => !result.IsError);
+        var errorCount = response.ToolResults.Count - successCount;
+        var limitNote = response.ReachedToolLimit ? " Tool limit reached; answered from partial observations." : string.Empty;
+        return $"Processed {response.ToolResults.Count} agent tool observation(s): {successCount} succeeded, {errorCount} failed.{limitNote}\n";
     }
 
     private void AddTurnToHistory(string userMessage, string assistantResponse)

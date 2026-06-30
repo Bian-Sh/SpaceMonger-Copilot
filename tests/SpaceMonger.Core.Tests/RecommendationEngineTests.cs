@@ -177,7 +177,14 @@ public class RecommendationEngineTests
     {
         var root = new FileEntry { Path = @"D:\", Name = @"D:\", IsDirectory = true };
         var project = new FileEntry { Path = @"D:\Game", Name = "Game", IsDirectory = true };
-        var library = new FileEntry { Path = @"D:\Game\Library", Name = "Library", IsDirectory = true, Size = 2_147_483_648 };
+        var library = new FileEntry
+        {
+            Path = @"D:\Game\Library",
+            Name = "Library",
+            IsDirectory = true,
+            Size = 2_147_483_648,
+            LastModified = DateTime.Now.AddYears(-2)
+        };
         AddChild(root, project);
         AddChild(project, new FileEntry { Path = @"D:\Game\Assets", Name = "Assets", IsDirectory = true });
         AddChild(project, new FileEntry { Path = @"D:\Game\ProjectSettings", Name = "ProjectSettings", IsDirectory = true });
@@ -195,7 +202,8 @@ public class RecommendationEngineTests
             r.TargetPath == @"D:\Game\Library" &&
             r.Category == RecommendationCategory.BuildCache &&
             r.SafetyRating == SafetyRating.ReviewFirst &&
-            r.Entry == library);
+            r.Entry == library &&
+            r.Explanation.Contains("skill/AI risk review"));
     }
 
     [Fact]

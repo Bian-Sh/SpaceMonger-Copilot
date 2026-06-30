@@ -94,6 +94,11 @@ public abstract class FileTreeAgentToolBase(IFileTreeQueryService queryService, 
         });
     }
 
+    protected static ScanSession RequireScanSession(AgentContext context)
+    {
+        return context.Session ?? throw new InvalidOperationException("A completed scan context is required for file tree tools.");
+    }
+
     protected bool IsAiHidden(string? path)
     {
         return _whitelistMatcher.IsExcluded(path, _settingsService?.LoadSettings().AiConversationWhitelist);
@@ -116,13 +121,14 @@ public sealed class FindByNameTool(IFileTreeQueryService queryService, ISettings
     public override Task<JsonElement> ExecuteAsync(AgentContext context, JsonElement arguments, CancellationToken cancellationToken)
     {
         var name = GetString(arguments, "name");
+        var session = RequireScanSession(context);
         if (string.IsNullOrWhiteSpace(name))
         {
             return Task.FromResult(Error("invalid_arguments", "name is required."));
         }
 
         var results = QueryService.FindByName(
-            context.Session,
+            session,
             name,
             GetBool(arguments, "exact_match"),
             GetInt(arguments, "max_results", 25, 1, 100));
@@ -148,6 +154,7 @@ public sealed class FindByPathTool(IFileTreeQueryService queryService, ISettings
     public override Task<JsonElement> ExecuteAsync(AgentContext context, JsonElement arguments, CancellationToken cancellationToken)
     {
         var path = GetString(arguments, "path");
+        var session = RequireScanSession(context);
         if (string.IsNullOrWhiteSpace(path))
         {
             return Task.FromResult(Error("invalid_arguments", "path is required."));
@@ -158,7 +165,7 @@ public sealed class FindByPathTool(IFileTreeQueryService queryService, ISettings
             return Task.FromResult(HiddenPath());
         }
 
-        var entry = QueryService.FindByPath(context.Session, path);
+        var entry = QueryService.FindByPath(session, path);
         return Task.FromResult(entry is null
             ? Error("not_found", $"Path not found in scanned tree: {path}")
             : Json(new { ok = true, result = EntryJson(entry) }));
@@ -176,6 +183,7 @@ public sealed class ListChildrenTool(IFileTreeQueryService queryService, ISettin
     public override Task<JsonElement> ExecuteAsync(AgentContext context, JsonElement arguments, CancellationToken cancellationToken)
     {
         var path = GetString(arguments, "path");
+        var session = RequireScanSession(context);
         if (string.IsNullOrWhiteSpace(path))
         {
             return Task.FromResult(Error("invalid_arguments", "path is required."));
@@ -186,7 +194,7 @@ public sealed class ListChildrenTool(IFileTreeQueryService queryService, ISettin
             return Task.FromResult(HiddenPath());
         }
 
-        var entry = QueryService.FindByPath(context.Session, path);
+        var entry = QueryService.FindByPath(session, path);
         if (entry is null)
         {
             return Task.FromResult(Error("not_found", $"Path not found in scanned tree: {path}"));
@@ -197,7 +205,7 @@ public sealed class ListChildrenTool(IFileTreeQueryService queryService, ISettin
             return Task.FromResult(Error("not_directory", $"Path is not a directory: {path}"));
         }
 
-        var children = QueryService.ListChildren(context.Session, path, GetInt(arguments, "max_results", 50, 1, 200));
+        var children = QueryService.ListChildren(session, path, GetInt(arguments, "max_results", 50, 1, 200));
         return Task.FromResult(Json(new
         {
             ok = true,
@@ -219,6 +227,7 @@ public sealed class SummarizeSubtreeTool(IFileTreeQueryService queryService, ISe
     public override Task<JsonElement> ExecuteAsync(AgentContext context, JsonElement arguments, CancellationToken cancellationToken)
     {
         var path = GetString(arguments, "path");
+        var session = RequireScanSession(context);
         if (string.IsNullOrWhiteSpace(path))
         {
             return Task.FromResult(Error("invalid_arguments", "path is required."));
@@ -229,13 +238,13 @@ public sealed class SummarizeSubtreeTool(IFileTreeQueryService queryService, ISe
             return Task.FromResult(HiddenPath());
         }
 
-        var entry = QueryService.FindByPath(context.Session, path);
+        var entry = QueryService.FindByPath(session, path);
         if (entry is null)
         {
             return Task.FromResult(Error("not_found", $"Path not found in scanned tree: {path}"));
         }
 
-        var summary = QueryService.SummarizeSubtree(context.Session, path, GetInt(arguments, "top_children", 20, 1, 50));
+        var summary = QueryService.SummarizeSubtree(session, path, GetInt(arguments, "top_children", 20, 1, 50));
         return Task.FromResult(Json(new
         {
             ok = true,
@@ -261,18 +270,19 @@ public sealed class FindLargeFilesTool(IFileTreeQueryService queryService, ISett
     public override Task<JsonElement> ExecuteAsync(AgentContext context, JsonElement arguments, CancellationToken cancellationToken)
     {
         var underPath = GetString(arguments, "under_path");
+        var session = RequireScanSession(context);
         if (IsAiHidden(underPath))
         {
             return Task.FromResult(HiddenPath());
         }
 
-        if (!string.IsNullOrWhiteSpace(underPath) && QueryService.FindByPath(context.Session, underPath) is null)
+        if (!string.IsNullOrWhiteSpace(underPath) && QueryService.FindByPath(session, underPath) is null)
         {
             return Task.FromResult(Error("not_found", $"Path not found in scanned tree: {underPath}"));
         }
 
         var results = QueryService.FindLargeFiles(
-            context.Session,
+            session,
             underPath,
             GetInt(arguments, "max_results", 25, 1, 100),
             GetLong(arguments, "min_size_bytes"));

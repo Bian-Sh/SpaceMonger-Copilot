@@ -24,7 +24,6 @@ public partial class ChatViewModel : ObservableObject
     private readonly IAiSkillRouter _skillRouter;
     private readonly ILogger<ChatViewModel> _logger;
     private IAiDiskActionExecutor _actionExecutor = new NullAiDiskActionExecutor();
-    private Func<string, bool> _scanTargetAvailabilityProbe = IsScanTargetAvailable;
     private CancellationTokenSource? _followUpCancellation;
     private CancellationTokenSource? _activeOperationCancellation;
 
@@ -73,8 +72,6 @@ public partial class ChatViewModel : ObservableObject
     }
 
     public void SetActionExecutor(IAiDiskActionExecutor actionExecutor) => _actionExecutor = actionExecutor;
-
-    public void SetScanTargetAvailabilityProbe(Func<string, bool> probe) => _scanTargetAvailabilityProbe = probe;
 
     partial void OnMessagesChanged(ObservableCollection<ChatMessage>? oldValue, ObservableCollection<ChatMessage> newValue)
     {
@@ -181,18 +178,7 @@ public partial class ChatViewModel : ObservableObject
         });
         InputText = null;
 
-        if (TryHandleChatWindowIntent(userInput))
-        {
-            return;
-        }
-
         var routed = _skillRouter.Route(userInput, LinkedEntry, _currentViewRoot, _actionExecutor.HasExistingRecommendations, responseLanguage);
-        if (await TryHandleLocalRoutedResponseAsync(routed, userInput, settings, responseLanguage))
-        {
-            InputText = null;
-            return;
-        }
-
         if (!IsApiKeyConfigured)
         {
             Messages.Add(new ChatMessage
@@ -223,9 +209,9 @@ public partial class ChatViewModel : ObservableObject
         {
             var apiKey = _settingsService.GetApiKey(settings)!;
             var baseUrl = settings.AnthropicBaseUrl;
-            var modelUserInput = BuildModelUserInput(userInput, routed);
+            var modelUserInput = BuildModelUserInput(userInput, routed, LinkedEntry, LinkedRecommendation, _currentViewRoot, _currentSession, _actionExecutor.HasExistingRecommendations);
             var enableThinking = ShouldEnableThinking(settings, routed);
-            var showSelectedSkillWorkflow = routed.SelectedSkillIds.Count > 0 && routed.SuggestedAction is null;
+            var showSelectedSkillWorkflow = routed.SelectedSkillIds.Count > 0;
             if (showSelectedSkillWorkflow)
             {
                 SetWorkflowPlan(BuildSelectedSkillWorkflowSteps(routed));
@@ -498,260 +484,6 @@ public partial class ChatViewModel : ObservableObject
         }
     }
 
-    private async Task<bool> TryHandleLocalRoutedResponseAsync(AiSkillRoutingResult routed, string userInput, AppSettings settings, string responseLanguage)
-    {
-        if (routed.SuggestedAction is not null)
-        {
-            if (ShouldRouteScanRequestToModel(routed.SuggestedAction))
-            {
-                return false;
-            }
-
-            if (ShouldAutoExecuteAction(routed.SuggestedAction))
-            {
-                await ExecuteAutomaticActionAsync(routed, routed.SuggestedAction, userInput, settings, responseLanguage);
-                return true;
-            }
-
-            PendingInteractionCard = BuildInteractionCard(routed.SuggestedAction, userInput);
-            return true;
-        }
-
-        if (routed.SelectedSkillIds.Count == 0
-            && !string.IsNullOrWhiteSpace(routed.LocalAnswer)
-            && routed.Intents.All(intent => intent is AiIntent.Identity or AiIntent.ModuleHelp))
-        {
-            Messages.Add(new ChatMessage
-            {
-                Sender = ChatSender.Assistant,
-                Text = routed.LocalAnswer,
-                Timestamp = DateTime.Now
-            });
-            return true;
-        }
-
-        return false;
-    }
-
-    private bool ShouldAutoExecuteAction(AiActionRequest action)
-        => action.Kind switch
-        {
-            AiActionKind.StartScan => _currentSession is null,
-            AiActionKind.AnalyzeCleanup => _currentSession is not null && !action.WillOverwriteExistingData,
-            AiActionKind.DiscoverUnityLibraries => !action.WillOverwriteExistingData,
-            _ => false
-        };
-
-    private bool ShouldRouteScanRequestToModel(AiActionRequest action)
-    {
-        if (action.Kind != AiActionKind.StartScan || _currentSession is not null || !IsApiKeyConfigured)
-        {
-            return false;
-        }
-
-        if (string.IsNullOrWhiteSpace(action.Path))
-        {
-            return true;
-        }
-
-        return !_scanTargetAvailabilityProbe(NormalizeScanTarget(action.Path));
-    }
-
-    private async Task ExecuteAutomaticActionAsync(
-        AiSkillRoutingResult routed,
-        AiActionRequest action,
-        string userInput,
-        AppSettings settings,
-        string responseLanguage)
-    {
-        if (!TryValidateAutomaticAction(action, out var validationMessage))
-        {
-            Messages.Add(new ChatMessage
-            {
-                Sender = ChatSender.Assistant,
-                Text = validationMessage,
-                Timestamp = DateTime.Now,
-                IsError = true
-            });
-            SetWorkflowPlan(Array.Empty<string>());
-            return;
-        }
-
-        IsSending = true;
-        ErrorMessage = null;
-        var cancellationToken = BeginActiveOperation();
-        var message = new ChatMessage
-        {
-            Sender = ChatSender.Assistant,
-            Text = string.Empty,
-            Timestamp = DateTime.Now,
-            IsStreaming = true
-        };
-        Messages.Add(message);
-
-        try
-        {
-            if (action.Kind == AiActionKind.DiscoverUnityLibraries)
-            {
-                SetWorkflowPlan(BuildUnityDiscoveryWorkflowSteps(action));
-            }
-            else
-            {
-                SetWorkflowPlan(BuildWorkflowSteps(action, routed));
-            }
-
-            await AppendStreamingTextAsync(message, BuildAutomaticActionIntro(action, routed), cancellationToken);
-            StartWorkflowStep(0);
-            var progress = new Progress<AiActionProgress>(ApplyWorkflowProgress);
-            var result = await _actionExecutor.ExecuteAsync(action, cancellationToken, progress);
-            if (action.Kind != AiActionKind.DiscoverUnityLibraries)
-            {
-                CompleteWorkflowStep(0, result.Success);
-            }
-            await AppendStreamingTextAsync(message, FormatActionResult(result), cancellationToken);
-
-            if (!result.Success)
-            {
-                message.IsError = true;
-                return;
-            }
-
-            if (action.Kind == AiActionKind.StartScan && routed.Intents.Contains(AiIntent.FolderCleanupAnalysis))
-            {
-                var analyzeAction = new AiActionRequest(
-                    AiActionKind.AnalyzeCleanup,
-                    Path: action.Path,
-                    WillOverwriteExistingData: _actionExecutor.HasExistingRecommendations,
-                    ScopeLabel: action.ScopeLabel ?? action.Path);
-
-                if (analyzeAction.WillOverwriteExistingData)
-                {
-                    await AppendStreamingTextAsync(
-                        message,
-                        Localized("Existing cleanup recommendations are present, so I need your confirmation before replacing them.", "\u5df2\u7ecf\u6709\u6e05\u7406\u5206\u6790\u7ed3\u679c\uff0c\u8981\u8986\u76d6\u5b83\u4eec\u9700\u8981\u4f60\u5148\u786e\u8ba4\u3002"),
-                        cancellationToken);
-                    PendingInteractionCard = BuildInteractionCard(analyzeAction, userInput);
-                    return;
-                }
-
-                await AppendStreamingTextAsync(message, Localized("\nNow I will analyze cleanup recommendations.\n", "\n\u63a5\u7740\u6211\u4f1a\u5206\u6790\u53ef\u6e05\u7406\u9879\u3002\n"), cancellationToken);
-                StartWorkflowStep(1);
-                var analysisResult = await _actionExecutor.ExecuteAsync(analyzeAction, cancellationToken);
-                CompleteWorkflowStep(1, analysisResult.Success);
-                await AppendStreamingTextAsync(message, FormatActionResult(analysisResult), cancellationToken);
-                if (!analysisResult.Success)
-                {
-                    message.IsError = true;
-                    return;
-                }
-
-                StartWorkflowStep(Math.Min(2, WorkflowSteps.Count - 1));
-                await ContinueAfterConfirmedScanAsync(userInput, "scan and cleanup recommendation analysis");
-                CompleteWorkflowStep(Math.Min(2, WorkflowSteps.Count - 1), true);
-                return;
-            }
-
-            if (action.Kind == AiActionKind.StartScan)
-            {
-                StartWorkflowStep(Math.Min(1, WorkflowSteps.Count - 1));
-                await ContinueAfterConfirmedScanAsync(userInput);
-                CompleteWorkflowStep(Math.Min(1, WorkflowSteps.Count - 1), true);
-                return;
-            }
-
-            if (action.Kind == AiActionKind.AnalyzeCleanup)
-            {
-                StartWorkflowStep(Math.Min(1, WorkflowSteps.Count - 1));
-                await ContinueAfterConfirmedScanAsync(userInput, "cleanup recommendation analysis");
-                CompleteWorkflowStep(Math.Min(1, WorkflowSteps.Count - 1), true);
-            }
-
-            if (action.Kind == AiActionKind.DiscoverUnityLibraries)
-            {
-                StartWorkflowStep(Math.Max(0, WorkflowSteps.Count - 1));
-                CompleteWorkflowStep(Math.Max(0, WorkflowSteps.Count - 1), true);
-                await AppendStreamingTextAsync(
-                    message,
-                    Localized(
-                        "Review the recommendations panel, sort by last modified time, and confirm selected items before cleanup. Unity Hub membership is shown on each Unity Library row.\n",
-                        "璇峰湪鎺ㄨ崘娓呯悊闈㈡澘涓寜鏈€鍚庝慨鏀规椂闂村拰 Unity Hub 鐘舵€佸鏍革紝鍐嶅嬀閫夎娓呯悊鐨?Library锛涚湡姝ｅ垹闄ゅ墠浠嶄細鍐嶆纭銆俓n"),
-                    cancellationToken);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            _logger.LogWarning("Chat operation cancelled");
-            message.IsError = true;
-            message.Text = string.IsNullOrEmpty(message.Text)
-                ? Localized("Stopped. The AI workflow state has been released.", "\u5df2\u505c\u6b62\uff0cAI \u5de5\u4f5c\u6d41\u72b6\u6001\u5df2\u91ca\u653e\u3002")
-                : message.Text + Localized("\nStopped. The AI workflow state has been released.\n", "\n\u5df2\u505c\u6b62\uff0cAI \u5de5\u4f5c\u6d41\u72b6\u6001\u5df2\u91ca\u653e\u3002\n");
-            MarkRunningWorkflowStep(false);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Chat operation failed");
-            message.IsError = true;
-            message.Text = string.IsNullOrEmpty(message.Text)
-                ? ex.Message
-                : message.Text + L.Format("ChatErrorAppend", ex.Message);
-            ErrorMessage = ex.Message;
-        }
-        finally
-        {
-            message.IsStreaming = false;
-            IsSending = false;
-            FinishActiveOperation();
-            HideWorkflowProgress();
-        }
-    }
-
-    private bool TryValidateAutomaticAction(AiActionRequest action, out string message)
-    {
-        message = string.Empty;
-        if (action.Kind != AiActionKind.StartScan || string.IsNullOrWhiteSpace(action.Path))
-        {
-            return true;
-        }
-
-        var scanTarget = NormalizeScanTarget(action.Path);
-        if (_scanTargetAvailabilityProbe(scanTarget))
-        {
-            return true;
-        }
-
-        message = Localized(
-            $"Cannot scan {scanTarget}: the drive or folder does not exist, is not mounted, or is currently inaccessible.",
-            $"无法扫描 {scanTarget}：该磁盘或文件夹不存在、未挂载，或当前不可访问。");
-        return false;
-    }
-
-    private static string NormalizeScanTarget(string path)
-    {
-        var trimmed = path.Trim();
-        return trimmed.Length == 2 && char.IsLetter(trimmed[0]) && trimmed[1] == ':'
-            ? trimmed + @"\"
-            : trimmed;
-    }
-
-    private static bool IsScanTargetAvailable(string path)
-    {
-        try
-        {
-            var root = Path.GetPathRoot(path);
-            if (string.Equals(root, path, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(root))
-            {
-                return DriveInfo.GetDrives().Any(drive =>
-                    string.Equals(drive.Name, root, StringComparison.OrdinalIgnoreCase) && drive.IsReady);
-            }
-
-            return Directory.Exists(path);
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
     private void SetWorkflowPlan(IReadOnlyList<string> stepTitles)
     {
         WorkflowSteps = new ObservableCollection<CopilotWorkflowStep>(stepTitles.Select(title => new CopilotWorkflowStep(title)));
@@ -863,13 +595,26 @@ public partial class ChatViewModel : ObservableObject
 
     private static IReadOnlyList<string> BuildWorkflowSteps(AiActionRequest action, AiSkillRoutingResult? routed)
     {
-        var scope = action.ScopeLabel ?? action.Path ?? Localized("current scope", "褰撳墠鑼冨洿");
-        if (action.Kind == AiActionKind.StartScan && routed?.Intents.Contains(AiIntent.FolderCleanupAnalysis) == true)
+        var scope = action.ScopeLabel ?? action.Path ?? Localized("current scope", "当前范围");
+        return action.Kind switch
         {
-            return [Localized($"Scan {scope}", $"鎵弿 {scope}"), Localized("Analyze cleanup candidates", "鍒嗘瀽鍙竻鐞嗛」"), Localized("Write recommendation summary", "鍐欏叆鎺ㄨ崘娓呯悊鍒楄〃")];
-        }
-
-        return [];
+            AiActionKind.StartScan =>
+            [
+                Localized($"Run confirmed scan for {scope}", $"执行已确认的扫描：{scope}")
+            ],
+            AiActionKind.AnalyzeCleanup =>
+            [
+                Localized($"Run confirmed cleanup analysis for {scope}", $"执行已确认的清理分析：{scope}")
+            ],
+            AiActionKind.NavigateToScannedPath =>
+            [
+                Localized($"Navigate to {scope}", $"导航到 {scope}")
+            ],
+            _ =>
+            [
+                Localized("Run confirmed action", "执行已确认的操作")
+            ]
+        };
     }
 
     private static IReadOnlyList<WorkflowStepPlan> BuildUnityDiscoveryWorkflowSteps(AiActionRequest action)
@@ -909,35 +654,33 @@ public partial class ChatViewModel : ObservableObject
         ];
     }
 
-    private static string BuildAutomaticActionIntro(AiActionRequest action, AiSkillRoutingResult routed)
+    private static string BuildModelUserInput(
+        string userInput,
+        AiSkillRoutingResult routed,
+        FileEntry? linkedEntry,
+        CleanupRecommendation? linkedRecommendation,
+        FileEntry? currentViewRoot,
+        ScanSession? currentSession,
+        bool hasExistingRecommendations)
     {
-        var scope = action.ScopeLabel ?? action.Path ?? Localized("current scope", "\u5f53\u524d\u8303\u56f4");
-        return action.Kind switch
+        var context = new
         {
-            AiActionKind.DiscoverUnityLibraries => Localized(
-                "Sure — I prepared a confirmation card to discover Unity Library cleanup candidates across ready drives. It only writes reviewable recommendations; deletion is a separate confirmation.",
-                "可以，我先准备一张确认卡，用来在可用磁盘中发现 Unity Library 清理候选项。它只会写入可复核推荐；删除还要单独确认。"),
-            AiActionKind.StartScan => Localized(
-                $"Sure — I prepared a confirmation card to scan {scope}. After you confirm, the scan starts; after it finishes, I can analyze the space usage from the result.",
-                $"可以，我先给你一张“扫描 {scope}”的确认卡片。你确认后开始扫描；扫描完成后我再基于结果分析占用情况。"),
-            AiActionKind.AnalyzeCleanup => Localized(
-                $"Sure — I prepared a confirmation card to analyze cleanup recommendations for {scope}. Analysis starts after you confirm.",
-                $"可以，我先给你一张“分析 {scope} 清理建议”的确认卡片。你确认后开始分析。"),
-            _ => Localized("I prepared a confirmation card and will run it only after you confirm.", "我先给你一个确认卡片，你确认后再执行。")
+            scan_available = currentSession is not null,
+            scan_root_path = currentSession?.RootEntry?.Path ?? currentSession?.TargetPath,
+            current_view_path = currentViewRoot?.Path,
+            selected_path = linkedEntry?.Path ?? linkedRecommendation?.TargetPath,
+            has_existing_recommendations = hasExistingRecommendations,
+            selected_skills = routed.SelectedSkillIds.Select(id => "@" + id).ToArray(),
+            available_drives = DriveInfo.GetDrives()
+                .Where(drive => drive.IsReady)
+                .Select(drive => drive.Name)
+                .ToArray()
         };
+        var contextJson = JsonSerializer.Serialize(context);
+        return $"{userInput}\n\nHost disk context JSON:\n{contextJson}";
     }
 
-    private static string BuildModelUserInput(string userInput, AiSkillRoutingResult routed)
-    {
-        if (routed.SelectedSkillIds.Count == 0)
-        {
-            return userInput;
-        }
-
-        var selectedSkills = string.Join(", ", routed.SelectedSkillIds.Select(id => "@" + id));
-        return $"{userInput}\n\nSelected skills: {selectedSkills}";
-    }
-
+    
     private static bool ShouldEnableThinking(AppSettings settings, AiSkillRoutingResult routed)
         => settings.EnableThinking && routed.SelectedSkillIds.Count == 0;
 
@@ -1055,6 +798,7 @@ public partial class ChatViewModel : ObservableObject
             nameof(AiActionKind.StartScan) => AiActionKind.StartScan,
             nameof(AiActionKind.AnalyzeCleanup) => AiActionKind.AnalyzeCleanup,
             nameof(AiActionKind.ClearConversation) => AiActionKind.ClearConversation,
+            nameof(AiActionKind.DiscoverUnityLibraries) => AiActionKind.DiscoverUnityLibraries,
             nameof(AiActionKind.NavigateToScannedPath) => AiActionKind.NavigateToScannedPath,
             _ => AiActionKind.None
         };
@@ -1082,73 +826,6 @@ public partial class ChatViewModel : ObservableObject
 
     private static bool GetBool(JsonElement element, string propertyName)
         => element.TryGetProperty(propertyName, out var value) && value.ValueKind is JsonValueKind.True or JsonValueKind.False && value.GetBoolean();
-
-    private bool TryHandleChatWindowIntent(string text)
-    {
-        var clearIntent = ClassifyClearConversationIntent(text);
-        if (clearIntent == ClearConversationIntent.None)
-        {
-            return false;
-        }
-
-        var explicitRequest = clearIntent == ClearConversationIntent.Explicit;
-        PendingInteractionCard = BuildClearConversationCard(explicitRequest);
-        return true;
-    }
-
-    private static ClearConversationIntent ClassifyClearConversationIntent(string text)
-    {
-        var normalized = text.Trim().ToLowerInvariant();
-        if (string.IsNullOrWhiteSpace(normalized))
-        {
-            return ClearConversationIntent.None;
-        }
-
-        string[] explicitPhrases =
-        [
-            "clear", "clear chat", "clear conversation", "reset chat", "new chat", "start a new chat",
-            "清空", "清空对话", "清除对话", "清空聊天", "删除聊天记录", "清空本窗口", "清空当前对话",
-            "清空当前对话上下文", "新建会话", "开启新会话", "开新会话", "新话题", "重新开始对话"
-        ];
-
-        if (explicitPhrases.Any(phrase => normalized.Contains(phrase, StringComparison.Ordinal)))
-        {
-            return ClearConversationIntent.Explicit;
-        }
-
-        string[] guidedPhrases =
-        [
-            "上下文乱", "上下文太乱", "聊乱了", "对话乱", "你记混", "记混了", "忘掉前面", "不要记之前",
-            "重新来", "重来吧", "答非所问", "越聊越乱", "forget previous", "forget earlier", "start fresh",
-            "context is messy", "you are confused", "this chat is messy"
-        ];
-
-        return guidedPhrases.Any(phrase => normalized.Contains(phrase, StringComparison.Ordinal))
-            ? ClearConversationIntent.Guided
-            : ClearConversationIntent.None;
-    }
-
-    private static AiInteractionCard BuildClearConversationCard(bool explicitRequest)
-        => new()
-        {
-            Title = explicitRequest
-                ? Localized("Confirm clearing chat?", "确认清空对话？")
-                : Localized("Clear this chat window?", "清空本窗口？"),
-            Description = Localized(
-                "This clears messages and Copilot conversation context in this window. Scan data and disk files stay unchanged.",
-                "这会清空本窗口消息和 Copilot 对话上下文；扫描数据和磁盘文件不会改变。"),
-            Impact = Localized("You can continue with a fresh chat after confirming.", "确认后可以从一个全新的对话继续。"),
-            ConfirmText = Localized("Clear Chat", "娓呯┖瀵硅瘽"),
-            CancelText = L.Text("CopilotCardDefaultCancel"),
-            Action = new AiActionRequest(AiActionKind.ClearConversation)
-        };
-
-    private enum ClearConversationIntent
-    {
-        None,
-        Explicit,
-        Guided
-    }
 
     private void ClearConversation()
     {
@@ -1212,5 +889,6 @@ public enum CopilotWorkflowStepStatus
 public sealed record ChatCommandSuggestion(string Command, string Description);
 
 public sealed record ChatSkillSuggestion(string Mention, string DisplayName, string Description);
+
 
 

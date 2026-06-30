@@ -788,7 +788,7 @@
     <value>AI chat whitelist</value>
   </data>
   <data name="SettingsWhitelistAiHint" xml:space="preserve">
-    <value>Hidden from context summaries, selected items, related recommendations, and read-only file tree tools.</value>
+    <value>Hidden from context summaries, selected items, related recommendations, and agent tools.</value>
   </data>
   <data name="SettingsWhitelistPathPlaceholder" xml:space="preserve">
     <value>Path</value>

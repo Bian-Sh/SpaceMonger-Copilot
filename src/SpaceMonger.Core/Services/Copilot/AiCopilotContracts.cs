@@ -1,20 +1,7 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
 namespace SpaceMonger.Core.Services.Copilot;
-
-public enum AiIntent
-{
-    GeneralChat,
-    Identity,
-    ModuleHelp,
-    DiskScan,
-    FolderCleanupAnalysis,
-    FileTreeQuery,
-    RecommendationCleanup,
-    TreemapNavigation,
-    UnityProjectCleanup
-}
 
 public enum AiActionKind
 {
@@ -47,7 +34,6 @@ public enum AiInteractionCardStatus
 
 public sealed record AiSkill(
     string Id,
-    AiIntent Intent,
     string Description,
     string Prompt);
 
@@ -55,6 +41,13 @@ public sealed record AiSkillCatalogItem(
     string Id,
     string DisplayName,
     string Description);
+
+public sealed record AiSkillStoreResult(
+    bool Success,
+    string Message,
+    string? SkillId = null,
+    string? Content = null,
+    string? ErrorCode = null);
 
 public sealed record AiActionRequest(
     AiActionKind Kind,
@@ -162,13 +155,8 @@ public sealed class AiInteractionCard : INotifyPropertyChanged
     }
 }
 
-public sealed record AiSkillRoutingResult(
-    IReadOnlyList<AiIntent> Intents,
-    IReadOnlyList<AiSkill> Skills,
-    AiActionRequest? SuggestedAction,
-    string? LocalAnswer = null,
-    bool CanRunWithoutScanContext = false,
-    bool PreferModelAnswer = false)
+public sealed record AiSkillRoutingResult(IReadOnlyList<AiSkill> Skills)
 {
     public IReadOnlyList<string> SelectedSkillIds { get; init; } = [];
 }
+

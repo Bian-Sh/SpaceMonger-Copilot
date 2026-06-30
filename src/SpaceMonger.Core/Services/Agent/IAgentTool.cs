@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 
 namespace SpaceMonger.Core.Services.Agent;
 
@@ -8,6 +8,7 @@ public interface IAgentTool
     string Description { get; }
     ToolRiskLevel RiskLevel { get; }
     JsonElement Schema { get; }
+    bool RequiresScanContext => true;
 
     Task<JsonElement> ExecuteAsync(AgentContext context, JsonElement arguments, CancellationToken cancellationToken);
 }

@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using NSubstitute;
 using FluentAssertions;
 using SpaceMonger.App.Services.Copilot;
@@ -29,31 +29,43 @@ public class ChatViewModelProposalTests
             },
             card = new
             {
-                title = "扫描这个路径",
-                description = "需要先扫描这个路径，才能继续分析。",
-                impact = "会创建新的扫描结果。",
-                confirm_text = "开始扫描",
-                cancel_text = "取消"
+                title = "Scan this path",
+                description = "Scan this path before deeper analysis.",
+                impact = "Creates a new scan result.",
+                confirm_text = "Start scan",
+                cancel_text = "鍙栨秷"
             }
         });
 
         ChatViewModel.ApplyProposalIfAny(message, proposal);
 
         message.InteractionCard.Should().NotBeNull();
-        message.InteractionCard!.Title.Should().Be("扫描这个路径");
+        message.InteractionCard!.Title.Should().Be("Scan this path");
         message.InteractionCard.Action.Kind.Should().Be(AiActionKind.StartScan);
         message.InteractionCard.Action.Path.Should().Be(@"D:\Downloads");
     }
 
     [Fact]
-    public async Task SendCommand_ForExplicitClearRequest_ShowsClearConfirmationCard()
+    public async Task SendCommand_ForModelClearProposal_ShowsClearConfirmationCard()
     {
-        var viewModel = CreateViewModel();
+        var chatService = Substitute.For<IChatService>();
+        chatService.StreamSkillMessageWithThinkingAsync(
+                Arg.Any<string>(),
+                Arg.Any<IReadOnlyList<AiSkill>>(),
+                Arg.Any<string?>(),
+                Arg.Any<string>(),
+                Arg.Any<string?>(),
+                Arg.Any<bool>(),
+                Arg.Any<Action<string>?>(),
+                Arg.Any<Action<string>?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(new ChatResponse("I prepared a clear-chat card.", string.Empty, CreateClearConversationProposal()));
+        var viewModel = CreateViewModel(chatService);
         viewModel.InputText = "clear chat";
 
         await viewModel.SendCommand.ExecuteAsync(null);
 
-        viewModel.Messages.Should().ContainSingle(message => message.Sender == ChatSender.User);
+        viewModel.Messages.Should().Contain(message => message.Sender == ChatSender.User);
         var card = viewModel.PendingInteractionCard;
         card.Should().NotBeNull();
         card!.Action.Kind.Should().Be(AiActionKind.ClearConversation);
@@ -64,6 +76,17 @@ public class ChatViewModelProposalTests
     public async Task ConfirmInteraction_ForClearConversation_ClearsMessagesAndHistory()
     {
         var chatService = Substitute.For<IChatService>();
+        chatService.StreamSkillMessageWithThinkingAsync(
+                Arg.Any<string>(),
+                Arg.Any<IReadOnlyList<AiSkill>>(),
+                Arg.Any<string?>(),
+                Arg.Any<string>(),
+                Arg.Any<string?>(),
+                Arg.Any<bool>(),
+                Arg.Any<Action<string>?>(),
+                Arg.Any<Action<string>?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(new ChatResponse("I prepared a clear-chat card.", string.Empty, CreateClearConversationProposal()));
         var viewModel = CreateViewModel(chatService);
         viewModel.InputText = "context is messy";
         await viewModel.SendCommand.ExecuteAsync(null);
@@ -128,39 +151,51 @@ public class ChatViewModelProposalTests
     }
 
     [Fact]
-    public async Task SendCommand_ForUnityLibraryDiscovery_UsesExecutorProgressSteps()
+    public async Task SendCommand_ForUnityLibraryDiscovery_UsesModelProposalCard()
     {
-        var chatService = Substitute.For<IChatService>();
-        var actionExecutor = Substitute.For<IAiDiskActionExecutor>();
-        actionExecutor.HasExistingRecommendations.Returns(false);
-        actionExecutor.ExecuteAsync(Arg.Any<AiActionRequest>(), Arg.Any<CancellationToken>(), Arg.Any<IProgress<AiActionProgress>>())
-            .Returns(callInfo =>
+        var proposal = JsonSerializer.SerializeToElement(new
+        {
+            action = new
             {
-                var progress = callInfo.ArgAt<IProgress<AiActionProgress>>(2);
-                progress.Report(new AiActionProgress("enumerate_drives", "Enumerate ready drives", AiActionProgressStatus.Completed));
-                progress.Report(new AiActionProgress("write_unity_recommendations", "Write Unity cleanup recommendations", AiActionProgressStatus.Completed));
-                return Task.FromResult(AiActionResult.Ok("ok"));
-            });
-
-        var routed = new AiSkillRoutingResult(
-            [AiIntent.UnityProjectCleanup],
-            [],
-            new AiActionRequest(AiActionKind.DiscoverUnityLibraries, ScopeLabel: "Unity Library"));
+                kind = nameof(AiActionKind.DiscoverUnityLibraries),
+                scope_label = "Unity Library",
+                will_overwrite_existing_data = false
+            },
+            card = new
+            {
+                title = "扫描 Unity Library",
+                description = "由模型按 skill 提议 Unity Library 发现流程。",
+                confirm_text = "开始",
+                cancel_text = "取消"
+            }
+        });
+        var chatService = Substitute.For<IChatService>();
+        chatService.StreamSkillMessageWithThinkingAsync(
+                Arg.Any<string>(),
+                Arg.Any<IReadOnlyList<AiSkill>>(),
+                Arg.Any<string?>(),
+                Arg.Any<string>(),
+                Arg.Any<string?>(),
+                Arg.Any<bool>(),
+                Arg.Any<Action<string>?>(),
+                Arg.Any<Action<string>?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(new ChatResponse("我已准备确认卡片。", string.Empty, proposal));
+        var actionExecutor = Substitute.For<IAiDiskActionExecutor>();
+        var routed = new AiSkillRoutingResult([]);
         var viewModel = CreateViewModel(chatService, routed);
         viewModel.SetActionExecutor(actionExecutor);
         viewModel.InputText = "clean Unity Library";
 
         await viewModel.SendCommand.ExecuteAsync(null);
 
-        viewModel.PendingInteractionCard.Should().BeNull();
-        viewModel.IsWorkflowProgressVisible.Should().BeFalse();
-        viewModel.WorkflowSteps.Should().Contain(step => step.StepId == "write_unity_recommendations" && step.Status == CopilotWorkflowStepStatus.Finished);
-        await actionExecutor.Received().ExecuteAsync(
-            Arg.Is<AiActionRequest>(request => request.Kind == AiActionKind.DiscoverUnityLibraries),
+        viewModel.PendingInteractionCard.Should().NotBeNull();
+        viewModel.PendingInteractionCard!.Action.Kind.Should().Be(AiActionKind.DiscoverUnityLibraries);
+        await actionExecutor.DidNotReceive().ExecuteAsync(
+            Arg.Any<AiActionRequest>(),
             Arg.Any<CancellationToken>(),
             Arg.Any<IProgress<AiActionProgress>>());
     }
-
     [Fact]
     public async Task SendCommand_ForSlashClear_ClearsImmediatelyWithoutChatBubble()
     {
@@ -179,69 +214,53 @@ public class ChatViewModelProposalTests
 
 
     [Fact]
-    public async Task SendCommand_ForSafeScanCleanupIntent_AutoExecutesWithoutConfirmationCard()
+    public async Task SendCommand_ForScanProposal_ShowsConfirmationCardWithoutAutoExecuting()
     {
+        var proposal = JsonSerializer.SerializeToElement(new
+        {
+            action = new
+            {
+                kind = nameof(AiActionKind.StartScan),
+                path = @"G:",
+                scope_label = @"G:",
+                will_overwrite_existing_data = false
+            },
+            card = new
+            {
+                title = "Scan G drive",
+                description = "Scan before analysis.",
+                confirm_text = "Start scan",
+                cancel_text = "Cancel"
+            }
+        });
         var chatService = Substitute.For<IChatService>();
+        chatService.StreamSkillMessageWithThinkingAsync(
+                Arg.Any<string>(),
+                Arg.Any<IReadOnlyList<AiSkill>>(),
+                Arg.Any<string?>(),
+                Arg.Any<string>(),
+                Arg.Any<string?>(),
+                Arg.Any<bool>(),
+                Arg.Any<Action<string>?>(),
+                Arg.Any<Action<string>?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(new ChatResponse("I prepared a scan card.", string.Empty, proposal));
         var actionExecutor = Substitute.For<IAiDiskActionExecutor>();
-        actionExecutor.HasExistingRecommendations.Returns(false);
-        actionExecutor.ExecuteAsync(Arg.Any<AiActionRequest>(), Arg.Any<CancellationToken>(), Arg.Any<IProgress<AiActionProgress>>())
-            .Returns(Task.FromResult(AiActionResult.Ok("ok")));
-
-        var routed = new AiSkillRoutingResult(
-            [AiIntent.DiskScan, AiIntent.FolderCleanupAnalysis],
-            [],
-            new AiActionRequest(AiActionKind.StartScan, Path: @"D:\", ScopeLabel: @"D:\"));
-        var viewModel = CreateViewModel(chatService, routed);
+        var viewModel = CreateViewModel(chatService, new AiSkillRoutingResult([]));
         viewModel.SetActionExecutor(actionExecutor);
-        viewModel.SetScanTargetAvailabilityProbe(_ => true);
-        viewModel.InputText = "analyze D drive cleanup";
-
-        await viewModel.SendCommand.ExecuteAsync(null);
-
-        viewModel.Messages.Should().HaveCountGreaterThanOrEqualTo(2);
-        viewModel.PendingInteractionCard.Should().BeNull();
-        viewModel.IsWorkflowProgressVisible.Should().BeFalse();
-        viewModel.WorkflowSteps.Should().NotBeEmpty();
-        await actionExecutor.Received().ExecuteAsync(
-            Arg.Is<AiActionRequest>(request => request.Kind == AiActionKind.StartScan && request.Path == @"D:\"),
-            Arg.Any<CancellationToken>(),
-            Arg.Any<IProgress<AiActionProgress>>());
-        await actionExecutor.Received().ExecuteAsync(
-            Arg.Is<AiActionRequest>(request => request.Kind == AiActionKind.AnalyzeCleanup),
-            Arg.Any<CancellationToken>(),
-            Arg.Any<IProgress<AiActionProgress>>());
-    }
-
-
-
-    [Fact]
-    public async Task SendCommand_ForSafeScanOnlyIntent_AutoExecutesWithoutWorkflowStepPopup()
-    {
-        var chatService = Substitute.For<IChatService>();
-        var actionExecutor = Substitute.For<IAiDiskActionExecutor>();
-        actionExecutor.ExecuteAsync(Arg.Any<AiActionRequest>(), Arg.Any<CancellationToken>(), Arg.Any<IProgress<AiActionProgress>>())
-            .Returns(Task.FromResult(AiActionResult.Ok("ok")));
-
-        var routed = new AiSkillRoutingResult(
-            [AiIntent.DiskScan],
-            [],
-            new AiActionRequest(AiActionKind.StartScan, Path: @"G:", ScopeLabel: @"G:"));
-        var viewModel = CreateViewModel(chatService, routed);
-        viewModel.SetActionExecutor(actionExecutor);
-        viewModel.SetScanTargetAvailabilityProbe(_ => true);
         viewModel.InputText = "scan G drive";
 
         await viewModel.SendCommand.ExecuteAsync(null);
 
-        viewModel.PendingInteractionCard.Should().BeNull();
+        viewModel.PendingInteractionCard.Should().NotBeNull();
+        viewModel.PendingInteractionCard!.Action.Kind.Should().Be(AiActionKind.StartScan);
+        viewModel.PendingInteractionCard.Action.Path.Should().Be(@"G:");
         viewModel.IsWorkflowProgressVisible.Should().BeFalse();
-        viewModel.WorkflowSteps.Should().BeEmpty();
-        await actionExecutor.Received().ExecuteAsync(
-            Arg.Is<AiActionRequest>(request => request.Kind == AiActionKind.StartScan && request.Path == @"G:"),
+        await actionExecutor.DidNotReceive().ExecuteAsync(
+            Arg.Any<AiActionRequest>(),
             Arg.Any<CancellationToken>(),
             Arg.Any<IProgress<AiActionProgress>>());
     }
-
     [Fact]
     public async Task SendCommand_ForUnavailableScanTarget_AsksModelWithDriveContextWithoutExecutingAction()
     {
@@ -265,13 +284,9 @@ public class ChatViewModelProposalTests
                 return Task.FromResult(new ChatResponse("ok", string.Empty, null));
             });
         var actionExecutor = Substitute.For<IAiDiskActionExecutor>();
-        var routed = new AiSkillRoutingResult(
-            [AiIntent.DiskScan],
-            [],
-            new AiActionRequest(AiActionKind.StartScan, Path: @"Z:", ScopeLabel: @"Z:"));
+        var routed = new AiSkillRoutingResult([]);
         var viewModel = CreateViewModel(chatService, routed);
         viewModel.SetActionExecutor(actionExecutor);
-        viewModel.SetScanTargetAvailabilityProbe(_ => false);
         viewModel.InputText = "scan Z drive";
 
         await viewModel.SendCommand.ExecuteAsync(null);
@@ -288,8 +303,8 @@ public class ChatViewModelProposalTests
         await chatService.Received(1).StreamSkillMessageWithThinkingAsync(
             Arg.Is<string>(message =>
                 message.Contains("Host disk context JSON") &&
-                message.Contains("requested_scan_target") &&
-                message.Contains(@"Z:")),
+                message.Contains("available_drives") &&
+                message.Contains("scan Z drive")),
             Arg.Any<IReadOnlyList<AiSkill>>(),
             Arg.Any<string?>(),
             Arg.Any<string>(),
@@ -300,6 +315,22 @@ public class ChatViewModelProposalTests
             Arg.Any<CancellationToken>());
         await actionExecutor.DidNotReceive().ExecuteAsync(Arg.Any<AiActionRequest>(), Arg.Any<CancellationToken>());
     }
+
+    private static JsonElement CreateClearConversationProposal()
+        => JsonSerializer.SerializeToElement(new
+        {
+            action = new
+            {
+                kind = nameof(AiActionKind.ClearConversation)
+            },
+            card = new
+            {
+                title = "Clear this chat window?",
+                description = "Clear messages and Copilot context after confirmation.",
+                confirm_text = "Clear Chat",
+                cancel_text = "Cancel"
+            }
+        });
 
     private static ChatViewModel CreateViewModel(IChatService? chatService = null, AiSkillRoutingResult? routingResult = null)
     {
@@ -315,9 +346,12 @@ public class ChatViewModelProposalTests
             new AiSkillCatalogItem("unity-project-cleanup", "unity-project-cleanup", "Clean Unity projects")
         ]);
         router.Route(Arg.Any<string>(), Arg.Any<FileEntry?>(), Arg.Any<FileEntry?>(), Arg.Any<bool>(), Arg.Any<string?>())
-            .Returns(routingResult ?? new AiSkillRoutingResult([AiIntent.GeneralChat], [], null));
+            .Returns(routingResult ?? new AiSkillRoutingResult([]));
 
         return new ChatViewModel(chatService ?? Substitute.For<IChatService>(), settingsService, router);
     }
 
 }
+
+
+
