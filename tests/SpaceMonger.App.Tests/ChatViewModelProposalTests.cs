@@ -3,6 +3,7 @@ using NSubstitute;
 using FluentAssertions;
 using SpaceMonger.App.Services.Copilot;
 using SpaceMonger.App.ViewModels;
+using SpaceMonger.App.Localization;
 using SpaceMonger.Core.Models;
 using SpaceMonger.Core.Enums;
 using SpaceMonger.Core.Services.Chat;
@@ -139,7 +140,7 @@ public class ChatViewModelProposalTests
         viewModel.InputText = "/";
 
         viewModel.IsSlashCommandMenuOpen.Should().BeTrue();
-        viewModel.SlashCommandSuggestions.Select(item => item.Command).Should().Contain(["/new", "/clear"]);
+        viewModel.SlashCommandSuggestions.Select(item => item.Command).Should().Contain(["/new", "/clear", "/clear console"]);
         viewModel.SlashCommandSuggestions.Should().OnlyContain(item => !string.IsNullOrWhiteSpace(item.Description));
     }
 
@@ -228,6 +229,45 @@ public class ChatViewModelProposalTests
             Arg.Any<CancellationToken>(),
             Arg.Any<IProgress<AiActionProgress>>());
     }
+    [Fact]
+    public void SlashCommandDescriptions_FollowCurrentLanguage()
+    {
+        try
+        {
+            L.SetLanguage("en-US");
+            var englishViewModel = CreateViewModel();
+            englishViewModel.SlashCommandSuggestions.Single(item => item.Command == "/clear console")
+                .Description.Should().Be("Clear the console log shown in the app");
+
+            L.SetLanguage("zh-CN");
+            var chineseViewModel = CreateViewModel();
+            chineseViewModel.SlashCommandSuggestions.Single(item => item.Command == "/clear")
+                .Description.Should().Be("清除当前对话，不影响扫描数据");
+        }
+        finally
+        {
+            L.SetLanguage("en-US");
+        }
+    }
+
+    [Fact]
+    public async Task SendCommand_ForSlashClearConsole_RaisesConsoleClearOnly()
+    {
+        var chatService = Substitute.For<IChatService>();
+        var viewModel = CreateViewModel(chatService);
+        var clearConsoleCount = 0;
+        viewModel.ClearConsoleRequested += () => clearConsoleCount++;
+        viewModel.Messages.Add(new ChatMessage { Text = "old" });
+        viewModel.InputText = "/clear console";
+
+        await viewModel.SendCommand.ExecuteAsync(null);
+
+        clearConsoleCount.Should().Be(1);
+        viewModel.Messages.Should().ContainSingle(message => message.Text == "old");
+        viewModel.InputText.Should().BeNull();
+        chatService.DidNotReceive().ClearHistory();
+    }
+
     [Fact]
     public async Task SendCommand_ForSlashClear_ClearsImmediatelyWithoutChatBubble()
     {
@@ -672,6 +712,3 @@ public class ChatViewModelProposalTests
     }
 
 }
-
-
-

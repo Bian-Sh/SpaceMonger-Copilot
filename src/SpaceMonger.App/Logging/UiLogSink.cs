@@ -32,6 +32,18 @@ public sealed class UiLogSink : ILogEventSink
         dispatcher.BeginInvoke(() => Add(entry));
     }
 
+    public void Clear()
+    {
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher is null || dispatcher.CheckAccess())
+        {
+            Entries.Clear();
+            return;
+        }
+
+        dispatcher.BeginInvoke(Entries.Clear);
+    }
+
     private void Add(UiLogEntry entry)
     {
         Entries.Add(entry);

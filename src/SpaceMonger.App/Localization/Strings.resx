@@ -445,6 +445,15 @@
   <data name="TreemapNoChildDataHint" xml:space="preserve">
     <value />
   </data>
+  <data name="SlashCommandNewDescription" xml:space="preserve">
+    <value>Start a new chat and clear the current chat context</value>
+  </data>
+  <data name="SlashCommandClearDescription" xml:space="preserve">
+    <value>Clear the current chat without changing scanned data</value>
+  </data>
+  <data name="SlashCommandClearConsoleDescription" xml:space="preserve">
+    <value>Clear the console log shown in the app</value>
+  </data>
   <data name="ChatEmptyTitle" xml:space="preserve">
     <value>Chat assistant ready</value>
   </data>

@@ -39,11 +39,7 @@ public partial class ChatViewModel : ObservableObject
     [ObservableProperty] private bool _isWorkflowProgressVisible;
     [ObservableProperty] private int _currentWorkflowStepNumber;
     [ObservableProperty] private ObservableCollection<CopilotWorkflowStep> _workflowSteps = new();
-    [ObservableProperty] private ObservableCollection<ChatCommandSuggestion> _slashCommandSuggestions = new(
-    [
-        new ChatCommandSuggestion("/new", "鏂板缓浼氳瘽锛屾竻绌哄綋鍓嶈亰澶╀笂涓嬫枃"),
-        new ChatCommandSuggestion("/clear", "娓呴櫎褰撳墠瀵硅瘽锛屼笉褰卞搷鎵弿鏁版嵁")
-    ]);
+    [ObservableProperty] private ObservableCollection<ChatCommandSuggestion> _slashCommandSuggestions = new(BuildSlashCommandSuggestions());
     [ObservableProperty] private ObservableCollection<ChatSkillSuggestion> _skillMentionSuggestions = new();
     [ObservableProperty] private ObservableCollection<ChatSkillSuggestion> _filteredSkillMentionSuggestions = new();
     [ObservableProperty] private ChatCommandSuggestion? _selectedSlashCommandSuggestion;
@@ -68,8 +64,11 @@ public partial class ChatViewModel : ObservableObject
             _skillRouter.GetSkillCatalog().Select(skill => new ChatSkillSuggestion($"@{skill.Id}", skill.DisplayName, skill.Description)));
         FilteredSkillMentionSuggestions = new ObservableCollection<ChatSkillSuggestion>(SkillMentionSuggestions);
         Messages.CollectionChanged += Messages_CollectionChanged;
+        L.LanguageChanged += RefreshSlashCommandSuggestions;
         RefreshApiKeyStatus();
     }
+
+    public event Action? ClearConsoleRequested;
 
     public void SetActionExecutor(IAiDiskActionExecutor actionExecutor) => _actionExecutor = actionExecutor;
 
@@ -396,13 +395,32 @@ public partial class ChatViewModel : ObservableObject
     private bool TryExecuteSlashCommand(string text)
     {
         var command = text.Trim().ToLowerInvariant();
-        if (command is not "/new" and not "/clear")
+        if (command is "/new" or "/clear")
         {
-            return false;
+            ClearConversation();
+            return true;
         }
 
-        ClearConversation();
-        return true;
+        if (command == "/clear console")
+        {
+            ClearConsoleRequested?.Invoke();
+            return true;
+        }
+
+        return false;
+    }
+
+    private static IEnumerable<ChatCommandSuggestion> BuildSlashCommandSuggestions()
+    {
+        yield return new ChatCommandSuggestion("/new", L.Text("SlashCommandNewDescription"));
+        yield return new ChatCommandSuggestion("/clear", L.Text("SlashCommandClearDescription"));
+        yield return new ChatCommandSuggestion("/clear console", L.Text("SlashCommandClearConsoleDescription"));
+    }
+
+    private void RefreshSlashCommandSuggestions()
+    {
+        SlashCommandSuggestions = new ObservableCollection<ChatCommandSuggestion>(BuildSlashCommandSuggestions());
+        SelectedSlashCommandSuggestion = IsSlashCommandMenuOpen ? SlashCommandSuggestions.FirstOrDefault() : null;
     }
 
     private void MoveMessageInteractionCardToInputOverlay(ChatMessage message)

@@ -1,4 +1,4 @@
-﻿# Progress
+# Progress
 
 - 已建立计划文件。
 - 已确认 CodeGraph 索引可用且项目索引最新。
@@ -97,3 +97,9 @@
 - 修复 AI 外部分析等待状态下点击分析/清理按钮仍使用 Windows MessageBox 的问题。
 - RecommendationsPanel 改为通过 ShowWaitingForAiMessageAsync 委托请求宿主显示提示，MainWindow 注入现有 AppModalHost 通用模态窗口。
 - 验证：dotnet test src\\SpaceMonger.sln --no-restore 通过（73 passed，保留既有 NU1701/CS8604 warning）；CodeGraph sync 完成；发布 outputs\\SpaceMonger-win-x64-folder-20260630-184943。
+
+## 2026-06-30 19:05:52 +08:00
+- 修复 Chat slash command 描述：改为 Strings.resx/Strings.zh-CN.resx 本地化资源，移除 ChatViewModel 中的乱码中文硬编码。
+- 新增 /clear console 指令：从聊天输入触发 AppLog.UiSink.Clear，只清空应用内 Console，不清空聊天记录/扫描数据。
+- 测试：ChatViewModelProposalTests 新增多语言描述和 console 清空回归；dotnet test src\\SpaceMonger.sln --no-restore 通过（75 passed，保留既有 NU1701/CS8604 warning）。
+- 发布：outputs\\SpaceMonger-win-x64-folder-20260630-190534；CodeGraph sync 完成。

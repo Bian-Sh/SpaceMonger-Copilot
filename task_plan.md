@@ -1,4 +1,4 @@
-﻿# Task Plan: Agent Skill Router 去硬编码化
+# Task Plan: Agent Skill Router 去硬编码化
 
 ## 目标
 把 `AiSkillRouter` 从中文关键字枚举/硬编码路由，收敛成“Agent 客户端能力通过 prompt/skill 声明”的最小实现：App 内置磁盘扫描/注册表查询能力，但不把风险算法、Unity 清理规则、语言关键词写死在 App 中。
@@ -38,3 +38,5 @@
 - [x] 2026-06-30 追加：修复 wrapped proposal/snake_case kind 导致 hasProposal=True 但无确认卡/无 step 的问题，并完成 CUA 验收。
 
 - [x] 2026-06-30 追加：AI 外部分析等待提示从系统 MessageBox 切换到 AppModalHost 通用模态窗口，并完成测试/发布。
+
+- [x] 2026-06-30 19:05:52 +08:00 追加：修复 chat / 指令描述本地化乱码，并新增 /clear console 清空 Console。

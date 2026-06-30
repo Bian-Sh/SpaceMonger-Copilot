@@ -16,6 +16,7 @@ using SpaceMonger.App.Diagnostics;
 using SpaceMonger.App.Helpers;
 using SpaceMonger.App.Localization;
 using SpaceMonger.App.Converters;
+using SpaceMonger.App.Logging;
 using SpaceMonger.App.ViewModels;
 using SpaceMonger.App.Views;
 using SpaceMonger.Core.Models;
@@ -137,6 +138,7 @@ public partial class MainWindow
         _chatViewModel = chatVm;
         ChatPanel.SetViewModel(chatVm);
         chatVm.SetActionExecutor(this);
+        chatVm.ClearConsoleRequested += AppLog.UiSink.Clear;
 
         ChatPanel.OpenSettingsRequested += () => OpenSettingsDialog();
         TreemapView.AskAiRequested += AskAiAboutEntry;
