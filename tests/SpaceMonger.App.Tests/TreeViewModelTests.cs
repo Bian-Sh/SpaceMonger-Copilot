@@ -78,6 +78,24 @@ public class TreeViewModelTests
         viewModel.SelectedItem.Should().BeSameAs(childItem);
     }
 
+    [Fact]
+    public void SelectEntry_SelectsRootEvenWhenEntryHasParent()
+    {
+        var scanRoot = Directory(@"C:\", "C:");
+        var currentRoot = AddDirectory(scanRoot, "Current");
+        AddFile(currentRoot, "file.bin", 10);
+        RecalculateTree(scanRoot);
+
+        var viewModel = new TreeViewModel();
+        viewModel.SetRoot(currentRoot);
+
+        viewModel.SelectEntry(currentRoot);
+
+        var rootItem = viewModel.RootItems.Single();
+        rootItem.IsSelected.Should().BeTrue();
+        viewModel.SelectedItem.Should().BeSameAs(rootItem);
+    }
+
     private static FileEntry Directory(string path, string name) => new()
     {
         Path = path,

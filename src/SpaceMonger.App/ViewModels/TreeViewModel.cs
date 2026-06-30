@@ -197,6 +197,9 @@ public partial class TreeViewModel : ObservableObject
 
     private static TreeViewItemViewModel? FindTreeViewItemByPath(TreeViewItemViewModel root, FileEntry target)
     {
+        if (ReferenceEquals(root.Entry, target))
+            return root;
+
         var path = new Stack<FileEntry>();
         var currentEntry = target;
         while (currentEntry is not null)

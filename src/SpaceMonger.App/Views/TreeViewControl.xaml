@@ -474,7 +474,8 @@
                       Background="Transparent"
                       BorderThickness="0"
                       Padding="0"
-                      VirtualizingStackPanel.IsVirtualizing="False"
+                      VirtualizingStackPanel.IsVirtualizing="True"
+                      VirtualizingStackPanel.VirtualizationMode="Recycling"
                       TreeViewItem.Selected="TreeViewItem_Selected">
                 <TreeView.ItemContainerStyle>
                     <Style TargetType="TreeViewItem">

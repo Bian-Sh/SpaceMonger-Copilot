@@ -117,7 +117,10 @@ public partial class MainWindow
                     _displayPathOverride = null;
                     UpdateSelectedPathFromNavigation(_treemapViewModel.CurrentRoot.Path, updateSelectedPath: true);
                     RebuildBreadcrumbBar();
-                    TreeViewControl.SelectEntry(_treemapViewModel.CurrentRoot);
+                    if (TreeViewControl.Visibility == Visibility.Visible)
+                    {
+                        SyncTreeViewWithTreemap();
+                    }
                 }
                 break;
         }
@@ -342,17 +345,13 @@ public partial class MainWindow
 
     private void SyncTreeViewWithTreemap()
     {
-        if (_treemapViewModel?.ScanRoot is null)
+        if (_treemapViewModel?.CurrentRoot is null)
             return;
 
-        var root = _treemapViewModel.ScanRoot;
+        var root = _treemapViewModel.CurrentRoot;
         var treeViewModel = (TreeViewModel)TreeViewControl.DataContext;
         treeViewModel.SetRoot(root, GetScanSession());
-
-        if (_treemapViewModel.CurrentRoot is not null)
-        {
-            TreeViewControl.SelectEntry(_treemapViewModel.CurrentRoot);
-        }
+        TreeViewControl.SelectEntry(root);
     }
 
     private ScanSession? GetScanSession()
