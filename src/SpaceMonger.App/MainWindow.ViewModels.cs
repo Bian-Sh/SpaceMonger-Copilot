@@ -117,6 +117,7 @@ public partial class MainWindow
                     _displayPathOverride = null;
                     UpdateSelectedPathFromNavigation(_treemapViewModel.CurrentRoot.Path, updateSelectedPath: true);
                     RebuildBreadcrumbBar();
+                    TreeViewControl.SelectEntry(_treemapViewModel.CurrentRoot);
                 }
                 break;
         }
@@ -131,6 +132,7 @@ public partial class MainWindow
         ChatPanel.OpenSettingsRequested += () => OpenSettingsDialog();
         TreemapView.AskAiRequested += AskAiAboutEntry;
         TreeViewControl.AskAiRequested += AskAiAboutEntry;
+        TreeViewControl.EntrySelected += OnTreeViewEntrySelected;
 
         // Track treemap navigation changes to update chat context
         if (_treemapViewModel is not null)
@@ -179,6 +181,14 @@ public partial class MainWindow
             case nameof(TreemapViewModel.SelectedNode):
                 _chatViewModel.LinkedEntry = _treemapViewModel.SelectedNode?.Entry;
                 break;
+        }
+    }
+
+    private void OnTreeViewEntrySelected(FileEntry entry)
+    {
+        if (entry.IsDirectory)
+        {
+            _treemapViewModel?.NavigateToEntry(entry);
         }
     }
 
@@ -335,11 +345,14 @@ public partial class MainWindow
         if (_treemapViewModel?.ScanRoot is null)
             return;
 
+        var root = _treemapViewModel.ScanRoot;
         var treeViewModel = (TreeViewModel)TreeViewControl.DataContext;
-        var session = _treemapViewModel.ScanRoot is not null
-            ? GetScanSession()
-            : null;
-        treeViewModel.SetRoot(_treemapViewModel.ScanRoot, session);
+        treeViewModel.SetRoot(root, GetScanSession());
+
+        if (_treemapViewModel.CurrentRoot is not null)
+        {
+            TreeViewControl.SelectEntry(_treemapViewModel.CurrentRoot);
+        }
     }
 
     private ScanSession? GetScanSession()

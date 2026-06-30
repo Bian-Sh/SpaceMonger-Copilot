@@ -41,6 +41,7 @@ public partial class MainWindow
             CanGoForward = _treemapViewModel?.CanGoForward ?? false,
             CanGoUp = _treemapViewModel?.CanGoUp ?? false,
             BreadcrumbText = string.Join("", BreadcrumbBar.Children.OfType<ContentControl>().Select(c => c.Content?.ToString()).Where(s => !string.IsNullOrEmpty(s))),
+            TreeView = TreeViewControl.GetAcceptanceState(),
             RecommendationsVisible = RecommendationsPanel.Visibility == Visibility.Visible,
             ConsoleVisible = ConsoleFrame.Visibility == Visibility.Visible,
         };

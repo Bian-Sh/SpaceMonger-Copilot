@@ -185,6 +185,11 @@ public partial class TreeViewModel : ObservableObject
         if (target is not null)
         {
             ExpandToItem(target);
+            if (target.Entry.IsDirectory)
+            {
+                target.IsExpanded = true;
+                target.EnsureChildrenLoaded();
+            }
             target.IsSelected = true;
             SelectedItem = target;
         }

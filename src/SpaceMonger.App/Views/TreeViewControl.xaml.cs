@@ -10,8 +10,12 @@ namespace SpaceMonger.App.Views;
 
 public partial class TreeViewControl : UserControl
 {
+    private const double TreeRowHeight = 24.0;
+
     public event Action<FileEntry>? AskAiRequested;
-        private ScrollViewer? _headerScrollViewer;
+    public event Action<FileEntry>? EntrySelected;
+    private ScrollViewer? _headerScrollViewer;
+    private bool _suppressEntrySelected;
 
     public TreeViewControl()
     {
@@ -108,8 +112,114 @@ public partial class TreeViewControl : UserControl
                 dataContext.SelectedItem = vm;
             }
 
+            if (!_suppressEntrySelected)
+            {
+                EntrySelected?.Invoke(vm.Entry);
+            }
+
             e.Handled = true;
         }
+    }
+
+    public void SelectEntry(FileEntry entry)
+    {
+        if (DataContext is not TreeViewModel viewModel)
+            return;
+
+        _suppressEntrySelected = true;
+        try
+        {
+            viewModel.SelectEntry(entry);
+        }
+        finally
+        {
+            _suppressEntrySelected = false;
+        }
+
+        Dispatcher.BeginInvoke(new Action(() => SnapSelectedItemToTop(viewModel.SelectedItem)), System.Windows.Threading.DispatcherPriority.Loaded);
+    }
+
+    private void SnapSelectedItemToTop(TreeViewItemViewModel? selectedItem, bool retry = true)
+    {
+        if (selectedItem is null)
+            return;
+
+        var scrollViewer = FindDescendant<ScrollViewer>(FileTreeView);
+        if (scrollViewer is null)
+            return;
+
+        var visibleIndex = GetVisibleIndex(selectedItem);
+        if (visibleIndex >= 0)
+        {
+            scrollViewer.ScrollToVerticalOffset(visibleIndex * TreeRowHeight);
+        }
+
+        FileTreeView.UpdateLayout();
+        var item = FindTreeViewItem(FileTreeView, selectedItem);
+        if (item is null)
+        {
+            if (retry)
+            {
+                Dispatcher.BeginInvoke(new Action(() => SnapSelectedItemToTop(selectedItem, retry: false)), System.Windows.Threading.DispatcherPriority.ContextIdle);
+            }
+
+            return;
+        }
+
+        var top = item.TransformToAncestor(scrollViewer).Transform(new Point(0, 0)).Y;
+        scrollViewer.ScrollToVerticalOffset(scrollViewer.VerticalOffset + top);
+    }
+
+    internal object GetAcceptanceState()
+    {
+        var selectedItem = (DataContext as TreeViewModel)?.SelectedItem;
+        var scrollViewer = FindDescendant<ScrollViewer>(FileTreeView);
+        var container = selectedItem is null ? null : FindTreeViewItem(FileTreeView, selectedItem);
+        double? selectedTop = null;
+
+        if (container is not null && scrollViewer is not null)
+        {
+            selectedTop = container.TransformToAncestor(scrollViewer).Transform(new Point(0, 0)).Y;
+        }
+
+        return new
+        {
+            SelectedPath = selectedItem?.Entry.Path,
+            VerticalOffset = scrollViewer?.VerticalOffset,
+            SelectedTop = selectedTop,
+        };
+    }
+
+    private static int GetVisibleIndex(TreeViewItemViewModel selectedItem)
+    {
+        var root = selectedItem;
+        while (root.Parent is not null)
+        {
+            root = root.Parent;
+        }
+
+        var index = 0;
+        return FindVisibleIndex(root, selectedItem, ref index);
+    }
+
+    private static int FindVisibleIndex(TreeViewItemViewModel current, TreeViewItemViewModel selectedItem, ref int index)
+    {
+        if (ReferenceEquals(current, selectedItem))
+            return index;
+
+        index++;
+
+        if (!current.IsExpanded)
+            return -1;
+
+        foreach (var child in current.Children)
+        {
+            var found = FindVisibleIndex(child, selectedItem, ref index);
+            if (found >= 0)
+                return found;
+        }
+
+        return -1;
     }
 
     private void TreeViewItem_MouseRightButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -163,6 +273,26 @@ public partial class TreeViewControl : UserControl
             if (child is T typed) return typed;
             var result = FindDescendant<T>(child);
             if (result != null) return result;
+        }
+
+        return null;
+    }
+    private static TreeViewItem? FindTreeViewItem(ItemsControl parent, object item)
+    {
+        var container = parent.ItemContainerGenerator.ContainerFromItem(item) as TreeViewItem;
+        if (container is not null)
+            return container;
+
+        foreach (var childItem in parent.Items)
+        {
+            if (parent.ItemContainerGenerator.ContainerFromItem(childItem) is not TreeViewItem childContainer)
+                continue;
+
+            childContainer.ApplyTemplate();
+            childContainer.UpdateLayout();
+            var found = FindTreeViewItem(childContainer, item);
+            if (found is not null)
+                return found;
         }
 
         return null;

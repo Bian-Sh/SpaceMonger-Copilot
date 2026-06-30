@@ -52,6 +52,32 @@ public class TreeViewModelTests
         item.AllocatedText.Should().Be("0");
     }
 
+    [Fact]
+    public void SelectEntry_LoadsPathExpandsTargetAndSelectsIt()
+    {
+        var root = Directory(@"C:\", "C:");
+        var parent = AddDirectory(root, "Parent");
+        var child = AddDirectory(parent, "Child");
+        AddFile(child, "file.bin", 10);
+        RecalculateTree(root);
+
+        var viewModel = new TreeViewModel();
+        viewModel.SetRoot(root);
+
+        viewModel.SelectEntry(child);
+
+        var rootItem = viewModel.RootItems.Single();
+        var parentItem = rootItem.Children.Single(item => item.Entry == parent);
+        var childItem = parentItem.Children.Single(item => item.Entry == child);
+
+        rootItem.IsExpanded.Should().BeTrue();
+        parentItem.IsExpanded.Should().BeTrue();
+        childItem.IsExpanded.Should().BeTrue();
+        childItem.HasLoadedChildren.Should().BeTrue();
+        childItem.IsSelected.Should().BeTrue();
+        viewModel.SelectedItem.Should().BeSameAs(childItem);
+    }
+
     private static FileEntry Directory(string path, string name) => new()
     {
         Path = path,
