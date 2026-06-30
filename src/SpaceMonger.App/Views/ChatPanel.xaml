@@ -285,12 +285,15 @@
 
 
             <!-- Workflow Step Indicator (above input, hover to expand) -->
-            <Grid DockPanel.Dock="Bottom"
-                  HorizontalAlignment="Center"
-                  Margin="0,0,0,8"
-                  Panel.ZIndex="5">
-                <Grid.Style>
-                    <Style TargetType="Grid">
+            <Canvas DockPanel.Dock="Bottom"
+                    Width="280"
+                    Height="28"
+                    ClipToBounds="False"
+                    HorizontalAlignment="Center"
+                    Margin="0,0,0,8"
+                    Panel.ZIndex="5">
+                <Canvas.Style>
+                    <Style TargetType="Canvas">
                         <Setter Property="Visibility" Value="Collapsed" />
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsWorkflowProgressVisible}" Value="True">
@@ -298,12 +301,13 @@
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
-                </Grid.Style>
+                </Canvas.Style>
 
                 <Border MinWidth="168"
                         MaxWidth="280"
                         Padding="10,8"
-                        Margin="0,0,0,32"
+                        Canvas.Left="0"
+                        Canvas.Bottom="32"
                         CornerRadius="10"
                         Background="#F8FFFFFF"
                         BorderBrush="#22000000"
@@ -315,7 +319,7 @@
                         <Style TargetType="Border">
                             <Setter Property="Visibility" Value="Collapsed" />
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Grid}}" Value="True">
+                                <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Canvas}}" Value="True">
                                     <Setter Property="Visibility" Value="Visible" />
                                 </DataTrigger>
                             </Style.Triggers>
@@ -426,8 +430,9 @@
                     </ItemsControl>
                 </Border>
 
-                <Border HorizontalAlignment="Center"
-                        VerticalAlignment="Bottom"
+                <Border Canvas.Left="56"
+                        Canvas.Bottom="0"
+                        MinWidth="168"
                         Padding="10,5"
                         CornerRadius="10"
                         Background="#F8FFFFFF"
@@ -527,7 +532,7 @@
                                    VerticalAlignment="Center" />
                     </StackPanel>
                 </Border>
-            </Grid>
+            </Canvas>
 
             <!-- 3. Context Indicator (above input, conditional) -->
             <Border DockPanel.Dock="Bottom"

@@ -17,6 +17,8 @@ public partial class MainViewModel : ObservableObject
     private readonly ILogger<MainViewModel> _logger;
     private CancellationTokenSource? _scanCts;
     private Action? _externalScanCancellation;
+    private string? _scanTitleResourceKey;
+    private object?[] _scanTitleResourceArgs = [];
 
     [ObservableProperty]
     private string? _selectedPath;
@@ -92,6 +94,8 @@ public partial class MainViewModel : ObservableObject
         {
             SelectedPath = DriveList[0];
         }
+
+        L.LanguageChanged += OnLanguageChanged;
     }
 
     [RelayCommand(CanExecute = nameof(CanScan))]
@@ -106,7 +110,7 @@ public partial class MainViewModel : ObservableObject
 
         _logger.LogInformation("Scan command started for {ScanTarget}", scanTarget);
         IsScanning = true;
-        ScanTitleText = L.Text("ScanningStatus");
+        SetLocalizedScanTitle("ScanningStatus");
         ScanProgressText = string.Empty;
         _scanCts = new CancellationTokenSource();
 
@@ -187,10 +191,24 @@ public partial class MainViewModel : ObservableObject
         _logger.LogInformation("External scan started: {TitleText}", titleText);
         _externalScanCancellation = cancel;
         IsExternalScan = true;
-        ScanTitleText = titleText;
+        SetRawScanTitle(titleText);
         ScanProgressText = progressText ?? string.Empty;
         IsScanning = true;
         return new ExternalScanScope(this);
+    }
+
+    public void SetRawScanTitle(string? titleText)
+    {
+        _scanTitleResourceKey = null;
+        _scanTitleResourceArgs = [];
+        ScanTitleText = titleText;
+    }
+
+    public void SetLocalizedScanTitle(string resourceKey, params object?[] args)
+    {
+        _scanTitleResourceKey = resourceKey;
+        _scanTitleResourceArgs = args;
+        RefreshLocalizedScanTitle();
     }
 
     private void EndExternalScan()
@@ -198,8 +216,25 @@ public partial class MainViewModel : ObservableObject
         _logger.LogInformation("External scan ended");
         _externalScanCancellation = null;
         IsExternalScan = false;
-        ScanTitleText = null;
+        SetRawScanTitle(null);
         IsScanning = false;
+    }
+
+    private void OnLanguageChanged()
+    {
+        RefreshLocalizedScanTitle();
+    }
+
+    private void RefreshLocalizedScanTitle()
+    {
+        if (_scanTitleResourceKey is null)
+        {
+            return;
+        }
+
+        ScanTitleText = _scanTitleResourceArgs.Length == 0
+            ? L.Text(_scanTitleResourceKey)
+            : L.Format(_scanTitleResourceKey, _scanTitleResourceArgs);
     }
 
     private sealed class ExternalScanScope(MainViewModel owner) : IDisposable

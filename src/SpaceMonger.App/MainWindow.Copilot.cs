@@ -57,7 +57,7 @@ public partial class MainWindow : IAiDiskActionExecutor
             var failedTargets = new List<string>();
             var enumerateTitle = string.IsNullOrWhiteSpace(request.Path)
                 ? Localized("AI is checking ready drives", "AI 正在确认可扫描磁盘")
-                : Localized("AI is checking the Unity scan root", "AI 正在确认 Unity 扫描根目录");
+                : Localized("AI is checking the scan root", "AI 正在确认扫描根目录");
             progress?.Report(new AiActionProgress("enumerate_drives", enumerateTitle, AiActionProgressStatus.Completed));
 
             using var scanCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -69,7 +69,7 @@ public partial class MainWindow : IAiDiskActionExecutor
                 scanCancellation.Token.ThrowIfCancellationRequested();
                 var title = L.Format("AiScanTitleFormat", FormatAiScanTargetLabel(target.Path));
                 progress?.Report(new AiActionProgress(target.StepId, title, AiActionProgressStatus.Running));
-                mainVm.ScanTitleText = title;
+                mainVm.SetLocalizedScanTitle("AiScanTitleFormat", FormatAiScanTargetLabel(target.Path));
                 mainVm.ScanProgressText = string.Empty;
                 Log.Information("{Message}", title);
 
@@ -119,18 +119,18 @@ public partial class MainWindow : IAiDiskActionExecutor
                 .OrderByDescending(item => item.Size)
                 .ToList();
 
-            var writeTitle = Localized("AI is writing Unity cleanup recommendations", "AI 正在写入 Unity 清理建议");
+            var writeTitle = Localized("AI is writing cleanup recommendations", "AI 正在写入清理建议");
             progress?.Report(new AiActionProgress("write_unity_recommendations", writeTitle, AiActionProgressStatus.Running));
             _recommendationsViewModel.SetExternalRecommendations(distinctRecommendations);
             progress?.Report(new AiActionProgress("write_unity_recommendations", writeTitle, AiActionProgressStatus.Completed));
 
             var details = Localized(
                 string.IsNullOrWhiteSpace(request.Path)
-                    ? $"Scanned {scannedCount}/{targets.Count} ready drive(s); found {distinctRecommendations.Count} Unity Library folder(s)."
-                    : $"Scanned {scannedCount}/{targets.Count} path(s); found {distinctRecommendations.Count} Unity Library folder(s).",
+                    ? $"Scanned {scannedCount}/{targets.Count} ready drive(s); found {distinctRecommendations.Count} cleanup candidate(s)."
+                    : $"Scanned {scannedCount}/{targets.Count} path(s); found {distinctRecommendations.Count} cleanup candidate(s).",
                 string.IsNullOrWhiteSpace(request.Path)
-                    ? $"已扫描 {scannedCount}/{targets.Count} 个可用磁盘；找到 {distinctRecommendations.Count} 个 Unity Library 文件夹。"
-                    : $"已扫描 {scannedCount}/{targets.Count} 个路径；找到 {distinctRecommendations.Count} 个 Unity Library 文件夹。");
+                    ? $"已扫描 {scannedCount}/{targets.Count} 个可用磁盘；找到 {distinctRecommendations.Count} 个清理候选项。"
+                    : $"已扫描 {scannedCount}/{targets.Count} 个路径；找到 {distinctRecommendations.Count} 个清理候选项。");
             if (failedTargets.Count > 0)
             {
                 details += Environment.NewLine + Localized("Skipped/failed targets: ", "跳过/失败的目标：") + string.Join(", ", failedTargets);
@@ -138,7 +138,7 @@ public partial class MainWindow : IAiDiskActionExecutor
 
             mainVm.ScanProgressText = details;
             Log.Information("{Message}", details);
-            return AiActionResult.Ok(Localized("Unity Library discovery complete. Review the recommendations panel before deleting anything.", "Unity Library 发现完成。删除前请先在推荐清理面板中复核。"), details);
+            return AiActionResult.Ok(Localized("Discovery complete. Review the recommendations panel before deleting anything.", "发现完成。删除前请先在推荐清理面板中复核。"), details);
         }
         finally
         {

@@ -253,6 +253,11 @@ public partial class ChatViewModel : ObservableObject
             }
 
             ApplyProposalIfAny(assistantMessage, response.Proposal);
+            if (response.Proposal.HasValue && assistantMessage.InteractionCard is null)
+            {
+                _logger.LogWarning("Chat response contained a proposal that could not be converted to an interaction card: {Proposal}", response.Proposal.Value.GetRawText());
+            }
+
             _logger.LogInformation("Chat response completed; textLength={TextLength}, hasProposal={HasProposal}", assistantMessage.Text.Length, response.Proposal.HasValue);
             MoveMessageInteractionCardToInputOverlay(assistantMessage);
             assistantMessage.IsStreaming = false;
@@ -414,6 +419,11 @@ public partial class ChatViewModel : ObservableObject
         card.IsBusy = true;
         card.Status = AiInteractionCardStatus.Running;
         card.StatusText = L.Text("CopilotCardRunning");
+        if (ReferenceEquals(PendingInteractionCard, card))
+        {
+            PendingInteractionCard = null;
+        }
+
         var cancellationToken = BeginActiveOperation();
         try
         {
@@ -478,10 +488,6 @@ public partial class ChatViewModel : ObservableObject
         card.Status = AiInteractionCardStatus.Cancelled;
         card.StatusText = L.Text("CopilotCardCancelled");
         PendingInteractionCard = null;
-        if (!string.IsNullOrWhiteSpace(card.FollowUpPrompt))
-        {
-            _ = ContinueAfterConfirmedScanAsync(card.FollowUpPrompt, "cancelled action");
-        }
     }
 
     private void SetWorkflowPlan(IReadOnlyList<string> stepTitles)
@@ -623,13 +629,13 @@ public partial class ChatViewModel : ObservableObject
         {
             new("enumerate_drives", string.IsNullOrWhiteSpace(action.Path)
                 ? Localized("AI checks ready drives", "AI 确认可扫描磁盘")
-                : Localized("AI checks the Unity scan root", "AI 确认 Unity 扫描根目录"))
+                : Localized("AI checks the scan root", "AI 确认扫描根目录"))
         };
 
         if (!string.IsNullOrWhiteSpace(action.Path))
         {
             var scope = action.ScopeLabel ?? action.Path;
-            steps.Add(new WorkflowStepPlan("scan_scope:" + action.Path, Localized($"AI scans {scope} for Unity projects", $"AI 鎵弿 {scope} 涓殑 Unity 宸ョ▼")));
+            steps.Add(new WorkflowStepPlan("scan_scope:" + action.Path, Localized($"AI scans {scope} for cleanup candidates", $"AI 扫描 {scope} 中的清理候选项")));
         }
         else
         {
@@ -638,10 +644,10 @@ public partial class ChatViewModel : ObservableObject
                 .OrderBy(drive => drive.Name, StringComparer.OrdinalIgnoreCase)
                 .Select(drive => new WorkflowStepPlan(
                     "scan_drive:" + drive.Name.TrimEnd('\\'),
-                    Localized($"AI scans {drive.Name} for Unity projects", $"AI 鎵弿 {drive.Name} 涓殑 Unity 宸ョ▼"))));
+                    Localized($"AI scans {drive.Name} for cleanup candidates", $"AI 扫描 {drive.Name} 中的清理候选项"))));
         }
 
-        steps.Add(new WorkflowStepPlan("write_unity_recommendations", Localized("AI writes Unity cleanup recommendations", "AI 鍐欏叆 Unity 娓呯悊鎺ㄨ崘")));
+        steps.Add(new WorkflowStepPlan("write_unity_recommendations", Localized("AI writes cleanup recommendations", "AI 写入清理建议")));
         return steps;
     }
 
@@ -720,8 +726,8 @@ public partial class ChatViewModel : ObservableObject
         {
             AiActionKind.DiscoverUnityLibraries => new AiInteractionCard
             {
-                Title = Localized("Discover Unity Library cleanup candidates", "发现 Unity Library 清理候选项"),
-                Description = Localized("Scan ready drives one by one, detect Unity project Library folders, and write reviewable cleanup recommendations.", "依次扫描可用磁盘，检测 Unity 项目 Library 文件夹，并写入可复核的清理建议。"),
+                Title = Localized("Discover cleanup candidates", "发现清理候选项"),
+                Description = Localized("Scan ready drives one by one, detect candidates described by the selected skill, and write reviewable cleanup recommendations.", "依次扫描可用磁盘，按已选 skill 描述发现候选项，并写入可复核的清理建议。"),
                 Impact = action.WillOverwriteExistingData
                     ? Localized("This replaces the current recommendations list. Actual deletion still requires another confirmation.", "这会替换当前推荐列表；真正删除仍需要再次确认。")
                     : Localized("The current TreeView/Treemap scan result stays unchanged. Actual deletion still requires another confirmation.", "当前 TreeView/Treemap 扫描结果保持不变；真正删除仍需要再次确认。"),
@@ -781,27 +787,31 @@ public partial class ChatViewModel : ObservableObject
         => L.CurrentLanguageName.StartsWith("en", StringComparison.OrdinalIgnoreCase) ? english : chinese;
 
     private static string ResolveResponseLanguage(string? configuredLanguage)
-        => string.IsNullOrWhiteSpace(configuredLanguage) || string.Equals(configuredLanguage, L.AutoLanguage, StringComparison.OrdinalIgnoreCase)
+    {
+        if (string.IsNullOrWhiteSpace(configuredLanguage))
+        {
+            return "zh-CN";
+        }
+
+        return string.Equals(configuredLanguage, L.AutoLanguage, StringComparison.OrdinalIgnoreCase)
             ? L.CurrentLanguageName
             : configuredLanguage.Trim();
+    }
 
     public static void ApplyProposalIfAny(ChatMessage message, JsonElement? proposal)
     {
         if (proposal is null || proposal.Value.ValueKind != JsonValueKind.Object) return;
         var root = proposal.Value;
+        if (root.TryGetProperty("proposal", out var nestedProposal) && nestedProposal.ValueKind == JsonValueKind.Object)
+        {
+            root = nestedProposal;
+        }
+
         if (!root.TryGetProperty("action", out var action) || action.ValueKind != JsonValueKind.Object) return;
         if (!root.TryGetProperty("card", out var card) || card.ValueKind != JsonValueKind.Object) return;
         if (!action.TryGetProperty("kind", out var kindElement) || kindElement.ValueKind != JsonValueKind.String) return;
 
-        var actionKind = kindElement.GetString() switch
-        {
-            nameof(AiActionKind.StartScan) => AiActionKind.StartScan,
-            nameof(AiActionKind.AnalyzeCleanup) => AiActionKind.AnalyzeCleanup,
-            nameof(AiActionKind.ClearConversation) => AiActionKind.ClearConversation,
-            nameof(AiActionKind.DiscoverUnityLibraries) => AiActionKind.DiscoverUnityLibraries,
-            nameof(AiActionKind.NavigateToScannedPath) => AiActionKind.NavigateToScannedPath,
-            _ => AiActionKind.None
-        };
+        var actionKind = ResolveActionKind(kindElement.GetString());
         if (actionKind == AiActionKind.None) return;
 
         var request = new AiActionRequest(
@@ -818,6 +828,23 @@ public partial class ChatViewModel : ObservableObject
             ConfirmText = GetString(card, "confirm_text") ?? L.Text("CopilotCardDefaultConfirm"),
             CancelText = GetString(card, "cancel_text") ?? L.Text("CopilotCardDefaultCancel"),
             Action = request
+        };
+    }
+
+    private static AiActionKind ResolveActionKind(string? kind)
+    {
+        if (string.IsNullOrWhiteSpace(kind)) return AiActionKind.None;
+        if (Enum.TryParse<AiActionKind>(kind, ignoreCase: true, out var actionKind)) return actionKind;
+        return kind.Trim() switch
+        {
+            "scan" => AiActionKind.StartScan,
+            "start_scan" => AiActionKind.StartScan,
+            "analyze_cleanup" => AiActionKind.AnalyzeCleanup,
+            "discover_unity_libraries" => AiActionKind.DiscoverUnityLibraries,
+            "clear_conversation" => AiActionKind.ClearConversation,
+            "navigate" => AiActionKind.NavigateToScannedPath,
+            "navigate_to_scanned_path" => AiActionKind.NavigateToScannedPath,
+            _ => AiActionKind.None
         };
     }
 

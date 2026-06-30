@@ -29,3 +29,10 @@
 - [x] 2026-06-29 CUA 后台冒烟：隐藏启动 WPF，后台写入 Copilot 输入框并复核成功。
 
 - [x] 2026-06-29 追加：取消默认注入全部 skills，新增 manage_disk_skills CRUD toolcall 与磁盘管理 skill 创建守门，并完成测试/发布包/CUA 验证。
+
+- [x] 2026-06-30 追加：修复自然语言 Unity 请求不加载 skill、通用化发现确认卡，并把日期/Hub 风险判定写回 Unity skill。
+
+
+- [x] 2026-06-30 追加：确认卡点击后立即消失、语言以 app 设置优先，并加入虚拟 C/D/E 慢扫描测试。
+
+- [x] 2026-06-30 追加：修复 wrapped proposal/snake_case kind 导致 hasProposal=True 但无确认卡/无 step 的问题，并完成 CUA 验收。

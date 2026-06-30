@@ -110,6 +110,28 @@ public class AgentRuntimeTests
     }
 
     [Fact]
+    public async Task RunAsync_SystemPromptTreatsConfiguredLanguageAsAppPolicy()
+    {
+        var llm = new CapturingLlmClient("ok");
+        var runtime = new AgentRuntime(llm, []);
+
+        await runtime.RunAsync(
+            null,
+            [],
+            "帮我看看 C 盘能清啥",
+            [],
+            "en",
+            "key",
+            null,
+            enableThinking: false,
+            onThinkingToken: null,
+            CancellationToken.None);
+
+        llm.LastSystemPrompt.Should().Contain("Answer language: English.");
+        llm.LastSystemPrompt.Should().Contain("Follow it even when the user's message is in another language.");
+    }
+
+    [Fact]
     public async Task RunAsync_AllowsAppProposalToolWithoutScanContext()
     {
         var llm = Substitute.For<ILlmClient>();

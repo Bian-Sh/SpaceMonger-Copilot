@@ -94,6 +94,11 @@ Return one of `high`, `medium`, `low`, or `safe`, but obey these floors:
 - Unknown Unity-looking project not in Hub: minimum `low`; raise to `medium` when recently modified.
 - Non-project generated cache outside Hub can be `safe` only when no source/config markers are nearby.
 
+The app must not downgrade a candidate to Safe/Caution from timestamps or missing Hub membership by itself. You, the skill-guided AI, decide the risk from evidence:
+- Recent timestamps are caution evidence, not an app policy. Treat recent generated folders as higher risk when they are near Unity source/config markers or Hub-listed projects.
+- Missing Unity Hub membership is not proof that a project is abandoned. Treat it as `unknown` evidence and keep at least `low`; raise to `medium` if timestamps, project markers, or path context suggest active work.
+- Only call something `safe` when it is generated/cache-like, outside a known project source/config boundary, not Hub-listed, and has no recent activity or source markers nearby.
+
 ## Decision procedure
 1. Confirm whether scan data already exists for the requested roots.
 2. When the user asks to clean Unity `Library` across the machine and no explicit root is supplied, run `DiscoverUnityLibraries` so the app enumerates all ready disks and scans them sequentially.

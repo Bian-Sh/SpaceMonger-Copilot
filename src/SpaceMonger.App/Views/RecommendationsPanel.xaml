@@ -186,17 +186,14 @@
                            Foreground="{DynamicResource VP.TextPrimaryBrush}"
                            HorizontalAlignment="Center"
                            TextAlignment="Center"
-                            Margin="0,0,0,6">
+                           Text="{Binding EmptyStateTitleText}"
+                           Margin="0,0,0,6">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock">
-                            <Setter Property="Text" Value="{loc:Loc RecommendationsEmptyTitle}" />
                             <Setter Property="Visibility" Value="Collapsed" />
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding AnalysisError, TargetNullValue=''}" Value="">
                                     <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding IsWaitingForExternalRecommendations}" Value="True">
-                                    <Setter Property="Text" Value="{loc:Loc RecommendationsWaitingForAiTitle}" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
@@ -206,17 +203,16 @@
                            Foreground="{DynamicResource VP.TextSecondaryBrush}"
                            FontSize="13"
                            HorizontalAlignment="Center"
-                           TextAlignment="Center">
+                           TextAlignment="Center"
+                           Text="{Binding EmptyStateDescriptionText}">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock">
-                            <Setter Property="Text" Value="{loc:Loc RecommendationsEmptyDescription}" />
                             <Setter Property="Visibility" Value="Collapsed" />
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding AnalysisError, TargetNullValue=''}" Value="">
                                     <Setter Property="Visibility" Value="Visible" />
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding IsWaitingForExternalRecommendations}" Value="True">
-                                    <Setter Property="Text" Value="{loc:Loc RecommendationsWaitingForAiDescription}" />
                                     <Setter Property="Visibility" Value="Collapsed" />
                                 </DataTrigger>
                             </Style.Triggers>

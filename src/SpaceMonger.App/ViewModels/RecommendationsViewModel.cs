@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using SpaceMonger.App.Diagnostics;
 using SpaceMonger.App.Converters;
+using SpaceMonger.App.Localization;
 using SpaceMonger.Core.Enums;
 using SpaceMonger.Core.Models;
 using SpaceMonger.Core.Services.Analysis;
@@ -69,11 +70,32 @@ public partial class RecommendationsViewModel : ObservableObject
     public bool HasAcceptedRecommendations =>
         Recommendations.Any(r => r.IsAccepted);
 
+    public string EmptyStateTitleText => IsWaitingForExternalRecommendations
+        ? L.Text("RecommendationsWaitingForAiTitle")
+        : L.Text("RecommendationsEmptyTitle");
+
+    public string EmptyStateDescriptionText => IsWaitingForExternalRecommendations
+        ? string.Empty
+        : L.Text("RecommendationsEmptyDescription");
+
     public RecommendationsViewModel(IRecommendationEngine recommendationEngine, ILogger<RecommendationsViewModel>? logger = null)
     {
         _recommendationEngine = recommendationEngine;
         _logger = logger ?? NullLogger<RecommendationsViewModel>.Instance;
         _logger.LogInformation("RecommendationsViewModel created");
+        L.LanguageChanged += OnLanguageChanged;
+    }
+
+    partial void OnIsWaitingForExternalRecommendationsChanged(bool value)
+    {
+        OnPropertyChanged(nameof(EmptyStateTitleText));
+        OnPropertyChanged(nameof(EmptyStateDescriptionText));
+    }
+
+    private void OnLanguageChanged()
+    {
+        OnPropertyChanged(nameof(EmptyStateTitleText));
+        OnPropertyChanged(nameof(EmptyStateDescriptionText));
     }
 
     public void SetContext(ScanSession session, string apiKey, string? baseUrl, string? modelName, bool enableThinking, string? responseLanguage, FileEntry? focusEntry = null)

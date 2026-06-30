@@ -46,6 +46,38 @@ public class ChatViewModelProposalTests
     }
 
     [Fact]
+    public void ApplyProposalIfAny_AcceptsToolResultWrappedProposalAndSnakeCaseKind()
+    {
+        var message = new ChatMessage();
+        var proposal = JsonSerializer.SerializeToElement(new
+        {
+            ok = true,
+            proposal = new
+            {
+                action = new
+                {
+                    kind = "discover_unity_libraries",
+                    scope_label = "Unity projects",
+                    will_overwrite_existing_data = true
+                },
+                card = new
+                {
+                    title = "Start Scan",
+                    description = "Scan all ready drives for Unity cleanup candidates.",
+                    confirm_text = "Start Scan",
+                    cancel_text = "Cancel"
+                }
+            }
+        });
+
+        ChatViewModel.ApplyProposalIfAny(message, proposal);
+
+        message.InteractionCard.Should().NotBeNull();
+        message.InteractionCard!.Action.Kind.Should().Be(AiActionKind.DiscoverUnityLibraries);
+        message.InteractionCard.Action.WillOverwriteExistingData.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task SendCommand_ForModelClearProposal_ShowsClearConfirmationCard()
     {
         var chatService = Substitute.For<IChatService>();
@@ -261,6 +293,195 @@ public class ChatViewModelProposalTests
             Arg.Any<CancellationToken>(),
             Arg.Any<IProgress<AiActionProgress>>());
     }
+
+    [Fact]
+    public async Task ConfirmInteraction_HidesOverlayCardImmediatelyAndUsesWorkflowStepsForProgress()
+    {
+        var actionExecutor = Substitute.For<IAiDiskActionExecutor>();
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        actionExecutor.ExecuteAsync(Arg.Any<AiActionRequest>(), Arg.Any<CancellationToken>(), Arg.Any<IProgress<AiActionProgress>>())
+            .Returns(async _ =>
+            {
+                started.SetResult();
+                await release.Task;
+                return AiActionResult.Ok("scan done");
+            });
+        var viewModel = CreateViewModel();
+        viewModel.SetActionExecutor(actionExecutor);
+        var card = new AiInteractionCard
+        {
+            Title = "Start a scan to analyze disk space",
+            Description = "Drive C:",
+            Action = new AiActionRequest(AiActionKind.StartScan, Path: @"C:", ScopeLabel: "Drive C:")
+        };
+        viewModel.PendingInteractionCard = card;
+
+        var confirmTask = viewModel.ConfirmInteractionCommand.ExecuteAsync(card);
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        viewModel.PendingInteractionCard.Should().BeNull();
+        viewModel.IsWorkflowProgressVisible.Should().BeTrue();
+        viewModel.WorkflowSteps.Should().ContainSingle(step => step.Title.Contains("Drive C:"));
+
+        release.SetResult();
+        await confirmTask;
+    }
+
+    [Fact]
+    public async Task SendThenConfirm_WrappedDiscoveryProposalShowsWorkflowSteps()
+    {
+        var proposal = JsonSerializer.SerializeToElement(new
+        {
+            ok = true,
+            proposal = new
+            {
+                action = new
+                {
+                    kind = "discover_unity_libraries",
+                    scope_label = "Unity projects",
+                    will_overwrite_existing_data = false
+                },
+                card = new
+                {
+                    title = "Start Scan",
+                    description = "Scan ready drives for Unity cleanup candidates.",
+                    confirm_text = "Start Scan",
+                    cancel_text = "Cancel"
+                }
+            }
+        });
+        var chatService = Substitute.For<IChatService>();
+        chatService.StreamSkillMessageWithThinkingAsync(
+                Arg.Any<string>(),
+                Arg.Any<IReadOnlyList<AiSkill>>(),
+                Arg.Any<string?>(),
+                Arg.Any<string>(),
+                Arg.Any<string?>(),
+                Arg.Any<bool>(),
+                Arg.Any<Action<string>?>(),
+                Arg.Any<Action<string>?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(new ChatResponse("Ready.", string.Empty, proposal));
+        var actionExecutor = Substitute.For<IAiDiskActionExecutor>();
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        actionExecutor.ExecuteAsync(Arg.Any<AiActionRequest>(), Arg.Any<CancellationToken>(), Arg.Any<IProgress<AiActionProgress>>())
+            .Returns(async _ =>
+            {
+                started.SetResult();
+                await release.Task;
+                return AiActionResult.Ok("done");
+            });
+        var viewModel = CreateViewModel(chatService, new AiSkillRoutingResult([new AiSkill("unity-project-cleanup", "Unity", "Prompt")]));
+        viewModel.SetActionExecutor(actionExecutor);
+        viewModel.InputText = "整理我的 unity 项目";
+
+        await viewModel.SendCommand.ExecuteAsync(null);
+        var card = viewModel.PendingInteractionCard;
+        card.Should().NotBeNull();
+
+        var confirmTask = viewModel.ConfirmInteractionCommand.ExecuteAsync(card);
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        viewModel.PendingInteractionCard.Should().BeNull();
+        viewModel.IsWorkflowProgressVisible.Should().BeTrue();
+        viewModel.WorkflowSteps.Should().NotBeEmpty();
+        viewModel.WorkflowProgressText.Should().Contain("/");
+
+        release.SetResult();
+        await confirmTask;
+    }
+
+    [Fact]
+    public async Task CancelInteraction_HidesOverlayCardWithoutStartingFollowUpFlow()
+    {
+        var chatService = Substitute.For<IChatService>();
+        var viewModel = CreateViewModel(chatService);
+        var card = new AiInteractionCard
+        {
+            Title = "Start a scan to analyze disk space",
+            Description = "Drive C:",
+            FollowUpPrompt = "continue after scan",
+            Action = new AiActionRequest(AiActionKind.StartScan, Path: @"C:", ScopeLabel: "Drive C:")
+        };
+        viewModel.PendingInteractionCard = card;
+
+        viewModel.CancelInteractionCommand.Execute(card);
+        await Task.Delay(50);
+
+        viewModel.PendingInteractionCard.Should().BeNull();
+        viewModel.IsWorkflowProgressVisible.Should().BeFalse();
+        await chatService.DidNotReceive().StreamSkillMessageWithThinkingAsync(
+            Arg.Any<string>(),
+            Arg.Any<IReadOnlyList<AiSkill>>(),
+            Arg.Any<string?>(),
+            Arg.Any<string>(),
+            Arg.Any<string?>(),
+            Arg.Any<bool>(),
+            Arg.Any<Action<string>?>(),
+            Arg.Any<Action<string>?>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task SendCommand_UsesConfiguredEnglishLanguageBeforeUserMessageLanguage()
+    {
+        var chatService = Substitute.For<IChatService>();
+        chatService.StreamSkillMessageWithThinkingAsync(
+                Arg.Any<string>(),
+                Arg.Any<IReadOnlyList<AiSkill>>(),
+                Arg.Any<string?>(),
+                Arg.Any<string>(),
+                Arg.Any<string?>(),
+                Arg.Any<bool>(),
+                Arg.Any<Action<string>?>(),
+                Arg.Any<Action<string>?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(new ChatResponse("ok", string.Empty, null));
+        var viewModel = CreateViewModel(chatService, settings: new AppSettings { Language = "en" });
+        viewModel.InputText = "帮我看看 C 盘有啥能清的";
+
+        await viewModel.SendCommand.ExecuteAsync(null);
+
+        await chatService.Received(1).StreamSkillMessageWithThinkingAsync(
+            Arg.Any<string>(),
+            Arg.Any<IReadOnlyList<AiSkill>>(),
+            "en",
+            Arg.Any<string>(),
+            Arg.Any<string?>(),
+            Arg.Any<bool>(),
+            Arg.Any<Action<string>?>(),
+            Arg.Any<Action<string>?>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ConfirmInteraction_WaitsForSlowVirtualScanInsteadOfTimingOut()
+    {
+        var virtualExecutor = new VirtualScanActionExecutor();
+        virtualExecutor.AddDrive(@"C:\", VirtualDriveFactory.CreateUnityProjectDrive(@"C:\", "ArcadeGame"));
+        virtualExecutor.AddDrive(@"D:\", VirtualDriveFactory.CreateCacheDrive(@"D:\", "Steam"));
+        virtualExecutor.AddDrive(@"E:\", VirtualDriveFactory.CreateCacheDrive(@"E:\", "UnityHub"));
+        virtualExecutor.Delay = TimeSpan.FromMilliseconds(150);
+        var viewModel = CreateViewModel();
+        viewModel.SetActionExecutor(virtualExecutor);
+        var card = new AiInteractionCard
+        {
+            Title = "Kick off C scan",
+            Description = "Virtual Drive C:",
+            Action = new AiActionRequest(AiActionKind.StartScan, Path: @"C:\", ScopeLabel: "Drive C:")
+        };
+        viewModel.PendingInteractionCard = card;
+
+        await viewModel.ConfirmInteractionCommand.ExecuteAsync(card);
+
+        viewModel.PendingInteractionCard.Should().BeNull();
+        virtualExecutor.ScanHistory.Should().ContainSingle(@"C:\");
+        virtualExecutor.LastSession.Should().NotBeNull();
+        virtualExecutor.LastSession!.RootEntry!.Children.Should().Contain(child => child.Name == "ArcadeGame");
+    }
+
     [Fact]
     public async Task SendCommand_ForUnavailableScanTarget_AsksModelWithDriveContextWithoutExecutingAction()
     {
@@ -332,10 +553,10 @@ public class ChatViewModelProposalTests
             }
         });
 
-    private static ChatViewModel CreateViewModel(IChatService? chatService = null, AiSkillRoutingResult? routingResult = null)
+    private static ChatViewModel CreateViewModel(IChatService? chatService = null, AiSkillRoutingResult? routingResult = null, AppSettings? settings = null)
     {
         var settingsService = Substitute.For<ISettingsService>();
-        settingsService.LoadSettings().Returns(new AppSettings { Language = "zh-CN" });
+        settingsService.LoadSettings().Returns(settings ?? new AppSettings { Language = "zh-CN" });
         settingsService.GetApiKey(Arg.Any<AppSettings>()).Returns("test-key");
         settingsService.EncryptApiKey(Arg.Any<string>()).Returns([]);
 
@@ -349,6 +570,105 @@ public class ChatViewModelProposalTests
             .Returns(routingResult ?? new AiSkillRoutingResult([]));
 
         return new ChatViewModel(chatService ?? Substitute.For<IChatService>(), settingsService, router);
+    }
+
+    private sealed class VirtualScanActionExecutor : IAiDiskActionExecutor
+    {
+        private readonly Dictionary<string, ScanSession> _drives = new(StringComparer.OrdinalIgnoreCase);
+        public bool HasExistingRecommendations => false;
+        public TimeSpan Delay { get; set; }
+        public List<string> ScanHistory { get; } = [];
+        public ScanSession? LastSession { get; private set; }
+
+        public void AddDrive(string path, ScanSession session) => _drives[path] = session;
+
+        public async Task<AiActionResult> ExecuteAsync(AiActionRequest request, CancellationToken cancellationToken, IProgress<AiActionProgress>? progress = null)
+        {
+            if (request.Kind != AiActionKind.StartScan || string.IsNullOrWhiteSpace(request.Path))
+            {
+                return AiActionResult.Fail("unsupported");
+            }
+
+            ScanHistory.Add(request.Path);
+            progress?.Report(new AiActionProgress("scan", "Scanning virtual drive", AiActionProgressStatus.Running));
+            if (Delay > TimeSpan.Zero)
+            {
+                await Task.Delay(Delay, cancellationToken);
+            }
+
+            if (!_drives.TryGetValue(request.Path, out var session))
+            {
+                return AiActionResult.Fail("virtual drive not found", request.Path);
+            }
+
+            LastSession = session;
+            progress?.Report(new AiActionProgress("scan", "Scanning virtual drive", AiActionProgressStatus.Completed));
+            return AiActionResult.Ok("virtual scan complete", session.RootEntry?.Path);
+        }
+    }
+
+    private static class VirtualDriveFactory
+    {
+        public static ScanSession CreateUnityProjectDrive(string rootPath, string projectName)
+        {
+            var root = Dir(rootPath, rootPath.TrimEnd('\\'));
+            var project = Dir(Path.Combine(rootPath, projectName), projectName);
+            AddChild(root, project);
+            AddChild(project, Dir(Path.Combine(project.Path, "Assets"), "Assets"));
+            AddChild(project, Dir(Path.Combine(project.Path, "ProjectSettings"), "ProjectSettings"));
+            var library = Dir(Path.Combine(project.Path, "Library"), "Library");
+            AddChild(project, library);
+            AddChild(library, File(Path.Combine(library.Path, "artifact-cache.bin"), "artifact-cache.bin", 512 * 1024 * 1024));
+            root.RecalculateSize();
+            return Session(rootPath, root);
+        }
+
+        public static ScanSession CreateCacheDrive(string rootPath, string appName)
+        {
+            var root = Dir(rootPath, rootPath.TrimEnd('\\'));
+            var app = Dir(Path.Combine(rootPath, appName), appName);
+            AddChild(root, app);
+            var cache = Dir(Path.Combine(app.Path, "Cache"), "Cache");
+            AddChild(app, cache);
+            AddChild(cache, File(Path.Combine(cache.Path, "blob.cache"), "blob.cache", 128 * 1024 * 1024));
+            root.RecalculateSize();
+            return Session(rootPath, root);
+        }
+
+        private static ScanSession Session(string targetPath, FileEntry root) => new()
+        {
+            TargetPath = targetPath,
+            RootEntry = root,
+            StartTime = DateTime.Now.AddSeconds(-1),
+            EndTime = DateTime.Now,
+            TotalFiles = root.SubtreeFileCount,
+            TotalFolders = root.SubtreeFolderCount,
+            TotalSize = root.Size
+        };
+
+        private static FileEntry Dir(string path, string name) => new()
+        {
+            Path = path,
+            Name = name,
+            IsDirectory = true,
+            LastModified = DateTime.Now.AddDays(-7)
+        };
+
+        private static FileEntry File(string path, string name, long size) => new()
+        {
+            Path = path,
+            Name = name,
+            IsDirectory = false,
+            Size = size,
+            LastModified = DateTime.Now.AddDays(-7)
+        };
+
+        private static void AddChild(FileEntry parent, FileEntry child)
+        {
+            child.Parent = parent;
+            child.Depth = parent.Depth + 1;
+            parent.Children.Add(child);
+        }
     }
 
 }

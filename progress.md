@@ -75,3 +75,20 @@
 - 新增 manage_disk_skills agent tool 并在 App DI 注册，提供 skill CRUD 与磁盘管理/host tool 守门。
 - 新增 ManageDiskSkillsToolTests，更新 AiSkillRouterTests。
 - 验证：相关 Core 测试 18 passed；dotnet test src\\SpaceMonger.sln --no-restore 60 passed；dotnet-debug-mcp build_solution 0 errors；发布 outputs\\package-2026-06-29-2214；CUA 后台启动发布包并写入 InputTextBox 复核成功。
+
+- [2026-06-30 09:31:20 +08:00] 修复：AiSkillRouter 增加声明式 skill 自动匹配；Unity 清理自然语言请求会加载 skills/unity-project-cleanup/SKILL.md。
+- [2026-06-30 09:31:20 +08:00] 修复：DiscoverUnityLibraries 卡片文案改为通用 Discover cleanup candidates。
+- [2026-06-30 09:31:20 +08:00] 修复：Unity skill 补充日期/Hub 缺失风险判定规则，明确由 AI 按 skill 证据判定，app 不硬判 Safe/Caution。
+- [2026-06-30 09:31:20 +08:00] 验证：dotnet test tests/SpaceMonger.Core.Tests/SpaceMonger.Core.Tests.csproj --filter 'AiSkillRouterTests|AgentRuntimeTests|ManageDiskSkillsToolTests' 通过。
+
+- [2026-06-30 09:34:15 +08:00] 验证：dotnet test src/SpaceMonger.sln 通过（Core 47、App 15）；dotnet publish Release 输出 outputs/package-2026-06-30-0933。
+- [2026-06-30 09:34:15 +08:00] CodeGraph 已 sync。
+
+- [2026-06-30 10:05:58 +08:00] 修复：确认/取消交互卡点击后立即移除 overlay，只保留 step 指示器显示流程状态；取消不再触发 follow-up。
+- [2026-06-30 10:05:58 +08:00] 修复：Copilot 回答语言以 app 设置优先；只有设置为 auto 时才回退当前 UI/系统语言。
+- [2026-06-30 10:05:58 +08:00] 测试：新增虚拟 C/D/E 盘与慢扫描执行器，覆盖俚语/中文请求、英语 app 语言优先、慢扫描等待。
+- [2026-06-30 10:05:58 +08:00] 验证：dotnet-debug-mcp build_solution 通过；dotnet test src/SpaceMonger.sln 通过；发布 D:\AppData\Visual Studio\Projects\spacemonger-next\outputs\package-2026-06-30-1005。
+
+- [2026-06-30 10:24:16 +08:00] 修复：ApplyProposalIfAny 兼容 wrapped proposal 与 snake_case action kind，解决 hasProposal=True 但确认卡/step 不出现。
+- [2026-06-30 10:24:16 +08:00] 测试：新增 wrapped proposal -> PendingInteractionCard -> Confirm -> workflow step 可见回归。
+- [2026-06-30 10:24:16 +08:00] 验证：dotnet-debug-mcp build_solution 通过；dotnet test src/SpaceMonger.sln 通过；发布 D:\AppData\Visual Studio\Projects\spacemonger-next\outputs\package-2026-06-30-1024。

@@ -51,3 +51,13 @@
 - 默认注入全部 skills 会重新把 prompt 上下文变成宿主侧策略注入，不符合开放 Agent host；现在无 @skill 时不注入 skill 内容。
 - 新增 manage_disk_skills 作为显式 toolcall 承载 list/read/create/update/delete；创建/更新只允许 domain=disk_management 且必须声明可用 SpaceMonger host tools。
 - 非磁盘管理或宿主工具无法实现的 skill 创建请求，应由模型直接婉拒；工具层也会拒绝 unsupported_domain/missing_host_tools。
+
+## 2026-06-30 09:31:20 +08:00 本轮 Agent/Skill 问题定位
+- 截图中的“整理 Unity 项目”未触发 Unity skill：路由只认显式 @skill，普通自然语言没有注入 skill，模型只能在通用 prompt 下啰嗦或卡在 thinking。
+- 修复方向保持去硬编码：不是在 app 中写 Unity 关键词路由，而是按 skill 自身声明文本做最小 token 匹配；未知 @skill 不回退自动匹配。
+- DiscoverUnityLibraries 确认卡属于通用发现/扫描候选工作流，不应在卡片文案中写死 Unity 专名。
+
+## 2026-06-30 10:24:16 +08:00 proposal 卡片/step 停滞根因
+- 现场日志显示 Chat response completed; hasProposal=True，但 UI 没有 PendingInteractionCard，也没有 action executor/scan 日志。
+- 根因：UI 层 ApplyProposalIfAny 只接受直接 {action, card} 且 kind 必须 PascalCase；真实模型/tool 结果可能返回 {ok,true, proposal:{...}} 或 snake_case kind（如 discover_unity_libraries），导致 proposal 被静默丢弃。
+- 修复：兼容 wrapped proposal 与 snake_case kind，并在有 proposal 但不能转卡片时打 Warning。

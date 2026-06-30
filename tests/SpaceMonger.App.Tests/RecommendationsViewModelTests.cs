@@ -1,4 +1,5 @@
 using FluentAssertions;
+using SpaceMonger.App.Localization;
 using SpaceMonger.App.ViewModels;
 using SpaceMonger.Core.Enums;
 using SpaceMonger.Core.Models;
@@ -8,6 +9,28 @@ namespace SpaceMonger.App.Tests;
 
 public class RecommendationsViewModelTests
 {
+    [Fact]
+    public void ExternalRecommendationWaitingTitle_RefreshesWhenLanguageChanges()
+    {
+        var originalLanguage = L.CurrentLanguageName;
+        try
+        {
+            L.SetLanguage("en");
+            var viewModel = new RecommendationsViewModel(new StubRecommendationEngine([]));
+
+            viewModel.BeginExternalRecommendationLoad();
+            viewModel.EmptyStateTitleText.Should().Be("AI is analyzing. Please wait...");
+
+            L.SetLanguage("zh-CN");
+
+            viewModel.EmptyStateTitleText.Should().Contain("AI正在分析");
+        }
+        finally
+        {
+            L.SetLanguage(originalLanguage);
+        }
+    }
+
     [Fact]
     public async Task AnalyzeCommand_AllFiltersShowAllRecommendationsAndSelectionTotalsUpdate()
     {

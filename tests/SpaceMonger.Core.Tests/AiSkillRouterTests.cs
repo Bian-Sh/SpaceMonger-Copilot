@@ -8,9 +8,27 @@ public class AiSkillRouterTests
     private readonly AiSkillRouter _router = new(new FileSkillPromptProvider());
 
     [Fact]
-    public void Route_GeneralChat_DoesNotInjectSkillsByDefault()
+    public void Route_DeclarativeSkillMatch_InjectsMatchingSkillPrompt()
     {
         var result = _router.Route("clean my Unity project", null, null, hasExistingRecommendations: false);
+
+        result.SelectedSkillIds.Should().ContainSingle().Which.Should().Be("unity-project-cleanup");
+        result.Skills.Select(skill => skill.Id).Should().ContainSingle().Which.Should().Be("unity-project-cleanup");
+    }
+
+    [Fact]
+    public void Route_MixedChineseUnityRequest_InjectsMatchingSkillPrompt()
+    {
+        var result = _router.Route("整理我的 unity项目", null, null, hasExistingRecommendations: false);
+
+        result.SelectedSkillIds.Should().ContainSingle().Which.Should().Be("unity-project-cleanup");
+        result.Skills.Select(skill => skill.Id).Should().ContainSingle().Which.Should().Be("unity-project-cleanup");
+    }
+
+    [Fact]
+    public void Route_GeneralChat_DoesNotInjectUnrelatedSkills()
+    {
+        var result = _router.Route("who are you?", null, null, hasExistingRecommendations: false);
 
         result.Skills.Should().BeEmpty();
         result.SelectedSkillIds.Should().BeEmpty();

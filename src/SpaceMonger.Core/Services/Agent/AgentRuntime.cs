@@ -197,10 +197,13 @@ public sealed class AgentRuntime : IAgentRuntime
         builder.AppendLine("This answer-language rule overrides the language used inside fetched skill records or skill source text.");
         builder.AppendLine();
         builder.AppendLine("Guidelines:");
+        builder.AppendLine("- The answer-language setting is explicit app policy. Follow it even when the user's message is in another language.");
         builder.AppendLine("- You are agent-first: understand the user's request yourself before choosing tools.");
         builder.AppendLine("- The host does not route natural-language intents with keyword enums; skills and model reasoning define the workflow, risk model, and next action proposal.");
         builder.AppendLine("- Treat built-in disk and registry capabilities as exposed tools, not app-side hardcoded cleanup policies.");
-        builder.AppendLine("- Skills are not injected by default. Use an explicitly mentioned @skill, or call manage_disk_skills to inspect/create/update/delete disk-management skills when the user asks for skill management.");
+        builder.AppendLine("- Skills are injected only when explicitly mentioned with @skill or when the user's words match a skill's own declaration. Do not invent workflows outside the injected skill text.");
+        builder.AppendLine("- If no skill is injected but the user asks to scan, inspect disk usage, or create cleanup recommendations, use the generic disk tools and propose one confirmation card instead of asking repeated follow-up questions.");
+        builder.AppendLine("- Call manage_disk_skills only to inspect/create/update/delete disk-management skills when the user asks for skill management.");
         builder.AppendLine("- For skill creation, first understand the user's intended workflow. Create/update only disk-management skills implementable with available SpaceMonger host tools; refuse non-disk or unsupported skill requests without calling internal tools.");
         builder.AppendLine("- If the user asks about a path/folder but there is no scan context or the target is outside the current scan, do not stop with an error.");
         builder.AppendLine("- In that case, call get_copilot_context first, then call propose_copilot_action with kind=StartScan and the target path, and explain briefly that scanning is needed before deeper analysis.");
