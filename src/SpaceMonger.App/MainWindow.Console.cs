@@ -70,6 +70,22 @@ public partial class MainWindow
         e.Handled = true;
     }
 
+    private void ConsoleCopyButton_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: UiLogEntry entry } && !string.IsNullOrWhiteSpace(entry.DisplayText))
+        {
+            try
+            {
+                Clipboard.SetText(entry.DisplayText);
+            }
+            catch
+            {
+            }
+        }
+
+        e.Handled = true;
+    }
+
     private void AppendAnalysisDiagnostics(AnalysisDiagnostics? diagnostics)
     {
         if (diagnostics is null)
@@ -159,8 +175,8 @@ public partial class MainWindow
                 return;
         }
 
-        // FR-029: Warn if re-running analysis will replace accepted recommendations
-        if (_recommendationsViewModel.HasAcceptedRecommendations)
+        // Warn if re-running analysis will replace the recommendations currently visible in the ScrollView.
+        if (_recommendationsViewModel.HasAnyRecommendations)
         {
             var confirmResult = await ShowAppMessageAsync(
                 L.Text("ConfirmReanalysisMessage"),

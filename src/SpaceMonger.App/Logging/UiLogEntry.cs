@@ -41,4 +41,6 @@ public sealed record UiLogEntry(DateTimeOffset Timestamp, LogEventLevel Level, s
     public string DisplayMessage => string.IsNullOrWhiteSpace(Exception)
         ? Message
         : Message + Environment.NewLine + Exception;
+
+    public string DisplayText => $"{TimeText} {LevelText} {DisplayMessage}";
 }
