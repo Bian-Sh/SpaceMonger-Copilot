@@ -126,6 +126,19 @@
                                            Foreground="{DynamicResource VP.AccentBrush}"
                                            TextWrapping="Wrap"
                                            Visibility="{Binding HasStatusText, Converter={StaticResource BoolToVis}}" />
+                                <StackPanel Margin="0,10,0,0"
+                                            Visibility="{Binding IsPending, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="{loc:Loc CopilotCardUserNotesLabel}"
+                                               FontSize="11"
+                                               Foreground="{DynamicResource VP.TextTertiaryBrush}" />
+                                    <TextBox Text="{Binding UserNotes, UpdateSourceTrigger=PropertyChanged}"
+                                             Margin="0,4,0,0"
+                                             MinHeight="34"
+                                             MaxHeight="76"
+                                             AcceptsReturn="True"
+                                             TextWrapping="Wrap"
+                                             Style="{DynamicResource VP.TextBox}" />
+                                </StackPanel>
                                 <StackPanel Orientation="Horizontal"
                                             HorizontalAlignment="Right"
                                             Margin="0,10,0,0"
@@ -296,7 +309,7 @@
                     <Style TargetType="Canvas">
                         <Setter Property="Visibility" Value="Collapsed" />
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsWorkflowProgressVisible}" Value="True">
+                            <DataTrigger Binding="{Binding ShouldShowWorkflowStepIndicator}" Value="True">
                                 <Setter Property="Visibility" Value="Visible" />
                             </DataTrigger>
                         </Style.Triggers>
@@ -617,12 +630,47 @@
                             <DataTemplate>
                                 <!-- Container for bubble -->
                                 <Border Margin="0,4"
-                                        MaxWidth="{Binding ActualWidth, ElementName=MessagesScrollViewer, Converter={StaticResource SubtractConverter}}"
+                                        HorizontalAlignment="Stretch"
                                         MouseEnter="BubbleBorder_MouseEnter"
                                         MouseLeave="BubbleBorder_MouseLeave">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <Grid x:Name="MessageContentGrid" Grid.Row="1">
+                                        <Grid x:Name="SystemDivider" Margin="0,8,0,10">
+                                            <Grid.Style>
+                                                <Style TargetType="Grid">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Sender}" Value="{x:Static enums:ChatSender.System}">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Grid.Style>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <TextBlock Text="{Binding Text}"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource VP.TextTertiaryBrush}"
+                                                       TextWrapping="Wrap"
+                                                       TextAlignment="Left"
+                                                       HorizontalAlignment="Stretch" />
+                                            <Border Grid.Row="1"
+                                                    Height="1"
+                                                    Margin="0,8,0,0"
+                                                    HorizontalAlignment="Stretch"
+                                                    Background="{DynamicResource VP.TextTertiaryBrush}"
+                                                    Opacity="0.45" />
+                                        </Grid>
 
                                     <!-- Message bubble -->
                                     <Border Padding="12,9"
+                                            MaxWidth="{Binding ActualWidth, ElementName=MessagesScrollViewer, Converter={StaticResource SubtractConverter}}"
                                             CornerRadius="18"
                                             x:Name="BubbleBorder">
                                         <Border.Style>
@@ -636,6 +684,9 @@
                                                     </DataTrigger>
                                                     <DataTrigger Binding="{Binding IsError}" Value="True">
                                                         <Setter Property="Background" Value="#33FF453A" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Sender}" Value="{x:Static enums:ChatSender.System}">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
@@ -800,6 +851,53 @@
                                                         </Style>
                                                     </TextBlock.Style>
                                                 </TextBlock>
+                                                <Grid x:Name="OperationStatusPanel"
+                                                      HorizontalAlignment="Stretch"
+                                                      Margin="0,8,0,0">
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                    </Grid.RowDefinitions>
+                                                    <Grid.Style>
+                                                        <Style TargetType="Grid">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding HasOperationStatus}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Sender}" Value="{x:Static enums:ChatSender.User}">
+                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Sender}" Value="{x:Static enums:ChatSender.System}">
+                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Grid.Style>
+                                                    <TextBlock Text="{Binding OperationStatusText}"
+                                                               FontSize="12"
+                                                               Foreground="{DynamicResource VP.TextTertiaryBrush}"
+                                                               HorizontalAlignment="Left" />
+                                                    <Border Grid.Row="1"
+                                                            Height="1"
+                                                            Margin="0,7,0,0"
+                                                            HorizontalAlignment="Stretch"
+                                                            Background="{DynamicResource VP.TextTertiaryBrush}"
+                                                            Opacity="0.22" />
+                                                    <FlowDocumentScrollViewer Grid.Row="2"
+                                                                              Document="{Binding OperationResultText, Converter={StaticResource MarkdownConverter}}"
+                                                                              Margin="0,8,0,0"
+                                                                              VerticalScrollBarVisibility="Disabled"
+                                                                              HorizontalScrollBarVisibility="Disabled"
+                                                                              FontSize="13"
+                                                                              Foreground="{DynamicResource VP.TextPrimaryBrush}"
+                                                                              Background="Transparent"
+                                                                              IsSelectionEnabled="True"
+                                                                              IsToolBarVisible="False"
+                                                                              Zoom="100"
+                                                                              Visibility="{Binding HasOperationResult, Converter={StaticResource BoolToVis}}" />
+                                                </Grid>
                                                 <!-- AI interaction card -->
                                                 <Border Margin="0,8,0,0"
                                                         Padding="10"
@@ -871,6 +969,19 @@
                                                                      TextWrapping="Wrap"
                                                                      AcceptsReturn="True"
                                                                      Visibility="{Binding HasStatusText, Converter={StaticResource BoolToVis}}" />
+                                                            <StackPanel Margin="0,10,0,0"
+                                                                        Visibility="{Binding IsPending, Converter={StaticResource BoolToVis}}">
+                                                                <TextBlock Text="{loc:Loc CopilotCardUserNotesLabel}"
+                                                                           FontSize="11"
+                                                                           Foreground="{DynamicResource VP.TextTertiaryBrush}" />
+                                                                <TextBox Text="{Binding UserNotes, UpdateSourceTrigger=PropertyChanged}"
+                                                                         Margin="0,4,0,0"
+                                                                         MinHeight="34"
+                                                                         MaxHeight="76"
+                                                                         AcceptsReturn="True"
+                                                                         TextWrapping="Wrap"
+                                                                         Style="{DynamicResource VP.TextBox}" />
+                                                            </StackPanel>
                                                             <StackPanel Orientation="Horizontal"
                                                                         HorizontalAlignment="Right"
                                                                         Margin="0,10,0,0"
@@ -893,20 +1004,15 @@
 
                                             </StackPanel>
 
-                                            <!-- Copy button for AI messages (bottom-left) -->
-                                            <Border x:Name="AiCopyButtonBorder"
-                                                    Grid.Row="1" Grid.Column="0"
-                                                    HorizontalAlignment="Left"
-                                                    Margin="0,4,0,0"
-                                                    Cursor="Hand"
-                                                    Opacity="0"
-                                                    Background="Transparent"
-                                                    MouseLeftButtonDown="CopyButton_MouseLeftButtonDown"
-                                                    MouseEnter="CopyButton_MouseEnter"
-                                                    MouseLeave="CopyButton_MouseLeave"
-                                                    ToolTip="{loc:Loc CopyMessageToolTip}">
-                                                <Border.Style>
-                                                    <Style TargetType="Border">
+                                            <!-- Copy button and completion time for AI messages (bottom-left) -->
+                                            <StackPanel x:Name="AiMessageActions"
+                                                        Grid.Row="1" Grid.Column="0"
+                                                        Orientation="Horizontal"
+                                                        HorizontalAlignment="Left"
+                                                        Margin="0,4,0,0"
+                                                        Opacity="0">
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
                                                         <Setter Property="Visibility" Value="Collapsed" />
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding Sender}" Value="{x:Static enums:ChatSender.Assistant}">
@@ -920,17 +1026,31 @@
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
-                                                </Border.Style>
-                                                <Canvas Width="14" Height="14">
-                                                    <Path x:Name="AiCopyIcon"
-                                                          Data="M6.2513 6.24935V2.91602H17.0846V13.7493H13.7513M13.7513 6.24935V17.0827H2.91797V6.24935H13.7513Z"
-                                                          Stroke="White"
-                                                          StrokeThickness="1.5"
-                                                          StrokeStartLineCap="Round"
-                                                          StrokeEndLineCap="Round"
-                                                          Opacity="0.6" />
-                                                </Canvas>
-                                            </Border>
+                                                </StackPanel.Style>
+                                                <Border x:Name="AiCopyButtonBorder"
+                                                        Cursor="Hand"
+                                                        Background="Transparent"
+                                                        MouseLeftButtonDown="CopyButton_MouseLeftButtonDown"
+                                                        MouseEnter="CopyButton_MouseEnter"
+                                                        MouseLeave="CopyButton_MouseLeave"
+                                                        ToolTip="{loc:Loc CopyMessageToolTip}">
+                                                    <Canvas Width="14" Height="14">
+                                                        <Path x:Name="AiCopyIcon"
+                                                              Data="M6.2513 6.24935V2.91602H17.0846V13.7493H13.7513M13.7513 6.24935V17.0827H2.91797V6.24935H13.7513Z"
+                                                              Stroke="White"
+                                                              StrokeThickness="1.5"
+                                                              StrokeStartLineCap="Round"
+                                                              StrokeEndLineCap="Round"
+                                                              Opacity="0.6" />
+                                                    </Canvas>
+                                                </Border>
+                                                <TextBlock Text="{Binding CompletedAtText}"
+                                                           FontSize="11"
+                                                           Foreground="{DynamicResource VP.TextTertiaryBrush}"
+                                                           VerticalAlignment="Center"
+                                                           Margin="10,0,0,0"
+                                                           Visibility="{Binding HasCompletedAtText, Converter={StaticResource BoolToVis}}" />
+                                            </StackPanel>
 
                                             <!-- Copy button for User messages (bottom-right) -->
                                             <Border x:Name="UserCopyButtonBorder"
@@ -972,6 +1092,8 @@
                                             </Border>
                                         </Grid>
                                     </Border>
+                                    </Grid>
+                                    </Grid>
                                 </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
@@ -982,3 +1104,11 @@
         </DockPanel>
     </Border>
 </UserControl>
+
+
+
+
+
+
+
+

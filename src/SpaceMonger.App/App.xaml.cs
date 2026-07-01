@@ -80,6 +80,7 @@ public partial class App : Application
         services.AddSingleton<IAgentTool, SummarizeSubtreeTool>();
         services.AddSingleton<IAgentTool, FindLargeFilesTool>();
         services.AddSingleton<IAgentTool, GetCopilotContextTool>();
+        services.AddSingleton<IAgentTool, ResolvePathTool>();
         services.AddSingleton<IAgentTool, ProposeCopilotActionTool>();
         services.AddSingleton<IAgentTool, ReadUnityRegistryContextTool>();
         services.AddSingleton<IAgentTool, ManageDiskSkillsTool>();

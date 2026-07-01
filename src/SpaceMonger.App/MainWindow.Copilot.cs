@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Windows;
+using SpaceMonger.App.Converters;
 using Microsoft.Extensions.DependencyInjection;
 using SpaceMonger.App.Localization;
 using SpaceMonger.App.Services.Copilot;
@@ -21,7 +22,7 @@ public partial class MainWindow : IAiDiskActionExecutor
     {
         return Dispatcher.InvokeAsync(async () => request.Kind switch
         {
-            AiActionKind.StartScan => await ExecuteCopilotScanAsync(request),
+            AiActionKind.StartScan => await ExecuteCopilotScanAsync(request, cancellationToken),
             AiActionKind.AnalyzeCleanup => await ExecuteCopilotAnalyzeCleanupAsync(request),
             AiActionKind.DiscoverUnityLibraries => await ExecuteCopilotDiscoverUnityLibrariesAsync(request, cancellationToken, progress),
             AiActionKind.NavigateToScannedPath => ExecuteCopilotNavigate(request),
@@ -165,9 +166,9 @@ public partial class MainWindow : IAiDiskActionExecutor
         }
     }
 
-    private async Task<AiActionResult> ExecuteCopilotScanAsync(AiActionRequest request)
+    private async Task<AiActionResult> ExecuteCopilotScanAsync(AiActionRequest request, CancellationToken cancellationToken)
     {
-        var path = request.Path?.Trim();
+        var path = string.IsNullOrWhiteSpace(request.Path) ? null : ScanPathResolver.Resolve(request.Path);
         if (string.IsNullOrWhiteSpace(path))
             return AiActionResult.Fail(Localized("Missing path to scan.", "缺少要扫描的路径。"));
 
@@ -182,7 +183,15 @@ public partial class MainWindow : IAiDiskActionExecutor
             return AiActionResult.Fail(Localized("This path cannot be scanned right now.", "当前路径暂时不能扫描。"), path);
 
         mainVm.ScanCommand.Execute(null);
-        await WaitForScanToFinishAsync(mainVm);
+        using var cancellationRegistration = cancellationToken.Register(() =>
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                if (mainVm.CancelScanCommand.CanExecute(null))
+                    mainVm.CancelScanCommand.Execute(null);
+            });
+        });
+        await WaitForScanToFinishAsync(mainVm, cancellationToken);
 
         return mainVm.CurrentSession is null
             ? AiActionResult.Fail(Localized("The scan did not produce a usable result.", "扫描没有产生可用结果。"), LocalizeScanProgress(mainVm.ScanProgressText))
@@ -244,12 +253,37 @@ public partial class MainWindow : IAiDiskActionExecutor
         var count = _recommendationsViewModel.Recommendations.Count;
         mainVm.ScanProgressText = L.Format("AnalysisCompleteStatus", count, count == 1 ? "" : "s");
         Log.Information("{Message}", mainVm.ScanProgressText);
-        return AiActionResult.Ok(Localized($"Cleanup recommendation analysis complete. Generated {count} recommendation{(count == 1 ? "" : "s") }.", $"推荐清理分析完成，共生成 {count} 条建议。"), mainVm.ScanProgressText);
+        return AiActionResult.Ok(
+            count > 0
+                ? Localized($"Generated {count} cleanup recommendation{(count == 1 ? "" : "s")}; review them in Recommendations.", $"已生成 {count} 条清理建议，已在“推荐清理”中展示。")
+                : Localized("Cleanup recommendation analysis complete; no cleanup candidates were found.", "推荐清理分析完成，未发现可推荐清理项。"),
+            BuildRecommendationSummary(_recommendationsViewModel.FilteredRecommendations.Count > 0
+                ? _recommendationsViewModel.FilteredRecommendations
+                : _recommendationsViewModel.Recommendations));
+    }
+
+    internal static string? BuildRecommendationSummary(IEnumerable<CleanupRecommendation> recommendations)
+    {
+        var topItems = recommendations
+            .Where(item => item.Size > 0 || !string.IsNullOrWhiteSpace(item.TargetPath))
+            .OrderByDescending(item => item.Size)
+            .Take(3)
+            .Select(item => $"- {Path.GetFileName(item.TargetPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))}: {FileSizeConverter.FormatSize(item.Size)}")
+            .ToList();
+
+        if (topItems.Count == 0)
+        {
+            return null;
+        }
+
+        return Localized("Top items shown in Recommendations:", "推荐清理中显示的主要项目：")
+               + Environment.NewLine
+               + string.Join(Environment.NewLine, topItems);
     }
 
     private AiActionResult ExecuteCopilotNavigate(AiActionRequest request)
     {
-        var path = request.Path?.Trim();
+        var path = string.IsNullOrWhiteSpace(request.Path) ? null : ScanPathResolver.Resolve(request.Path);
         if (string.IsNullOrWhiteSpace(path))
             return AiActionResult.Fail(Localized("Missing path to locate.", "缺少要定位的路径。"));
 
@@ -303,11 +337,11 @@ public partial class MainWindow : IAiDiskActionExecutor
         return progressText;
     }
 
-    private static async Task WaitForScanToFinishAsync(MainViewModel mainVm)
+    private static async Task WaitForScanToFinishAsync(MainViewModel mainVm, CancellationToken cancellationToken)
     {
         while (mainVm.IsScanning)
         {
-            await Task.Delay(250);
+            await Task.Delay(250, cancellationToken);
         }
     }
 

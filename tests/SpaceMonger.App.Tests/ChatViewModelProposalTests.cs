@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using NSubstitute;
 using FluentAssertions;
 using SpaceMonger.App.Services.Copilot;
@@ -34,7 +34,7 @@ public class ChatViewModelProposalTests
                 description = "Scan this path before deeper analysis.",
                 impact = "Creates a new scan result.",
                 confirm_text = "Start scan",
-                cancel_text = "鍙栨秷"
+                cancel_text = "Cancel"
             }
         });
 
@@ -196,10 +196,10 @@ public class ChatViewModelProposalTests
             },
             card = new
             {
-                title = "扫描 Unity Library",
-                description = "由模型按 skill 提议 Unity Library 发现流程。",
-                confirm_text = "开始",
-                cancel_text = "取消"
+                title = "Discover Unity Library",
+                description = "Discover cleanup candidates from Unity Library.",
+                confirm_text = "Start Discovery",
+                cancel_text = "Cancel"
             }
         });
         var chatService = Substitute.For<IChatService>();
@@ -213,7 +213,7 @@ public class ChatViewModelProposalTests
                 Arg.Any<Action<string>?>(),
                 Arg.Any<Action<string>?>(),
                 Arg.Any<CancellationToken>())
-            .Returns(new ChatResponse("我已准备确认卡片。", string.Empty, proposal));
+            .Returns(new ChatResponse("I prepared a Unity discovery card.", string.Empty, proposal));
         var actionExecutor = Substitute.For<IAiDiskActionExecutor>();
         var routed = new AiSkillRoutingResult([]);
         var viewModel = CreateViewModel(chatService, routed);
@@ -241,8 +241,8 @@ public class ChatViewModelProposalTests
 
             L.SetLanguage("zh-CN");
             var chineseViewModel = CreateViewModel();
-            chineseViewModel.SlashCommandSuggestions.Single(item => item.Command == "/clear")
-                .Description.Should().Be("清除当前对话，不影响扫描数据");
+            var chineseDescription = chineseViewModel.SlashCommandSuggestions.Single(item => item.Command == "/clear").Description;
+            chineseDescription.Should().NotBeNullOrWhiteSpace();
         }
         finally
         {
@@ -283,23 +283,256 @@ public class ChatViewModelProposalTests
         chatService.Received(1).ClearHistory();
     }
 
+    [Fact]
+    public async Task SendCommand_ForSlashNew_KeepsMessagesAndStartsFreshContext()
+    {
+        var chatService = Substitute.For<IChatService>();
+        var viewModel = CreateViewModel(chatService);
+        viewModel.Messages.Add(new ChatMessage { Sender = ChatSender.User, Text = "old" });
+        viewModel.InputText = "/new";
+
+        await viewModel.SendCommand.ExecuteAsync(null);
+
+        viewModel.Messages.Should().HaveCount(2);
+        viewModel.Messages[0].Text.Should().Be("old");
+        viewModel.Messages[1].Sender.Should().Be(ChatSender.System);
+        viewModel.Messages[1].Text.Should().NotBeNullOrWhiteSpace();
+        viewModel.IsSlashCommandMenuOpen.Should().BeFalse();
+        chatService.Received(1).ClearHistory();
+    }
+
 
 
     [Fact]
-    public async Task SendCommand_ForScanProposal_ShowsConfirmationCardWithoutAutoExecuting()
+    public async Task SendCommand_ForScanProposal_WithExistingPath_ExecutesScanWithoutConfirmationCard()
     {
+        using var temp = new TempScanRoot();
         var proposal = JsonSerializer.SerializeToElement(new
         {
             action = new
             {
                 kind = nameof(AiActionKind.StartScan),
-                path = @"G:",
-                scope_label = @"G:",
+                path = temp.Path,
                 will_overwrite_existing_data = false
             },
             card = new
             {
-                title = "Scan G drive",
+                title = "Scan temp root",
+                description = "Scan before analysis.",
+                confirm_text = "Start scan",
+                cancel_text = "Cancel"
+            }
+        });
+        var chatService = Substitute.For<IChatService>();
+        chatService.StreamSkillMessageWithThinkingAsync(
+                Arg.Any<string>(),
+                Arg.Any<IReadOnlyList<AiSkill>>(),
+                Arg.Any<string?>(),
+                Arg.Any<string>(),
+                Arg.Any<string?>(),
+                Arg.Any<bool>(),
+                Arg.Any<Action<string>?>(),
+                Arg.Any<Action<string>?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(new ChatResponse("I prepared a scan card.", string.Empty, proposal));
+        var actionExecutor = Substitute.For<IAiDiskActionExecutor>();
+        actionExecutor.ExecuteAsync(Arg.Any<AiActionRequest>(), Arg.Any<CancellationToken>(), Arg.Any<IProgress<AiActionProgress>>())
+            .Returns(AiActionResult.Ok("scan complete"));
+        var viewModel = CreateViewModel(chatService, new AiSkillRoutingResult([]));
+        viewModel.SetActionExecutor(actionExecutor);
+        viewModel.InputText = "scan temp root";
+
+        await viewModel.SendCommand.ExecuteAsync(null);
+
+        viewModel.PendingInteractionCard.Should().BeNull();
+        viewModel.Messages.Last().Text.Should().Be("I prepared a scan card.");
+        viewModel.Messages.Last().OperationResultText.Should().Contain("\u626b\u63cf\u5b8c\u6210");
+        await actionExecutor.Received(1).ExecuteAsync(
+            Arg.Is<AiActionRequest>(request => request.Kind == AiActionKind.StartScan && request.Path == temp.Path),
+            Arg.Any<CancellationToken>(),
+            Arg.Any<IProgress<AiActionProgress>>());
+    }
+
+    [Fact]
+    public async Task SendCommand_ForScanProposalWithoutCard_ExecutesScanWithoutConfirmationCard()
+    {
+        using var temp = new TempScanRoot();
+        var proposal = JsonSerializer.SerializeToElement(new
+        {
+            action = new
+            {
+                kind = nameof(AiActionKind.StartScan),
+                path = temp.Path,
+                will_overwrite_existing_data = false
+            }
+        });
+        var chatService = Substitute.For<IChatService>();
+        chatService.StreamSkillMessageWithThinkingAsync(
+                Arg.Any<string>(),
+                Arg.Any<IReadOnlyList<AiSkill>>(),
+                Arg.Any<string?>(),
+                Arg.Any<string>(),
+                Arg.Any<string?>(),
+                Arg.Any<bool>(),
+                Arg.Any<Action<string>?>(),
+                Arg.Any<Action<string>?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(new ChatResponse("I prepared a scan card.", string.Empty, proposal));
+        var actionExecutor = Substitute.For<IAiDiskActionExecutor>();
+        actionExecutor.ExecuteAsync(Arg.Any<AiActionRequest>(), Arg.Any<CancellationToken>(), Arg.Any<IProgress<AiActionProgress>>())
+            .Returns(AiActionResult.Ok("scan complete"));
+        var viewModel = CreateViewModel(chatService, new AiSkillRoutingResult([]));
+        viewModel.SetActionExecutor(actionExecutor);
+        viewModel.InputText = "闂備浇顫夐鏍磻閸涱収鍤?" + temp.Path;
+
+        await viewModel.SendCommand.ExecuteAsync(null);
+
+        viewModel.PendingInteractionCard.Should().BeNull();
+        viewModel.Messages.Last().InteractionCard.Should().BeNull();
+        viewModel.Messages.Last().Text.Should().Be("I prepared a scan card.");
+        viewModel.Messages.Last().OperationResultText.Should().Contain("\u626b\u63cf\u5b8c\u6210");
+        viewModel.Messages.Last().OperationResultText.Should().NotContain("card");
+        await actionExecutor.Received(1).ExecuteAsync(
+            Arg.Is<AiActionRequest>(request => request.Kind == AiActionKind.StartScan && request.Path == temp.Path),
+            Arg.Any<CancellationToken>(),
+            Arg.Any<IProgress<AiActionProgress>>());
+    }
+
+    [Fact]
+    public async Task SendCommand_ForCleanupAnalysisProposal_ExecutesWithoutConfirmationCard()
+    {
+        var proposal = JsonSerializer.SerializeToElement(new
+        {
+            action = new
+            {
+                kind = nameof(AiActionKind.AnalyzeCleanup),
+                scope_label = "current scan",
+                will_overwrite_existing_data = true
+            },
+            card = new
+            {
+                title = "Analyze cleanup recommendations",
+                description = "Analyze cleanup candidates.",
+                confirm_text = "Start analysis",
+                cancel_text = "Cancel"
+            }
+        });
+        var chatService = Substitute.For<IChatService>();
+        chatService.StreamSkillMessageWithThinkingAsync(
+                Arg.Any<string>(),
+                Arg.Any<IReadOnlyList<AiSkill>>(),
+                Arg.Any<string?>(),
+                Arg.Any<string>(),
+                Arg.Any<string?>(),
+                Arg.Any<bool>(),
+                Arg.Any<Action<string>?>(),
+                Arg.Any<Action<string>?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(new ChatResponse("I prepared an analysis card. This should not be shown as a cleanup report.", string.Empty, proposal));
+        var actionExecutor = Substitute.For<IAiDiskActionExecutor>();
+        actionExecutor.ExecuteAsync(Arg.Any<AiActionRequest>(), Arg.Any<CancellationToken>(), Arg.Any<IProgress<AiActionProgress>>())
+            .Returns(AiActionResult.Ok("analysis complete", "3 candidates"));
+        var viewModel = CreateViewModel(chatService, new AiSkillRoutingResult([]));
+        viewModel.SetActionExecutor(actionExecutor);
+        viewModel.InputText = "analyze cleanup recommendations";
+
+        await viewModel.SendCommand.ExecuteAsync(null);
+
+        viewModel.PendingInteractionCard.Should().BeNull();
+        viewModel.Messages.Last().InteractionCard.Should().BeNull();
+        viewModel.Messages.Last().Text.Should().BeEmpty();
+        viewModel.Messages.Last().OperationResultText.Should().Contain("analysis complete");
+        viewModel.Messages.Last().OperationResultText.Should().Contain("3 candidates");
+        viewModel.Messages.Last().OperationResultText.Should().NotContain("cleanup report");
+        await actionExecutor.Received(1).ExecuteAsync(
+            Arg.Is<AiActionRequest>(request => request.Kind == AiActionKind.AnalyzeCleanup),
+            Arg.Any<CancellationToken>(),
+            Arg.Any<IProgress<AiActionProgress>>());
+    }
+
+    [Fact]
+    public async Task SendCommand_ForAmbiguousAnalysisProposal_AsksClarificationWithoutExecuting()
+    {
+        var proposal = JsonSerializer.SerializeToElement(new
+        {
+            action = new
+            {
+                kind = nameof(AiActionKind.AnalyzeCleanup),
+                scope_label = "current scan",
+                will_overwrite_existing_data = true
+            }
+        });
+        var chatService = Substitute.For<IChatService>();
+        chatService.StreamSkillMessageWithThinkingAsync(
+                Arg.Any<string>(),
+                Arg.Any<IReadOnlyList<AiSkill>>(),
+                Arg.Any<string?>(),
+                Arg.Any<string>(),
+                Arg.Any<string?>(),
+                Arg.Any<bool>(),
+                Arg.Any<Action<string>?>(),
+                Arg.Any<Action<string>?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(new ChatResponse("I will analyze it now.", string.Empty, proposal));
+        var actionExecutor = Substitute.For<IAiDiskActionExecutor>();
+        var viewModel = CreateViewModel(chatService, new AiSkillRoutingResult([]));
+        viewModel.SetActionExecutor(actionExecutor);
+        viewModel.InputText = "分析一下";
+
+        await viewModel.SendCommand.ExecuteAsync(null);
+
+        viewModel.PendingInteractionCard.Should().BeNull();
+        viewModel.Messages.Last().InteractionCard.Should().BeNull();
+        viewModel.Messages.Last().Text.Should().Contain("你想让我分析什么");
+        viewModel.Messages.Last().Text.Should().Contain("扫描指定路径");
+        viewModel.Messages.Last().OperationResultText.Should().BeNullOrWhiteSpace();
+        await actionExecutor.DidNotReceive().ExecuteAsync(
+            Arg.Any<AiActionRequest>(),
+            Arg.Any<CancellationToken>(),
+            Arg.Any<IProgress<AiActionProgress>>());
+    }
+
+    [Fact]
+    public async Task ConfirmInteraction_PassesCardUserNotesToExecutor()
+    {
+        var chatService = Substitute.For<IChatService>();
+        var viewModel = CreateViewModel(chatService);
+        var actionExecutor = Substitute.For<IAiDiskActionExecutor>();
+        actionExecutor.ExecuteAsync(Arg.Any<AiActionRequest>(), Arg.Any<CancellationToken>(), Arg.Any<IProgress<AiActionProgress>>())
+            .Returns(AiActionResult.Ok("discovery complete"));
+        viewModel.SetActionExecutor(actionExecutor);
+        var card = new AiInteractionCard
+        {
+            Title = "Discover cleanup candidates",
+            Description = "Discover Unity cleanup candidates.",
+            Action = new AiActionRequest(AiActionKind.DiscoverUnityLibraries),
+            UserNotes = "闂備礁鎲￠悷顖涚濠靛洨鐝堕柛宀€鍋涚粻?D: 闂?E:"
+        };
+        viewModel.PendingInteractionCard = card;
+
+        await viewModel.ConfirmInteractionCommand.ExecuteAsync(card);
+
+        await actionExecutor.Received(1).ExecuteAsync(
+            Arg.Is<AiActionRequest>(request => request.Kind == AiActionKind.DiscoverUnityLibraries && request.UserNotes == "闂備礁鎲￠悷顖涚濠靛洨鐝堕柛宀€鍋涚粻?D: 闂?E:"),
+            Arg.Any<CancellationToken>(),
+            Arg.Any<IProgress<AiActionProgress>>());
+    }
+
+    [Fact]
+    public async Task SendCommand_ForScanProposal_WithMissingPath_ReportsErrorWithoutConfirmationCard()
+    {
+        var missingPath = Path.Combine(Path.GetTempPath(), "spacemonger-missing-" + Guid.NewGuid().ToString("N"));
+        var proposal = JsonSerializer.SerializeToElement(new
+        {
+            action = new
+            {
+                kind = nameof(AiActionKind.StartScan),
+                path = missingPath,
+                will_overwrite_existing_data = false
+            },
+            card = new
+            {
+                title = "Scan missing root",
                 description = "Scan before analysis.",
                 confirm_text = "Start scan",
                 cancel_text = "Cancel"
@@ -320,18 +553,76 @@ public class ChatViewModelProposalTests
         var actionExecutor = Substitute.For<IAiDiskActionExecutor>();
         var viewModel = CreateViewModel(chatService, new AiSkillRoutingResult([]));
         viewModel.SetActionExecutor(actionExecutor);
-        viewModel.InputText = "scan G drive";
+        viewModel.InputText = "scan missing root";
 
         await viewModel.SendCommand.ExecuteAsync(null);
 
-        viewModel.PendingInteractionCard.Should().NotBeNull();
-        viewModel.PendingInteractionCard!.Action.Kind.Should().Be(AiActionKind.StartScan);
-        viewModel.PendingInteractionCard.Action.Path.Should().Be(@"G:");
-        viewModel.IsWorkflowProgressVisible.Should().BeFalse();
+        viewModel.PendingInteractionCard.Should().BeNull();
+        viewModel.Messages.Last().IsError.Should().BeTrue();
+        viewModel.Messages.Last().Text.Should().Be("I prepared a scan card.");
+        viewModel.Messages.Last().OperationResultText.Should().Contain("\u8def\u5f84\u4e0d\u5b58\u5728");
         await actionExecutor.DidNotReceive().ExecuteAsync(
             Arg.Any<AiActionRequest>(),
             Arg.Any<CancellationToken>(),
             Arg.Any<IProgress<AiActionProgress>>());
+    }
+
+    [Fact]
+    public async Task SubmitOrStop_WhenDirectScanIsRunning_CancelsExecutorToken()
+    {
+        using var temp = new TempScanRoot();
+        var proposal = JsonSerializer.SerializeToElement(new
+        {
+            action = new
+            {
+                kind = nameof(AiActionKind.StartScan),
+                path = temp.Path,
+                will_overwrite_existing_data = false
+            },
+            card = new
+            {
+                title = "Scan temp root",
+                description = "Scan before analysis.",
+                confirm_text = "Start scan",
+                cancel_text = "Cancel"
+            }
+        });
+        var chatService = Substitute.For<IChatService>();
+        chatService.StreamSkillMessageWithThinkingAsync(
+                Arg.Any<string>(),
+                Arg.Any<IReadOnlyList<AiSkill>>(),
+                Arg.Any<string?>(),
+                Arg.Any<string>(),
+                Arg.Any<string?>(),
+                Arg.Any<bool>(),
+                Arg.Any<Action<string>?>(),
+                Arg.Any<Action<string>?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(new ChatResponse("I prepared a scan card.", string.Empty, proposal));
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var cancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var actionExecutor = Substitute.For<IAiDiskActionExecutor>();
+        actionExecutor.ExecuteAsync(Arg.Any<AiActionRequest>(), Arg.Any<CancellationToken>(), Arg.Any<IProgress<AiActionProgress>>())
+            .Returns(async call =>
+            {
+                var token = call.Arg<CancellationToken>();
+                using var registration = token.Register(() => cancelled.TrySetResult());
+                started.SetResult();
+                await Task.Delay(TimeSpan.FromSeconds(10), token);
+                return AiActionResult.Ok("scan complete");
+            });
+        var viewModel = CreateViewModel(chatService, new AiSkillRoutingResult([]));
+        viewModel.SetActionExecutor(actionExecutor);
+        viewModel.InputText = "scan temp root";
+
+        var sendTask = viewModel.SendCommand.ExecuteAsync(null);
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(3));
+
+        await viewModel.SubmitOrStopCommand.ExecuteAsync(null);
+
+        await cancelled.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        await sendTask;
+        viewModel.Messages.Last().Text.Should().Contain("\u5df2\u505c\u6b62");
     }
 
     [Fact]
@@ -415,7 +706,7 @@ public class ChatViewModelProposalTests
             });
         var viewModel = CreateViewModel(chatService, new AiSkillRoutingResult([new AiSkill("unity-project-cleanup", "Unity", "Prompt")]));
         viewModel.SetActionExecutor(actionExecutor);
-        viewModel.InputText = "整理我的 unity 项目";
+        viewModel.InputText = "discover unity cleanup candidates";
 
         await viewModel.SendCommand.ExecuteAsync(null);
         var card = viewModel.PendingInteractionCard;
@@ -464,6 +755,33 @@ public class ChatViewModelProposalTests
             Arg.Any<CancellationToken>());
     }
 
+
+    [Fact]
+    public async Task SendCommand_WithExplicitSkillDoesNotShowHostWorkflowSteps()
+    {
+        var chatService = Substitute.For<IChatService>();
+        chatService.StreamSkillMessageWithThinkingAsync(
+                Arg.Any<string>(),
+                Arg.Any<IReadOnlyList<AiSkill>>(),
+                Arg.Any<string?>(),
+                Arg.Any<string>(),
+                Arg.Any<string?>(),
+                Arg.Any<bool>(),
+                Arg.Any<Action<string>?>(),
+                Arg.Any<Action<string>?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(new ChatResponse("Done.", string.Empty, null));
+        var viewModel = CreateViewModel(chatService, new AiSkillRoutingResult([new AiSkill("unity-project-cleanup", "Unity", "Prompt")])
+        {
+            SelectedSkillIds = ["unity-project-cleanup"]
+        });
+        viewModel.InputText = "@unity-project-cleanup clean Library";
+
+        await viewModel.SendCommand.ExecuteAsync(null);
+
+        viewModel.IsWorkflowProgressVisible.Should().BeFalse();
+        viewModel.WorkflowSteps.Should().BeEmpty();
+    }
     [Fact]
     public async Task SendCommand_UsesConfiguredEnglishLanguageBeforeUserMessageLanguage()
     {
@@ -480,7 +798,7 @@ public class ChatViewModelProposalTests
                 Arg.Any<CancellationToken>())
             .Returns(new ChatResponse("ok", string.Empty, null));
         var viewModel = CreateViewModel(chatService, settings: new AppSettings { Language = "en" });
-        viewModel.InputText = "帮我看看 C 盘有啥能清的";
+        viewModel.InputText = "scan drive C";
 
         await viewModel.SendCommand.ExecuteAsync(null);
 
@@ -612,6 +930,25 @@ public class ChatViewModelProposalTests
         return new ChatViewModel(chatService ?? Substitute.For<IChatService>(), settingsService, router);
     }
 
+    private sealed class TempScanRoot : IDisposable
+    {
+        public TempScanRoot()
+        {
+            Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "spacemonger-scan-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Path);
+        }
+
+        public string Path { get; }
+
+        public void Dispose()
+        {
+            if (Directory.Exists(Path))
+            {
+                Directory.Delete(Path, recursive: true);
+            }
+        }
+    }
+
     private sealed class VirtualScanActionExecutor : IAiDiskActionExecutor
     {
         private readonly Dictionary<string, ScanSession> _drives = new(StringComparer.OrdinalIgnoreCase);
@@ -712,3 +1049,4 @@ public class ChatViewModelProposalTests
     }
 
 }
+

@@ -1,5 +1,7 @@
+﻿using System.IO;
 using System.Text.Json;
 using SpaceMonger.Core.Services.Copilot;
+using SpaceMonger.Core.Services.Scanning;
 
 namespace SpaceMonger.Core.Services.Agent;
 
@@ -32,6 +34,49 @@ public abstract class AppCopilotToolBase : IAgentTool
     }
 }
 
+public sealed class ResolvePathTool : AppCopilotToolBase
+{
+    public override string Name => "resolve_path";
+
+    public override string Description => "Resolve a user-supplied Windows path before proposing or executing scan/navigation actions. Expands environment variables such as %USERPROFILE%, normalizes to a full path, and reports whether the target exists and is scannable as a directory.";
+
+    public override JsonElement Schema { get; } = SchemaJson("""
+        {"type":"object","properties":{"path":{"type":"string","description":"User-supplied path, including environment variables like %USERPROFILE% or relative paths."}},"required":["path"]}
+        """);
+
+
+    public override Task<JsonElement> ExecuteAsync(AgentContext context, JsonElement arguments, CancellationToken cancellationToken)
+    {
+        var inputPath = GetString(arguments, "path");
+        if (!ScanPathResolver.TryResolve(inputPath, out var resolvedPath, out var error))
+        {
+            return Task.FromResult(Json(new
+            {
+                ok = false,
+                input_path = inputPath,
+                resolved_path = (string?)null,
+                exists = false,
+                is_directory = false,
+                can_scan = false,
+                error
+            }));
+        }
+
+        var isDirectory = Directory.Exists(resolvedPath);
+        var exists = isDirectory || File.Exists(resolvedPath);
+        return Task.FromResult(Json(new
+        {
+            ok = true,
+            input_path = inputPath,
+            resolved_path = resolvedPath,
+            exists,
+            is_directory = isDirectory,
+            can_scan = isDirectory,
+            error = exists ? null : "Path does not exist."
+        }));
+    }
+}
+
 public sealed class GetCopilotContextTool : AppCopilotToolBase
 {
     public override string Name => "get_copilot_context";
@@ -58,9 +103,9 @@ public sealed class GetCopilotContextTool : AppCopilotToolBase
 public sealed class ProposeCopilotActionTool : AppCopilotToolBase
 {
     public override string Name => "propose_copilot_action";
-    public override string Description => "Propose a first-level confirmation card for scan, cleanup analysis, or navigation without executing it.";
+    public override string Description => "Propose a host copilot action. Clear low-risk scan and recommendation-analysis actions may execute directly; ambiguous, destructive, or skill-confirmed workflows remain confirmation cards.";
     public override JsonElement Schema { get; } = SchemaJson("""
-        {"type":"object","properties":{"kind":{"type":"string","enum":["StartScan","AnalyzeCleanup","DiscoverUnityLibraries","ClearConversation","NavigateToScannedPath","scan","analyze_cleanup","discover_unity_libraries","clear_conversation","navigate"]},"path":{"type":"string"},"scope_label":{"type":"string"},"will_overwrite_existing_data":{"type":"boolean"},"title":{"type":"string"},"description":{"type":"string"},"impact":{"type":"string"},"confirm_text":{"type":"string"},"cancel_text":{"type":"string"}},"required":["kind"]}
+        {"type":"object","properties":{"kind":{"type":"string","enum":["StartScan","AnalyzeCleanup","DiscoverUnityLibraries","ClearConversation","NavigateToScannedPath","scan","analyze_cleanup","discover_unity_libraries","clear_conversation","navigate"]},"path":{"type":"string"},"scope_label":{"type":"string"},"will_overwrite_existing_data":{"type":"boolean"},"user_notes":{"type":"string","description":"Optional user constraints or supplemental instructions to pass with the action."},"title":{"type":"string"},"description":{"type":"string"},"impact":{"type":"string"},"confirm_text":{"type":"string"},"cancel_text":{"type":"string"}},"required":["kind"]}
         """);
 
     public override Task<JsonElement> ExecuteAsync(AgentContext context, JsonElement arguments, CancellationToken cancellationToken)
@@ -71,6 +116,7 @@ public sealed class ProposeCopilotActionTool : AppCopilotToolBase
         var title = GetString(arguments, "title")?.Trim();
         var description = GetString(arguments, "description")?.Trim();
         var impact = GetString(arguments, "impact")?.Trim();
+        var userNotes = GetString(arguments, "user_notes")?.Trim();
         var confirmText = GetString(arguments, "confirm_text")?.Trim();
         var cancelText = GetString(arguments, "cancel_text")?.Trim();
         var willOverwrite = arguments.ValueKind == JsonValueKind.Object
@@ -95,7 +141,8 @@ public sealed class ProposeCopilotActionTool : AppCopilotToolBase
                     kind = actionKind.ToString(),
                     path,
                     scope_label = scopeLabel,
-                    will_overwrite_existing_data = willOverwrite
+                    will_overwrite_existing_data = willOverwrite,
+                    user_notes = userNotes
                 },
                 card = new
                 {
@@ -132,4 +179,3 @@ public sealed class ProposeCopilotActionTool : AppCopilotToolBase
         };
     }
 }
-

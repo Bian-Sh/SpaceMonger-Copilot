@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Globalization;
 using SpaceMonger.Core.Enums;
 using SpaceMonger.Core.Services.Copilot;
 
@@ -11,6 +12,9 @@ public class ChatMessage : INotifyPropertyChanged
     private string _thinking = string.Empty;
     private bool _isError;
     private bool _isStreaming;
+    private string _operationStatusText = string.Empty;
+    private string _operationResultText = string.Empty;
+    private string _completedAtText = string.Empty;
     private bool _isThinkingExpanded;
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -36,6 +40,23 @@ public class ChatMessage : INotifyPropertyChanged
 
     public DateTime Timestamp { get; set; }
 
+    public string OperationStatusText
+    {
+        get => _operationStatusText;
+        set { _operationStatusText = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasOperationStatus)); }
+    }
+
+    public string OperationResultText
+    {
+        get => _operationResultText;
+        set { _operationResultText = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasOperationResult)); }
+    }
+
+    public string CompletedAtText
+    {
+        get => _completedAtText;
+        set { _completedAtText = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasCompletedAtText)); }
+    }
     public FileEntry? LinkedEntry { get; set; }
 
     public CleanupRecommendation? LinkedRecommendation { get; set; }
@@ -65,11 +86,21 @@ public class ChatMessage : INotifyPropertyChanged
 
     public bool HasText => !string.IsNullOrWhiteSpace(Text);
     public bool HasThinking => !string.IsNullOrWhiteSpace(Thinking);
+    public bool HasOperationStatus => !string.IsNullOrWhiteSpace(OperationStatusText);
+    public bool HasOperationResult => !string.IsNullOrWhiteSpace(OperationResultText);
+    public bool HasCompletedAtText => !string.IsNullOrWhiteSpace(CompletedAtText);
 
+    public void MarkCompletedAt(DateTime completedAt)
+    {
+        Timestamp = completedAt;
+        CompletedAtText = completedAt.ToString("HH:mm", CultureInfo.CurrentCulture);
+    }
     private void OnPropertyChanged([CallerMemberName] string? name = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 }
+
+
 
 

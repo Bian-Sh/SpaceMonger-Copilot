@@ -843,4 +843,20 @@
   </data>
   <data name="CopilotCardDefaultCancel" xml:space="preserve">
     <value>取消</value>
-  </data></root>
+  </data>
+  <data name="ChatOperationRunningStatus" xml:space="preserve">
+    <value>已处理 {0}</value>
+  </data>
+  <data name="ChatOperationCompleteStatus" xml:space="preserve">
+    <value>完成，耗时 {0}</value>
+  </data>
+  <data name="ChatOperationStoppedStatus" xml:space="preserve">
+    <value>已停止，耗时 {0}</value>
+  </data>
+  <data name="ChatOperationFailedStatus" xml:space="preserve">
+    <value>失败，耗时 {0}</value>
+  </data>
+  <data name="CopilotCardUserNotesLabel" xml:space="preserve">
+    <value>补充说明（可选）</value>
+  </data>
+</root>

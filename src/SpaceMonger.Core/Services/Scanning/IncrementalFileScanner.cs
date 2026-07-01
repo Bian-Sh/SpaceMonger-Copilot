@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using SpaceMonger.Core.Models;
 using SpaceMonger.Core.Services.Settings;
@@ -44,7 +44,7 @@ public partial class IncrementalFileScanner : IFileScanner
             await _pendingIndexBuild.ConfigureAwait(false);
         }
 
-        var fullPath = Path.GetFullPath(path);
+        var fullPath = ScanPathResolver.Resolve(path);
         var scanWhitelist = _settingsService?.LoadSettings().ScanWhitelist ?? [];
         if (_whitelistMatcher.IsExcluded(fullPath, scanWhitelist))
         {
@@ -113,7 +113,7 @@ public partial class IncrementalFileScanner : IFileScanner
 
         // Full scan (first scan or fallback)
         _logger.LogInformation("Performing full scan via FileScanner");
-        var session = await _inner.ScanAsync(path, progress, cancellationToken).ConfigureAwait(false);
+        var session = await _inner.ScanAsync(fullPath, progress, cancellationToken).ConfigureAwait(false);
 
         if (!session.IsCancelled && session.RootEntry != null && volumeRoot != null)
         {

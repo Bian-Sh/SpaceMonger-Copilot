@@ -174,11 +174,11 @@ public partial class ChatPanel : UserControl
             var grid = FindChild<Grid>(border);
             if (grid != null)
             {
-                // Find AI copy button
-                var aiCopyBorder = FindChildByName<Border>(grid, "AiCopyButtonBorder");
-                if (aiCopyBorder != null && aiCopyBorder.Visibility == Visibility.Visible)
+                                // Find AI action row
+                var aiActions = FindChildByName<StackPanel>(grid, "AiMessageActions");
+                if (aiActions != null && aiActions.Visibility == Visibility.Visible)
                 {
-                    aiCopyBorder.Opacity = 1;
+                    aiActions.Opacity = 1;
                 }
 
                 // Find User copy button
@@ -198,10 +198,10 @@ public partial class ChatPanel : UserControl
             var grid = FindChild<Grid>(border);
             if (grid != null)
             {
-                var aiCopyBorder = FindChildByName<Border>(grid, "AiCopyButtonBorder");
-                if (aiCopyBorder != null)
+                var aiActions = FindChildByName<StackPanel>(grid, "AiMessageActions");
+                if (aiActions != null)
                 {
-                    aiCopyBorder.Opacity = 0;
+                    aiActions.Opacity = 0;
                 }
 
                 var userCopyBorder = FindChildByName<Border>(grid, "UserCopyButtonBorder");
@@ -334,4 +334,5 @@ public partial class ChatPanel : UserControl
         return null;
     }
 }
+
 

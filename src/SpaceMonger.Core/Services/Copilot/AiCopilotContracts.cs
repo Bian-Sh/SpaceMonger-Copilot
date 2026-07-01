@@ -54,7 +54,8 @@ public sealed record AiActionRequest(
     string? Path = null,
     string? RecommendationId = null,
     bool WillOverwriteExistingData = false,
-    string? ScopeLabel = null);
+    string? ScopeLabel = null,
+    string? UserNotes = null);
 
 public sealed record AiActionResult(
     bool Success,
@@ -74,6 +75,7 @@ public sealed class AiInteractionCard : INotifyPropertyChanged
 {
     private AiInteractionCardStatus _status = AiInteractionCardStatus.Pending;
     private string? _statusText;
+    private string? _userNotes;
     private bool _isBusy;
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -85,6 +87,20 @@ public sealed class AiInteractionCard : INotifyPropertyChanged
     public string CancelText { get; init; } = "取消";
     public string? FollowUpPrompt { get; init; }
     public required AiActionRequest Action { get; init; }
+
+    public string? UserNotes
+    {
+        get => _userNotes;
+        set
+        {
+            if (_userNotes == value)
+                return;
+
+            _userNotes = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasUserNotes));
+        }
+    }
 
     public AiInteractionCardStatus Status
     {
@@ -136,6 +152,7 @@ public sealed class AiInteractionCard : INotifyPropertyChanged
     public bool IsPending => Status == AiInteractionCardStatus.Pending && !IsBusy;
     public bool IsFinished => Status is AiInteractionCardStatus.Completed or AiInteractionCardStatus.Cancelled or AiInteractionCardStatus.Failed;
     public bool HasStatusText => !string.IsNullOrWhiteSpace(StatusText);
+    public bool HasUserNotes => !string.IsNullOrWhiteSpace(UserNotes);
     public string StatusIconState => IsBusy || Status == AiInteractionCardStatus.Running
         ? "running"
         : Status == AiInteractionCardStatus.Completed

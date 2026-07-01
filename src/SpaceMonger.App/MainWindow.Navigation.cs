@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -18,6 +18,7 @@ using SpaceMonger.App.Converters;
 using SpaceMonger.App.ViewModels;
 using SpaceMonger.App.Views;
 using SpaceMonger.Core.Models;
+using SpaceMonger.Core.Services.Scanning;
 using SpaceMonger.Core.Services.Cleanup;
 
 namespace SpaceMonger.App;
@@ -161,8 +162,8 @@ public partial class MainWindow
     }
     private void SwitchToEditMode()
     {
-        var path = _treemapViewModel?.CurrentRoot?.Path
-                   ?? (DataContext as MainViewModel)?.SelectedPath;
+        var path = ResolveDisplayPath(_treemapViewModel?.CurrentRoot?.Path
+                                      ?? (DataContext as MainViewModel)?.SelectedPath);
         if (path is not null)
         {
             PathEditTextBox.Text = path;
@@ -206,10 +207,10 @@ public partial class MainWindow
         {
             BreadcrumbBar.Children.Clear();
 
-            var currentPath = _displayPathOverride ?? _treemapViewModel?.CurrentRoot?.Path;
+            var currentPath = ResolveDisplayPath(_displayPathOverride ?? _treemapViewModel?.CurrentRoot?.Path);
             if (string.IsNullOrEmpty(currentPath))
             {
-                currentPath = (DataContext as MainViewModel)?.SelectedPath;
+                currentPath = ResolveDisplayPath((DataContext as MainViewModel)?.SelectedPath);
             }
             if (string.IsNullOrEmpty(currentPath))
                 return;
@@ -318,6 +319,13 @@ public partial class MainWindow
 
     private static string ThisPC => L.Text("ThisPCLabel");
 
+    private static string? ResolveDisplayPath(string? path)
+    {
+        return ScanPathResolver.TryResolve(path, out var resolvedPath, out _)
+            ? resolvedPath
+            : path?.Trim();
+    }
+
     private List<(string path, string name)> ParsePathSegments(string fullPath)
     {
         var result = new List<(string path, string name)>();
@@ -353,15 +361,31 @@ public partial class MainWindow
         if (currentRoot is null || !string.Equals(currentRoot.Path, fullPath, StringComparison.OrdinalIgnoreCase))
             return ParsePathSegments(fullPath).Select(s => (s.path, s.name, (FileEntry?)null)).ToList();
 
+        var parsedSegments = ParsePathSegments(fullPath);
         var entries = new Stack<FileEntry>();
         for (var entry = currentRoot; entry is not null; entry = entry.Parent)
             entries.Push(entry);
+
+        if (entries.Count < parsedSegments.Count - 1)
+        {
+            return parsedSegments
+                .Select(s => (s.path, s.name, BreadcrumbPathsEqual(s.path, currentRoot.Path) ? currentRoot : null))
+                .ToList();
+        }
 
         var result = new List<(string path, string name, FileEntry? entry)> { (ThisPCSentinel, ThisPC, null) };
         foreach (var entry in entries)
             result.Add((entry.Path, string.IsNullOrWhiteSpace(entry.Name) ? entry.Path : entry.Name, entry));
 
         return result;
+    }
+
+    private static bool BreadcrumbPathsEqual(string left, string right)
+    {
+        return string.Equals(
+            left.TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar),
+            right.TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar),
+            StringComparison.OrdinalIgnoreCase);
     }
     private void BreadcrumbSegment_Click(object sender, RoutedEventArgs e)
     {
@@ -546,6 +570,7 @@ public partial class MainWindow
     /// </summary>
     private void NavigateToPathOrSelect(string path, bool updateSelectedPath = true)
     {
+        path = ResolveDisplayPath(path) ?? path;
         _displayPathOverride = null;
 
         if (_treemapViewModel is not null)

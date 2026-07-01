@@ -1,4 +1,4 @@
-﻿using System.IO.Enumeration;
+using System.IO.Enumeration;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -37,6 +37,7 @@ public class FileScanner : IFileScanner
         IProgress<ScanProgress> progress,
         CancellationToken cancellationToken)
     {
+        path = ScanPathResolver.Resolve(path);
         _logger.LogInformation("Full scan starting for {Path}", path);
 
         var session = new ScanSession

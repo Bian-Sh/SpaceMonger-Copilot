@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
@@ -446,13 +446,16 @@
     <value />
   </data>
   <data name="SlashCommandNewDescription" xml:space="preserve">
-    <value>Start a new chat and clear the current chat context</value>
+    <value>Start a new session while keeping previous messages visible</value>
   </data>
   <data name="SlashCommandClearDescription" xml:space="preserve">
     <value>Clear the current chat without changing scanned data</value>
   </data>
   <data name="SlashCommandClearConsoleDescription" xml:space="preserve">
     <value>Clear the console log shown in the app</value>
+  </data>
+  <data name="ChatNewSessionDividerDescription" xml:space="preserve">
+    <value>New session started. Previous messages stay visible, but are no longer sent as context.</value>
   </data>
   <data name="ChatEmptyTitle" xml:space="preserve">
     <value>Chat assistant ready</value>
@@ -843,4 +846,20 @@
   </data>
   <data name="CopilotCardDefaultCancel" xml:space="preserve">
     <value>Cancel</value>
-  </data></root>
+  </data>
+  <data name="ChatOperationRunningStatus" xml:space="preserve">
+    <value>Processed {0}</value>
+  </data>
+  <data name="ChatOperationCompleteStatus" xml:space="preserve">
+    <value>Completed in {0}</value>
+  </data>
+  <data name="ChatOperationFailedStatus" xml:space="preserve">
+    <value>Failed after {0}</value>
+  </data>
+  <data name="ChatOperationStoppedStatus" xml:space="preserve">
+    <value>Stopped after {0}</value>
+  </data>
+  <data name="CopilotCardUserNotesLabel" xml:space="preserve">
+    <value>Additional instructions (optional)</value>
+  </data>
+</root>

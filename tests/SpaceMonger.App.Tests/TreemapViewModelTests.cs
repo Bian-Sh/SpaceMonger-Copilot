@@ -28,6 +28,21 @@ public class TreemapViewModelTests
         viewModel.CurrentRoot!.Children.Should().ContainSingle().Which.Should().BeSameAs(temp);
     }
 
+    [Fact]
+    public void NavigateToExternalPath_BuildsParentChainForBreadcrumb()
+    {
+        var rootPath = Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+        rootPath.Should().NotBeNullOrWhiteSpace();
+        var path = Path.Combine(rootPath!, "Users", "BianShanghai");
+        var rootName = rootPath!.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+        var viewModel = new TreemapViewModel(new StubTreemapLayoutEngine());
+        viewModel.NavigateToExternalPath(path);
+
+        viewModel.BreadcrumbPath.Should().Equal(rootName, "Users", "BianShanghai");
+        viewModel.CurrentRoot!.Parent!.Path.Should().Be(Path.Combine(rootPath!, "Users"));
+    }
+
     private static FileEntry Directory(string path, string name) => new()
     {
         Path = path,

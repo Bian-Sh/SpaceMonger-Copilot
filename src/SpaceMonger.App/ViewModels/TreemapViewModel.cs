@@ -211,17 +211,24 @@ public partial class TreemapViewModel : ObservableObject
     private static FileEntry CreateExternalEntry(string path)
     {
         var normalized = Path.GetFullPath(path.Trim());
+        var parentPath = Directory.GetParent(normalized)?.FullName;
+        var parent = parentPath is null ? null : CreateExternalEntry(parentPath);
         var trimmed = normalized.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         var name = Path.GetFileName(trimmed);
         if (string.IsNullOrEmpty(name))
             name = Path.GetPathRoot(normalized)?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) ?? normalized;
 
-        return new FileEntry
+        var entry = new FileEntry
         {
             Name = name,
             Path = normalized,
             IsDirectory = true,
+            Parent = parent,
+            Depth = parent is null ? 0 : parent.Depth + 1,
         };
+
+        parent?.Children.Add(entry);
+        return entry;
     }
 
     private static FileEntry? CreateExternalParent(string path)

@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using SpaceMonger.Core.Models;
 using SpaceMonger.Core.Services.Copilot;
@@ -202,14 +202,19 @@ public sealed class AgentRuntime : IAgentRuntime
         builder.AppendLine("- The host does not route natural-language intents with keyword enums; skills and model reasoning define the workflow, risk model, and next action proposal.");
         builder.AppendLine("- Treat built-in disk and registry capabilities as exposed tools, not app-side hardcoded cleanup policies.");
         builder.AppendLine("- Skills are injected only when explicitly mentioned with @skill or when the user's words match a skill's own declaration. Do not invent workflows outside the injected skill text.");
-        builder.AppendLine("- If no skill is injected but the user asks to scan, inspect disk usage, or create cleanup recommendations, use the generic disk tools and propose one confirmation card instead of asking repeated follow-up questions.");
+        builder.AppendLine("- If no skill is injected but the user asks to scan, inspect disk usage, or create cleanup recommendations, use the generic disk tools and host actions instead of asking repeated follow-up questions.");
+        builder.AppendLine("- Capability boundary: you cannot directly read the live filesystem, expand environment variables, validate path existence, start scans, navigate the UI, or delete files from prose alone. Use host tools for those actions.");
+        builder.AppendLine("- For any user-supplied path that may include environment variables, relative segments, or ambiguity, call resolve_path first. Use resolved_path in later tool calls and in your explanation.");
+        builder.AppendLine("- If resolve_path returns can_scan=true for an explicit scan request, call propose_copilot_action with kind=StartScan and the resolved_path. Do not tell the user to click a scan card or start button for clear low-risk scan requests; the host executes them directly.");
+        builder.AppendLine("- If resolve_path reports can_scan=false or an error, do not propose scanning. Explain the resolved path and why it cannot be scanned.");
         builder.AppendLine("- Call manage_disk_skills only to inspect/create/update/delete disk-management skills when the user asks for skill management.");
         builder.AppendLine("- For skill creation, first understand the user's intended workflow. Create/update only disk-management skills implementable with available SpaceMonger host tools; refuse non-disk or unsupported skill requests without calling internal tools.");
         builder.AppendLine("- If the user asks about a path/folder but there is no scan context or the target is outside the current scan, do not stop with an error.");
-        builder.AppendLine("- In that case, call get_copilot_context first, then call propose_copilot_action with kind=StartScan and the target path, and explain briefly that scanning is needed before deeper analysis.");
+        builder.AppendLine("- In that case, call get_copilot_context if current state matters, call resolve_path for the requested path, then call propose_copilot_action with kind=StartScan and the resolved path when can_scan=true.");
         builder.AppendLine("- If the user asks what a feature means or how to use it, answer directly; do not require a scan unless execution actually depends on one.");
         builder.AppendLine("- To create a first-level confirmation card, call the proposal tool instead of merely describing that a card could exist.");
-        builder.AppendLine("- When you have proposed an action card, still provide a short natural-language explanation in the final answer.");
+        builder.AppendLine("- Use confirmation cards for ambiguous requests, destructive/irreversible actions, and skill workflows that explicitly require user confirmation. Do not use them for clear low-risk scan or recommendation-analysis commands.");
+        builder.AppendLine("- After proposing a directly executable low-risk action, keep the final answer terse. Do not say a card is ready, do not mention a start button, and do not add unrelated guidance.");
         builder.AppendLine("- You MUST use tools for path lookup, name lookup, list children, subtree summary, largest files, or multi-step deep-dive requests.");
         builder.AppendLine("- Never claim to execute destructive commands, delete files, or move files. Tool calls can return observations or user-confirmed proposals; obey each tool risk level and schema.");
         builder.AppendLine("- Base path and size claims on provided context or tool observations.");
@@ -261,7 +266,7 @@ public sealed class AgentRuntime : IAgentRuntime
             var appOnlyContext = new
             {
                 scan_available = false,
-                note = "No scan has been provided for this turn. App-level proposal tools may be used for scan or discovery confirmation cards. Do not call file tree tools or claim scan data exists."
+                note = "No scan has been provided for this turn. App-level proposal tools may be used for directly executable scan proposals or confirmation-required discovery cards. Do not call file tree tools or claim scan data exists."
             };
 
             return $"App context JSON:\n{JsonSerializer.Serialize(appOnlyContext, AgentJson.Options)}\n\nUser question: {userMessage}";

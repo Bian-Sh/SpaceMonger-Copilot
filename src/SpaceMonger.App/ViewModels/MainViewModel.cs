@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
@@ -105,7 +105,8 @@ public partial class MainViewModel : ObservableObject
 
         if (string.IsNullOrWhiteSpace(scanTarget))
             return;
-        scanTarget = scanTarget.Trim();
+        scanTarget = ScanPathResolver.Resolve(scanTarget);
+        SelectedPath = scanTarget;
 
 
         _logger.LogInformation("Scan command started for {ScanTarget}", scanTarget);

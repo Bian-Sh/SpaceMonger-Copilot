@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using FluentAssertions;
 using NSubstitute;
 using SpaceMonger.Core.Models;
@@ -105,8 +105,33 @@ public class AgentRuntimeTests
         llm.LastSystemPrompt.Should().NotContain("Tools are read-only and query only the in-memory scan tree");
         llm.LastMessages.Should().ContainSingle(message =>
             message.role == "user" &&
-            message.content.Contains("App-level proposal tools may be used for scan or discovery confirmation cards") &&
+            message.content.Contains("App-level proposal tools may be used for directly executable scan proposals or confirmation-required discovery cards") &&
             !message.content.Contains("Answer explanatory app-guide or identity questions only"));
+    }
+
+    [Fact]
+    public async Task RunAsync_SystemPromptExplainsPathToolBoundary()
+    {
+        var llm = new CapturingLlmClient("ok");
+        var runtime = new AgentRuntime(llm, [new ResolvePathTool(), new ProposeCopilotActionTool()]);
+
+        await runtime.RunAsync(
+            null,
+            [],
+            "scan %USERPROFILE%",
+            [],
+            "en",
+            "key",
+            null,
+            enableThinking: false,
+            onThinkingToken: null,
+            CancellationToken.None);
+
+        llm.LastSystemPrompt.Should().Contain("Capability boundary");
+        llm.LastSystemPrompt.Should().Contain("call resolve_path first");
+        llm.LastSystemPrompt.Should().Contain("Use resolved_path in later tool calls");
+        llm.LastSystemPrompt.Should().Contain("can_scan=true");
+        llm.LastSystemPrompt.Should().Contain("do not propose scanning");
     }
 
     [Fact]

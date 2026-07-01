@@ -2,6 +2,7 @@
 using System.Collections.Specialized;
 using System.IO;
 using System.Text.Json;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
@@ -13,6 +14,7 @@ using SpaceMonger.Core.Models;
 using SpaceMonger.Core.Services.Chat;
 using SpaceMonger.Core.Services.Copilot;
 using SpaceMonger.Core.Services.Llm;
+using SpaceMonger.Core.Services.Scanning;
 using SpaceMonger.Core.Services.Settings;
 
 namespace SpaceMonger.App.ViewModels;
@@ -99,6 +101,7 @@ public partial class ChatViewModel : ObservableObject
 
     public bool HasPendingInteractionCard => PendingInteractionCard is not null;
     public bool HasWorkflowSteps => WorkflowSteps.Count > 0;
+    public bool ShouldShowWorkflowStepIndicator => WorkflowSteps.Count > 1;
     public string WorkflowProgressText => HasWorkflowSteps
         ? Localized($"Step {CurrentWorkflowStepNumber}/{WorkflowSteps.Count}", $"\u7b2c {CurrentWorkflowStepNumber}/{WorkflowSteps.Count} \u6b65")
         : string.Empty;
@@ -202,6 +205,10 @@ public partial class ChatViewModel : ObservableObject
             Timestamp = DateTime.Now,
             IsStreaming = true
         };
+        var operationStartedAt = DateTime.Now;
+        var operationStatus = "completed";
+        using var operationStatusCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var operationStatusTask = UpdateOperationStatusAsync(assistantMessage, operationStartedAt, operationStatusCancellation.Token);
         Messages.Add(assistantMessage);
 
         try
@@ -210,12 +217,6 @@ public partial class ChatViewModel : ObservableObject
             var baseUrl = settings.AnthropicBaseUrl;
             var modelUserInput = BuildModelUserInput(userInput, routed, LinkedEntry, LinkedRecommendation, _currentViewRoot, _currentSession, _actionExecutor.HasExistingRecommendations);
             var enableThinking = ShouldEnableThinking(settings, routed);
-            var showSelectedSkillWorkflow = routed.SelectedSkillIds.Count > 0;
-            if (showSelectedSkillWorkflow)
-            {
-                SetWorkflowPlan(BuildSelectedSkillWorkflowSteps(routed));
-                StartWorkflowStep(0);
-            }
 
             ChatResponse response;
 
@@ -251,7 +252,18 @@ public partial class ChatViewModel : ObservableObject
                     cancellationToken);
             }
 
+            if (string.IsNullOrWhiteSpace(assistantMessage.Text) && !string.IsNullOrWhiteSpace(response.Text))
+            {
+                assistantMessage.Text = response.Text;
+            }
+
+            if (await TryRunDirectActionProposalAsync(assistantMessage, response.Proposal, routed, userInput, cancellationToken))
+            {
+                return;
+            }
+
             ApplyProposalIfAny(assistantMessage, response.Proposal);
+
             if (response.Proposal.HasValue && assistantMessage.InteractionCard is null)
             {
                 _logger.LogWarning("Chat response contained a proposal that could not be converted to an interaction card: {Proposal}", response.Proposal.Value.GetRawText());
@@ -266,6 +278,7 @@ public partial class ChatViewModel : ObservableObject
         }
         catch (OperationCanceledException)
         {
+            operationStatus = "stopped";
             _logger.LogWarning("Chat operation cancelled");
             assistantMessage.IsStreaming = false;
             assistantMessage.IsError = true;
@@ -277,6 +290,7 @@ public partial class ChatViewModel : ObservableObject
         }
         catch (Exception ex)
         {
+            operationStatus = "failed";
             _logger.LogError(ex, "Chat operation failed");
             assistantMessage.IsStreaming = false;
             assistantMessage.IsError = true;
@@ -291,6 +305,15 @@ public partial class ChatViewModel : ObservableObject
         }
         finally
         {
+            operationStatusCancellation.Cancel();
+            try { await operationStatusTask; } catch (OperationCanceledException) { }
+            if (operationStatus == "completed" && assistantMessage.IsError)
+            {
+                operationStatus = "failed";
+            }
+            var operationCompletedAt = DateTime.Now;
+            assistantMessage.OperationStatusText = FormatOperationStatus(operationStatus, operationCompletedAt - operationStartedAt);
+            assistantMessage.MarkCompletedAt(operationCompletedAt);
             IsSending = false;
             FinishActiveOperation();
             if (!assistantMessage.IsStreaming)
@@ -298,6 +321,112 @@ public partial class ChatViewModel : ObservableObject
                 HideWorkflowProgress();
             }
         }
+    }
+
+
+    private async Task<bool> TryRunDirectActionProposalAsync(ChatMessage assistantMessage, JsonElement? proposal, AiSkillRoutingResult routed, string userInput, CancellationToken cancellationToken)
+    {
+        if (!TryGetActionRequest(proposal, out var action) || !ShouldExecuteProposalDirectly(action, routed))
+        {
+            return false;
+        }
+
+        action = ResolveActionPath(action);
+
+        if (action.Kind == AiActionKind.AnalyzeCleanup && !IsCleanupAnalysisIntentClear(userInput, action))
+        {
+            assistantMessage.InteractionCard = null;
+            assistantMessage.IsStreaming = false;
+            assistantMessage.Text = BuildAmbiguousAnalysisClarification();
+            HideWorkflowProgress();
+            return true;
+        }
+
+        if (action.Kind == AiActionKind.StartScan)
+        {
+            var path = action.Path;
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return false;
+            }
+
+            if (!Directory.Exists(path))
+            {
+                assistantMessage.InteractionCard = null;
+                assistantMessage.IsStreaming = false;
+                assistantMessage.IsError = true;
+                assistantMessage.OperationResultText = Localized($"Path not found or cannot be scanned: {path}", $"路径不存在或无法扫描：{path}");
+                return true;
+            }
+        }
+
+        assistantMessage.InteractionCard = null;
+        SetWorkflowPlan(BuildWorkflowSteps(action, null));
+        StartWorkflowStep(0);
+        var progress = new Progress<AiActionProgress>(ApplyWorkflowProgress);
+        var result = await _actionExecutor.ExecuteAsync(action, cancellationToken, progress);
+        CompleteWorkflowStep(0, result.Success);
+        assistantMessage.IsStreaming = false;
+        assistantMessage.IsError = !result.Success;
+        if (action.Kind == AiActionKind.AnalyzeCleanup && result.Success)
+        {
+            assistantMessage.Text = string.Empty;
+        }
+        assistantMessage.OperationResultText = FormatDirectActionResult(action, result);
+        if (!result.Success)
+        {
+            ErrorMessage = assistantMessage.OperationResultText;
+        }
+
+        return true;
+    }
+
+    private static bool ShouldExecuteProposalDirectly(AiActionRequest action, AiSkillRoutingResult routed)
+        => action.Kind is AiActionKind.StartScan or AiActionKind.AnalyzeCleanup
+           && !routed.SelectedSkillIds.Any(id => id.Contains("unity", StringComparison.OrdinalIgnoreCase));
+
+    private static bool IsCleanupAnalysisIntentClear(string userInput, AiActionRequest action)
+    {
+        if (action.Kind != AiActionKind.AnalyzeCleanup)
+        {
+            return true;
+        }
+
+        var text = string.Join(' ', userInput, action.ScopeLabel, action.UserNotes).ToLowerInvariant();
+        return text.Contains("清理", StringComparison.Ordinal)
+               || text.Contains("释放", StringComparison.Ordinal)
+               || text.Contains("可删", StringComparison.Ordinal)
+               || text.Contains("删除建议", StringComparison.Ordinal)
+               || text.Contains("推荐", StringComparison.Ordinal)
+               || text.Contains("垃圾", StringComparison.Ordinal)
+               || text.Contains("缓存", StringComparison.Ordinal)
+               || text.Contains("临时", StringComparison.Ordinal)
+               || text.Contains("cleanup", StringComparison.Ordinal)
+               || text.Contains("clean up", StringComparison.Ordinal)
+               || text.Contains("recommendation", StringComparison.Ordinal)
+               || text.Contains("free space", StringComparison.Ordinal)
+               || text.Contains("cache", StringComparison.Ordinal)
+               || text.Contains("temp", StringComparison.Ordinal);
+    }
+
+    private static string BuildAmbiguousAnalysisClarification()
+        => Localized(
+            "What would you like me to analyze? I can scan a specific path, generate cleanup recommendations for the current scan, or explain the selected folder/file.",
+            "你想让我分析什么？我可以扫描指定路径、为当前扫描生成推荐清理项，或解释选中的文件夹/文件。请明确一个方向后我再执行。");
+
+    private static string FormatDirectActionResult(AiActionRequest action, AiActionResult result)
+    {
+        if (!result.Success)
+        {
+            return result.Details is null ? result.Message : $"{result.Message}{Environment.NewLine}{result.Details}";
+        }
+
+        if (action.Kind == AiActionKind.StartScan && !string.IsNullOrWhiteSpace(action.Path))
+        {
+            return Localized($"Scan complete: {action.Path}", $"扫描完成：{action.Path}");
+        }
+
+        return result.Details is null ? result.Message : $"{result.Message}{Environment.NewLine}{result.Details}";
     }
 
     [RelayCommand]
@@ -395,7 +524,13 @@ public partial class ChatViewModel : ObservableObject
     private bool TryExecuteSlashCommand(string text)
     {
         var command = text.Trim().ToLowerInvariant();
-        if (command is "/new" or "/clear")
+        if (command == "/new")
+        {
+            StartNewConversationSegment();
+            return true;
+        }
+
+        if (command == "/clear")
         {
             ClearConversation();
             return true;
@@ -462,7 +597,8 @@ public partial class ChatViewModel : ObservableObject
 
             StartWorkflowStep(0);
             var progress = new Progress<AiActionProgress>(ApplyWorkflowProgress);
-            var result = await _actionExecutor.ExecuteAsync(card.Action, cancellationToken, progress);
+            var action = WithCardUserNotes(card.Action, card.UserNotes);
+            var result = await _actionExecutor.ExecuteAsync(action, cancellationToken, progress);
             if (card.Action.Kind != AiActionKind.DiscoverUnityLibraries)
             {
                 CompleteWorkflowStep(0, result.Success);
@@ -508,6 +644,36 @@ public partial class ChatViewModel : ObservableObject
         PendingInteractionCard = null;
     }
 
+    private static AiActionRequest WithCardUserNotes(AiActionRequest action, string? userNotes)
+        => string.IsNullOrWhiteSpace(userNotes) ? action : action with { UserNotes = userNotes.Trim() };
+
+    private static async Task UpdateOperationStatusAsync(ChatMessage message, DateTime startedAt, CancellationToken cancellationToken)
+    {
+        while (true)
+        {
+            message.OperationStatusText = FormatOperationStatus("running", DateTime.Now - startedAt);
+            await Task.Delay(1000, cancellationToken);
+        }
+    }
+
+    private static string FormatElapsedForRunning(TimeSpan elapsed)
+        => elapsed.TotalMinutes >= 1
+            ? $"{(int)elapsed.TotalMinutes}m {elapsed.Seconds}s"
+            : $"{Math.Max(0, (int)elapsed.TotalSeconds)}s";
+
+    private static string FormatOperationStatus(string status, TimeSpan elapsed)
+    {
+        var elapsedText = elapsed.TotalHours >= 1
+            ? $"{(int)elapsed.TotalHours:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}"
+            : $"{elapsed.Minutes:00}:{elapsed.Seconds:00}";
+        return status switch
+        {
+            "running" => L.Format("ChatOperationRunningStatus", FormatElapsedForRunning(elapsed)),
+            "stopped" => L.Format("ChatOperationStoppedStatus", elapsedText),
+            "failed" => L.Format("ChatOperationFailedStatus", elapsedText),
+            _ => L.Format("ChatOperationCompleteStatus", elapsedText)
+        };
+    }
     private void SetWorkflowPlan(IReadOnlyList<string> stepTitles)
     {
         WorkflowSteps = new ObservableCollection<CopilotWorkflowStep>(stepTitles.Select(title => new CopilotWorkflowStep(title)));
@@ -518,6 +684,7 @@ public partial class ChatViewModel : ObservableObject
         }
         IsWorkflowProgressVisible = WorkflowSteps.Count > 0;
         OnPropertyChanged(nameof(HasWorkflowSteps));
+        OnPropertyChanged(nameof(ShouldShowWorkflowStepIndicator));
         OnPropertyChanged(nameof(WorkflowProgressText));
         OnPropertyChanged(nameof(CurrentWorkflowIconState));
     }
@@ -532,6 +699,7 @@ public partial class ChatViewModel : ObservableObject
         }
         IsWorkflowProgressVisible = WorkflowSteps.Count > 0;
         OnPropertyChanged(nameof(HasWorkflowSteps));
+        OnPropertyChanged(nameof(ShouldShowWorkflowStepIndicator));
         OnPropertyChanged(nameof(WorkflowProgressText));
         OnPropertyChanged(nameof(CurrentWorkflowIconState));
     }
@@ -564,6 +732,7 @@ public partial class ChatViewModel : ObservableObject
             index = WorkflowSteps.Count - 1;
             OnPropertyChanged(nameof(HasWorkflowSteps));
             OnPropertyChanged(nameof(WorkflowProgressText));
+            OnPropertyChanged(nameof(ShouldShowWorkflowStepIndicator));
         }
 
         WorkflowSteps[index].Status = progress.Status switch
@@ -619,7 +788,8 @@ public partial class ChatViewModel : ObservableObject
 
     private static IReadOnlyList<string> BuildWorkflowSteps(AiActionRequest action, AiSkillRoutingResult? routed)
     {
-        var scope = action.ScopeLabel ?? action.Path ?? Localized("current scope", "当前范围");
+        action = ResolveActionPath(action);
+        var scope = action.ScopeLabel ?? action.Path ?? Localized("current scope", "褰撳墠鑼冨洿");
         return action.Kind switch
         {
             AiActionKind.StartScan =>
@@ -632,11 +802,11 @@ public partial class ChatViewModel : ObservableObject
             ],
             AiActionKind.NavigateToScannedPath =>
             [
-                Localized($"Navigate to {scope}", $"导航到 {scope}")
+                Localized($"Navigate to {scope}", $"瀵艰埅鍒?{scope}")
             ],
             _ =>
             [
-                Localized("Run confirmed action", "执行已确认的操作")
+                Localized("Run confirmed action", "鎵ц宸茬‘璁ょ殑鎿嶄綔")
             ]
         };
     }
@@ -653,7 +823,7 @@ public partial class ChatViewModel : ObservableObject
         if (!string.IsNullOrWhiteSpace(action.Path))
         {
             var scope = action.ScopeLabel ?? action.Path;
-            steps.Add(new WorkflowStepPlan("scan_scope:" + action.Path, Localized($"AI scans {scope} for cleanup candidates", $"AI 扫描 {scope} 中的清理候选项")));
+            steps.Add(new WorkflowStepPlan("scan_scope:" + action.Path, Localized($"AI scans {scope} for cleanup candidates", $"AI 鎵弿 {scope} 涓殑娓呯悊鍊欓€夐」")));
         }
         else
         {
@@ -662,21 +832,13 @@ public partial class ChatViewModel : ObservableObject
                 .OrderBy(drive => drive.Name, StringComparer.OrdinalIgnoreCase)
                 .Select(drive => new WorkflowStepPlan(
                     "scan_drive:" + drive.Name.TrimEnd('\\'),
-                    Localized($"AI scans {drive.Name} for cleanup candidates", $"AI 扫描 {drive.Name} 中的清理候选项"))));
+                    Localized($"AI scans {drive.Name} for cleanup candidates", $"AI 鎵弿 {drive.Name} 涓殑娓呯悊鍊欓€夐」"))));
         }
 
-        steps.Add(new WorkflowStepPlan("write_unity_recommendations", Localized("AI writes cleanup recommendations", "AI 写入清理建议")));
+        steps.Add(new WorkflowStepPlan("write_unity_recommendations", Localized("AI writes cleanup recommendations", "AI 鍐欏叆娓呯悊寤鸿")));
         return steps;
     }
 
-    private static IReadOnlyList<string> BuildSelectedSkillWorkflowSteps(AiSkillRoutingResult routed)
-    {
-        var label = string.Join(", ", routed.SelectedSkillIds.Select(id => $"@{id}"));
-        return [
-            Localized($"Run selected skill {label}", $"\u8fd0\u884c\u5df2\u9009\u62e9\u7684 skill {label}"),
-            Localized("Write guided response", "\u8f93\u51fa\u5f15\u5bfc\u5f0f\u56de\u590d")
-        ];
-    }
 
     private static string BuildModelUserInput(
         string userInput,
@@ -739,12 +901,13 @@ public partial class ChatViewModel : ObservableObject
 
     private static AiInteractionCard BuildInteractionCard(AiActionRequest action, string followUpPrompt)
     {
-        var scope = action.ScopeLabel ?? action.Path ?? Localized("current scope", "当前范围");
+        action = ResolveActionPath(action);
+        var scope = action.ScopeLabel ?? action.Path ?? Localized("current scope", "褰撳墠鑼冨洿");
         return action.Kind switch
         {
             AiActionKind.DiscoverUnityLibraries => new AiInteractionCard
             {
-                Title = Localized("Discover cleanup candidates", "发现清理候选项"),
+                Title = Localized("Discover cleanup candidates", "鍙戠幇娓呯悊鍊欓€夐」"),
                 Description = Localized("Scan ready drives one by one, detect candidates described by the selected skill, and write reviewable cleanup recommendations.", "依次扫描可用磁盘，按已选 skill 描述发现候选项，并写入可复核的清理建议。"),
                 Impact = action.WillOverwriteExistingData
                     ? Localized("This replaces the current recommendations list. Actual deletion still requires another confirmation.", "这会替换当前推荐列表；真正删除仍需要再次确认。")
@@ -818,37 +981,65 @@ public partial class ChatViewModel : ObservableObject
 
     public static void ApplyProposalIfAny(ChatMessage message, JsonElement? proposal)
     {
-        if (proposal is null || proposal.Value.ValueKind != JsonValueKind.Object) return;
-        var root = proposal.Value;
+        if (!TryGetActionRequest(proposal, out var request)) return;
+        if (!TryGetProposalRoot(proposal, out var root)) return;
+        root.TryGetProperty("card", out var card);
+        var hasCard = card.ValueKind == JsonValueKind.Object;
+
+        message.InteractionCard = new AiInteractionCard
+        {
+            Title = hasCard ? GetString(card, "title") ?? L.Text("CopilotCardDefaultTitle") : L.Text("CopilotCardDefaultTitle"),
+            Description = hasCard ? GetString(card, "description") ?? request.ScopeLabel ?? request.Path ?? L.Text("CopilotCardDefaultTitle") : request.ScopeLabel ?? request.Path ?? L.Text("CopilotCardDefaultTitle"),
+            Impact = hasCard ? GetString(card, "impact") : null,
+            ConfirmText = hasCard ? GetString(card, "confirm_text") ?? L.Text("CopilotCardDefaultConfirm") : L.Text("CopilotCardDefaultConfirm"),
+            CancelText = hasCard ? GetString(card, "cancel_text") ?? L.Text("CopilotCardDefaultCancel") : L.Text("CopilotCardDefaultCancel"),
+            UserNotes = request.UserNotes,
+            Action = request
+        };
+    }
+
+    private static bool TryGetActionRequest(JsonElement? proposal, out AiActionRequest request)
+    {
+        request = new AiActionRequest(AiActionKind.None);
+        if (!TryGetProposalRoot(proposal, out var root)) return false;
+        if (!root.TryGetProperty("action", out var action) || action.ValueKind != JsonValueKind.Object) return false;
+        if (!action.TryGetProperty("kind", out var kindElement) || kindElement.ValueKind != JsonValueKind.String) return false;
+
+        var actionKind = ResolveActionKind(kindElement.GetString());
+        if (actionKind == AiActionKind.None) return false;
+
+        request = ResolveActionPath(new AiActionRequest(
+            actionKind,
+            Path: GetString(action, "path"),
+            WillOverwriteExistingData: GetBool(action, "will_overwrite_existing_data"),
+            ScopeLabel: GetString(action, "scope_label"),
+            UserNotes: GetString(action, "user_notes")));
+        return true;
+    }
+
+    private static bool TryGetProposalRoot(JsonElement? proposal, out JsonElement root)
+    {
+        root = default;
+        if (proposal is null || proposal.Value.ValueKind != JsonValueKind.Object) return false;
+        root = proposal.Value;
         if (root.TryGetProperty("proposal", out var nestedProposal) && nestedProposal.ValueKind == JsonValueKind.Object)
         {
             root = nestedProposal;
         }
 
-        if (!root.TryGetProperty("action", out var action) || action.ValueKind != JsonValueKind.Object) return;
-        if (!root.TryGetProperty("card", out var card) || card.ValueKind != JsonValueKind.Object) return;
-        if (!action.TryGetProperty("kind", out var kindElement) || kindElement.ValueKind != JsonValueKind.String) return;
-
-        var actionKind = ResolveActionKind(kindElement.GetString());
-        if (actionKind == AiActionKind.None) return;
-
-        var request = new AiActionRequest(
-            actionKind,
-            Path: GetString(action, "path"),
-            WillOverwriteExistingData: GetBool(action, "will_overwrite_existing_data"),
-            ScopeLabel: GetString(action, "scope_label"));
-
-        message.InteractionCard = new AiInteractionCard
-        {
-            Title = GetString(card, "title") ?? L.Text("CopilotCardDefaultTitle"),
-            Description = GetString(card, "description") ?? request.ScopeLabel ?? request.Path ?? "纾佺洏绌洪棿绠＄悊鍔ㄤ綔",
-            Impact = GetString(card, "impact"),
-            ConfirmText = GetString(card, "confirm_text") ?? L.Text("CopilotCardDefaultConfirm"),
-            CancelText = GetString(card, "cancel_text") ?? L.Text("CopilotCardDefaultCancel"),
-            Action = request
-        };
+        return true;
     }
 
+    private static AiActionRequest ResolveActionPath(AiActionRequest action)
+    {
+        if (action.Kind is not (AiActionKind.StartScan or AiActionKind.NavigateToScannedPath)
+            || string.IsNullOrWhiteSpace(action.Path))
+        {
+            return action;
+        }
+
+        return action with { Path = ScanPathResolver.Resolve(action.Path) };
+    }
     private static AiActionKind ResolveActionKind(string? kind)
     {
         if (string.IsNullOrWhiteSpace(kind)) return AiActionKind.None;
@@ -881,12 +1072,36 @@ public partial class ChatViewModel : ObservableObject
         IsWorkflowProgressVisible = false;
         WorkflowSteps.Clear();
         OnPropertyChanged(nameof(HasWorkflowSteps));
+        OnPropertyChanged(nameof(ShouldShowWorkflowStepIndicator));
         OnPropertyChanged(nameof(WorkflowProgressText));
         OnPropertyChanged(nameof(CurrentWorkflowIconState));
         LinkedEntry = null;
         LinkedRecommendation = null;
         LinkedItemPath = null;
         ErrorMessage = null;
+    }
+
+    private void StartNewConversationSegment()
+    {
+        _logger.LogInformation("Chat conversation segment started; messages={MessageCount}", Messages.Count);
+        _chatService.ClearHistory();
+        PendingInteractionCard = null;
+        IsWorkflowProgressVisible = false;
+        WorkflowSteps.Clear();
+        OnPropertyChanged(nameof(HasWorkflowSteps));
+        OnPropertyChanged(nameof(ShouldShowWorkflowStepIndicator));
+        OnPropertyChanged(nameof(WorkflowProgressText));
+        OnPropertyChanged(nameof(CurrentWorkflowIconState));
+        LinkedEntry = null;
+        LinkedRecommendation = null;
+        LinkedItemPath = null;
+        ErrorMessage = null;
+        Messages.Add(new ChatMessage
+        {
+            Sender = ChatSender.System,
+            Text = L.Text("ChatNewSessionDividerDescription"),
+            Timestamp = DateTime.Now
+        });
     }
 
     [RelayCommand]
@@ -934,6 +1149,12 @@ public enum CopilotWorkflowStepStatus
 public sealed record ChatCommandSuggestion(string Command, string Description);
 
 public sealed record ChatSkillSuggestion(string Mention, string DisplayName, string Description);
+
+
+
+
+
+
 
 
 
